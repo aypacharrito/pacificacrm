@@ -13,6 +13,11 @@ export function automatedSmsBody(body:string,businessName:string){
   const sender=businessName.trim();
   if(!sender)throw new Error("Add the business name before automated texting.");
   const footer=" Reply STOP to opt out. Reply HELP for help.";
-  const prefix=body.toLowerCase().includes(sender.toLowerCase())?"":`${sender}: `;
-  return prefix+body.trim().slice(0,Math.max(0,1500-prefix.length-footer.length))+footer;
+  // Templates and AI drafts can already contain our standard footer. Rebuild it
+  // once after reserving space; keep custom wording and other languages intact.
+  const plain=(value:string)=>value.replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...");
+  const clean=plain(body).replace(/\bReply STOP to opt out\./gi,"").replace(/\bReply HELP for help\./gi,"").replace(/\s+/g," ").trim();
+  const plainSender=plain(sender);
+  const prefix=clean.toLowerCase().includes(plainSender.toLowerCase())?"":`${plainSender}: `;
+  return prefix+clean.slice(0,Math.max(0,1500-prefix.length-footer.length)).trimEnd()+footer;
 }

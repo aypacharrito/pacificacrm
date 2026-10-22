@@ -1,6 +1,16 @@
 type Channel = "sms" | "email";
 type Contact = {id: number; phone: string; email: string; stage: string; doNotCall: boolean; smsOptOut?: boolean; emailOptOut?: boolean};
 type Sms = {direction: string; from?: string; body: string; sentAt: string};
+type InboxLead = {stage?:string;status?:string;outcome?:string};
+/** SMS Reply is the owner's Interested list; message traffic cannot promote a lead. */
+export function matchesConversationFilter(lead:InboxLead, channel:Channel, filter:string, closed:boolean, messages:{direction:string}[]) {
+  if (closed !== (filter === "closed")) return false;
+  if (filter === "replies") return channel === "sms"
+    ? [lead.stage,lead.status,lead.outcome].some(value => String(value || "").trim().toLowerCase() === "interested")
+    : messages.some(message => /inbound/i.test(message.direction));
+  if (filter === "sent") return messages.some(message => /outbound/i.test(message.direction));
+  return true;
+}
 const phoneKey = (value: string) => value.replace(/\D/g, "").slice(-10);
 export const isSmsStopReply = (value: string) => /^\s*(stop|stopall|unsubscribe|cancel|end|quit)\s*[.!]?\s*$/i.test(value);
 export const isSmsStartReply = (value: string) => /^\s*(start|yes|unstop)\s*[.!]?\s*$/i.test(value);

@@ -1,0 +1,97 @@
+/* Restrained workspace polish; keep the original palette, logo and layout. */
+html[data-theme] .app-shell .sidebar {
+  background:var(--ps-bg)!important; border-right:1px solid var(--ps-line)!important;
+}
+html[data-theme] .app-shell .sidebar nav button {
+  border:1px solid transparent!important; border-radius:10px!important;
+  transition:background-color 160ms ease,color 160ms ease,border-color 160ms ease;
+}
+html[data-theme] .app-shell .sidebar nav button.active {
+  background:var(--ps-surface-2)!important; border-color:var(--ps-line)!important;
+  color:var(--ps-text-strong)!important; box-shadow:none!important;
+}
+html[data-theme] .app-shell .sidebar nav button:hover {background:var(--ps-hover)!important}
+html[data-theme] .app-shell .workspace>.topbar {border-bottom:1px solid var(--ps-line)!important}
+html[data-theme] .app-shell :is(.module-bar,.dialer-toolbar) h1 {
+  letter-spacing:-.035em!important; font-weight:550!important;
+}
+/* Quiet surfaces with no decorative frames or shadows. */
+html[data-theme] .app-shell :is(.dialer-widget,.today-focus,.focus-list,.source-pulse,.folder-panel,.settings-card,.table-card,.client-table,.message-contacts,.message-thread) {
+  background:transparent!important; border:1px solid transparent!important;
+  border-radius:10px!important; box-shadow:none!important; backdrop-filter:none!important;
+}
+html[data-theme] .app-shell :is(.dialer-widget,.today-focus,.folder-panel,.settings-card):hover {
+  background:var(--ps-hover)!important; border-color:transparent!important;
+  box-shadow:none!important;
+}
+html[data-theme] .app-shell .dialer-layout.is-editing .dialer-widget,
+html[data-theme] .app-shell .dialer-widget.is-dragging {
+  border-color:var(--ps-line-strong)!important; outline:1px dashed var(--ps-line-strong)!important; outline-offset:3px;
+}
+html[data-theme] .app-shell .dialer-widget-content {border-radius:10px!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] {
+  border-color:transparent!important;
+}
+html[data-theme] .app-shell .conversation-workspace .contact-card .avatar {
+  border-radius:50%!important; background:var(--ps-accent-soft)!important; color:var(--ps-accent)!important;
+}
+html[data-theme] .app-shell .conversation-workspace .side-pad .pad-tools>small {
+  border-radius:20px!important; padding:4px 9px; background:var(--ps-accent-soft)!important; color:var(--ps-accent)!important;
+}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid {
+  grid-template-rows:repeat(4,60px); gap:8px!important;
+}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button {
+  border:1px solid transparent!important; border-radius:10px!important;
+  background:var(--ps-hover)!important; box-shadow:none!important;
+  transition:background-color 140ms ease,border-color 140ms ease;
+}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button:hover {
+  background:var(--ps-surface-3)!important; border-color:var(--ps-line-strong)!important;
+}
+html[data-theme] .app-shell :is(.call-controls,.phone-actions) button {border-radius:10px!important}
+html[data-theme] .app-shell .phone-actions .phone-call {
+  background:var(--ps-accent)!important; color:var(--ps-bg)!important; border:1px solid transparent!important;
+}
+html[data-theme="light"] .app-shell .phone-actions .phone-call {color:#fff!important}
+html[data-theme] .app-shell .phone-actions .phone-call:disabled {opacity:.45}
+html[data-theme] .app-shell .messages-layout {gap:16px}
+html[data-theme] .app-shell :is(.message-contacts>header,.message-thread>header) {
+  background:transparent!important; border-bottom:1px solid var(--ps-line)!important;
+}
+html[data-theme] .app-shell .message-contact-search {
+  background:var(--ps-hover)!important; border:1px solid var(--ps-line)!important; border-radius:10px!important;
+}
+html[data-theme] .app-shell .inbox-filters {
+  display:flex; gap:4px; padding:4px; background:var(--ps-bg); border:1px solid var(--ps-line); border-radius:10px;
+}
+html[data-theme] .app-shell .inbox-filters button {
+  flex:1; min-width:0; min-height:36px; border:0!important; border-radius:7px!important;
+  background:transparent!important; color:var(--ps-muted)!important; box-shadow:none!important;
+}
+html[data-theme] .app-shell .inbox-filters button[aria-pressed="true"] {
+  background:var(--ps-surface-3)!important; color:var(--ps-text-strong)!important;
+}
+html[data-theme] .app-shell .message-contacts>button {
+  border-radius:10px!important; margin:4px 8px; width:calc(100% - 16px); border:1px solid transparent!important;
+}
+html[data-theme] .app-shell .message-contacts>button.active {
+  background:var(--ps-accent-soft)!important; border-color:var(--ps-line)!important;
+  box-shadow:none!important;
+}
+html[data-theme] .app-shell .message-thread>footer {border-top:1px solid var(--ps-line)!important}
+html[data-theme] .app-shell .message-thread textarea {
+  border:1px solid var(--ps-line)!important; background:var(--ps-hover)!important; border-radius:12px!important;
+}
+html[data-theme] .app-shell :is(.crm-summary,.today-metrics,.report-metrics,.client-summary)>article {
+  border-bottom:1px solid var(--ps-line)!important; padding-bottom:16px;
+}
+/* Existing custom scenes stay available. The default texture remains quiet. */
+html[data-theme] .app-shell .dialer-cosmos:not(.is-custom) .dialer-stars-4k {opacity:.16!important}
+@media(max-width:820px) {
+  html[data-theme] .app-shell .messages-layout {gap:10px}
+  html[data-theme] .app-shell :is(.dialer-widget,.message-contacts,.message-thread) {border-radius:12px!important}
+}
+@media(prefers-reduced-motion:reduce) {
+  html[data-theme] .app-shell :is(.sidebar nav button,.key-grid button) {transition:none!important}
+}
