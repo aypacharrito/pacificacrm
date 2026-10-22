@@ -1,3 +1,5 @@
+import {settleSms} from "../../../../lib/sms-budget";
+import {twilioAccountConfig,twilioApiRequest} from "../../../../lib/twilio-rest";
 import { logError, logEvent } from "../../../../lib/observability";
 import {
   rejectedTwilioWebhook,
@@ -82,6 +84,12 @@ export async function POST(request: Request) {
       });
       return matched ? { ...current, leads } : current;
     });
+    if(matched){
+      try{const {accountSid,credentials}=twilioAccountConfig();
+        const billed=await twilioApiRequest<{price?:string}>(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages/${encodeURIComponent(providerId)}.json`,{},credentials);
+        if(billed.response.ok&&billed.data.price!=null&&Number.isFinite(Number(billed.data.price)))await settleSms(workspaceId,providerId,{actualCents:Math.ceil(Math.abs(Number(billed.data.price))*100)});
+      }catch{logEvent("sms_cost_reconciliation_pending",{workspaceId,providerId});}
+    }
     logEvent("sms_delivery_updated", {
       workspaceId,
       status,

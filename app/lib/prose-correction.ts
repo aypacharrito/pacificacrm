@@ -1,0 +1,12 @@
+const english:Record<string,string>={teh:'the',hte:'the',recieve:'receive',recieved:'received',recieving:'receiving',seperate:'separate',definately:'definitely',adress:'address',adn:'and',nad:'and',taht:'that',thier:'their',becuase:'because',becasue:'because',woudl:'would',coudl:'could',shoudl:'should',pleaes:'please',plase:'please',thansk:'thanks',thnaks:'thanks',yuo:'you',yuor:'your',insurace:'insurance',insurnace:'insurance',qoute:'quote',qupte:'quote',tomorow:'tomorrow',tommorow:'tomorrow',availabe:'available',appoitment:'appointment',apointment:'appointment',mesage:'message',folow:'follow',intrested:'interested',intersted:'interested',alot:'a lot',i:'I',im:"I'm",dont:"don't",doesnt:"doesn't",cant:"can't",isnt:"isn't",wont:"won't"};
+const spanish:Record<string,string>={qeu:'que',quue:'que',porfavor:'por favor',grasias:'gracias',gracais:'gracias',tambien:'también',cotisacion:'cotización',cotizacion:'cotización',aseguransa:'aseguranza',mensage:'mensaje',mañna:'mañana',interesdo:'interesado'};
+export function proseCorrection(value:string,caret:number,language:string){
+ const before=value.slice(0,caret),match=before.match(/([\p{L}']+)([\s.,!?;:]+)$/u);if(!match)return null;
+ const word=match[1],start=before.length-match[0].length,context=before.slice(Math.max(0,start-90),start);
+ if(/(?:https?:\/\/|www\.|[\w.+-]+@)\S*$/i.test(context)||/[\w@/\\]$/.test(context))return null;
+ let replacement=(language==='es'?spanish:english)[word.toLowerCase()];if(!replacement)return null;
+ if(word===word.toUpperCase()&&word.length>1)replacement=replacement.toUpperCase();else if(/^\p{Lu}/u.test(word))replacement=replacement[0].toUpperCase()+replacement.slice(1);
+ if(replacement===word)return null;
+ return {before:word,after:replacement,value:value.slice(0,start)+replacement+value.slice(start+word.length),caret:caret+replacement.length-word.length};
+}
+export function sameExactData(before:string,after:string){const facts=(v:string)=>v.match(/https?:\/\/[^\s]+|[\w.+-]+@[\w.-]+\.[A-Za-z]+|\+?\d[\d().,\/-]*\d|\b\d\b/g)||[];const months=(v:string)=>(v.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/gi)||[]).map(s=>s.toLowerCase());return JSON.stringify(facts(before))===JSON.stringify(facts(after))&&JSON.stringify(months(before))===JSON.stringify(months(after));}

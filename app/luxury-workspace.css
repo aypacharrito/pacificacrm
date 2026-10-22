@@ -95,3 +95,11 @@ html[data-theme] .app-shell .dialer-cosmos:not(.is-custom) .dialer-stars-4k {opa
 @media(prefers-reduced-motion:reduce) {
   html[data-theme] .app-shell :is(.sidebar nav button,.key-grid button) {transition:none!important}
 }
+.warming-settings{margin-block:20px;padding-block:16px;border-block:1px solid var(--ps-line)}
+.warming-settings p,.nurture-summary small,.sms-segment-preview{font-size:13px;color:var(--ps-muted)}
+.warming-limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-block:12px}
+.warming-limits label{display:grid;gap:6px}.warming-limits input{width:100%;min-width:0;box-sizing:border-box}
+.nurture-summary{padding:12px 18px;border-bottom:1px solid var(--ps-line)}.nurture-summary p{margin:5px 0}
+@media(max-width:560px){.warming-limits{grid-template-columns:1fr}.app-shell .inbox-filters{flex-wrap:wrap}.app-shell .inbox-filters button{flex-basis:25%}}
+.autocorrect-toolbar{position:fixed;bottom:14px;right:18px;z-index:12000;display:flex;align-items:center;flex-wrap:wrap;gap:6px;max-width:min(520px,calc(100vw - 28px));padding:8px;background:var(--ps-surface);border:1px solid var(--ps-line-strong);border-radius:10px;color:var(--ps-text);box-shadow:0 4px 18px #0002;font:13px var(--font-pacifica)}
+.autocorrect-toolbar button{border:0;border-radius:6px;background:var(--ps-hover);color:var(--ps-text);padding:7px 9px;cursor:pointer}.autocorrect-toolbar span{max-width:240px;font-size:12px}

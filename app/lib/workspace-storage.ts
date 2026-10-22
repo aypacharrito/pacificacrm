@@ -1,3 +1,4 @@
+import {cleanSmsLedger,type SmsLedger} from "./sms-budget";
 import {cleanVoicePilot,cleanVoiceHistory,type VoicePilotRun,type VoiceCallHistory} from "./voice-pilot";
 import {cleanDocumentInsights,type DocumentInsight} from "./review-context";
 import {cleanMinerState,type MinerState} from "./miner-leads";
@@ -19,6 +20,7 @@ import { applyWorkspaceChanges } from "./workspace-changes";
 import {WorkspaceLoadError} from "./workspace-load";
 
 export type StoredWorkspace = {
+  smsLedger?:SmsLedger;
   voicePilot?:VoicePilotRun;
   voicePilotBlocked?:string[];
   voicePilotHistory?:VoiceCallHistory[];
@@ -64,6 +66,7 @@ export function cleanWorkspacePayload(value: unknown): StoredWorkspace {
       : [];
   return {
     leads: records(body.leads, 5000),
+    smsLedger:cleanSmsLedger(body.smsLedger),
     ...(Array.isArray(body.voicePilotBlocked)?{voicePilotBlocked:body.voicePilotBlocked.filter(v=>typeof v==="string"&&/^\+1\d{10}$/.test(v)).slice(-5000)}:{}),
     ...(body.voicePilot?{voicePilot:cleanVoicePilot(body.voicePilot)}:{}),
     voicePilotHistory:cleanVoiceHistory(body.voicePilotHistory),
@@ -217,6 +220,7 @@ export function mergeStoredWorkspace(
       ),
       clientReminderKeys: reminderKeys,
       dailyOutreach: previous.dailyOutreach,
+      nurture:previous.nurture,
       lastInboundAt: serverReplyNewer
         ? previous.lastInboundAt
         : client.lastInboundAt || previous.lastInboundAt,
@@ -292,6 +296,7 @@ export function mergeStoredWorkspace(
     leads: leads.slice(0, 5000),
     callLogs: callLogs.slice(0, 1000),
     profile,
+    smsLedger:server.smsLedger,
     ...(server.aiControl?{aiControl:server.aiControl}:{}),
     minerState:server.minerState,
     voicePilot:server.voicePilot,

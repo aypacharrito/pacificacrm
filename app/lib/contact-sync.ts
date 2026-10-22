@@ -12,6 +12,8 @@ export function mergeCloudContact<T extends SyncedContact>(local:T,remote:T):T{
   const patch:Record<string,unknown>=detection===local?{}:{lastCallResult:detection.lastCallResult,lastCallStartedAt:detection.lastCallStartedAt,lastCallDetectionAt:detection.lastCallDetectionAt,lastDetectedCallSid:detection.lastDetectedCallSid};
   if(newer){const values=remote as unknown as Record<string,unknown>;for(const key of providerFields)if(values[key]!==undefined)patch[key]=values[key];if(!local.queueOverride&&values.line)patch.line=values.line}
   const values=remote as unknown as Record<string,unknown>;
+  const localN=(local as Record<string,unknown>).nurture as {reviewedAt?:string;lastActionAt?:string}|undefined,remoteN=values.nurture as {reviewedAt?:string;lastActionAt?:string}|undefined;
+  if(remoteN&&Math.max(Date.parse(remoteN.reviewedAt||"")||0,Date.parse(remoteN.lastActionAt||"")||0)>Math.max(Date.parse(localN?.reviewedAt||"")||0,Date.parse(localN?.lastActionAt||"")||0))patch.nurture=remoteN;
   if(Date.parse(remote.quoteDetailsUpdatedAt||'')>(Date.parse(local.quoteDetailsUpdatedAt||'')||0)){
     for(const key of ['quoteDetailsUpdatedAt','quoteRequests','dateOfBirth','renewalDate','vin','name','phone','email','address','city','state','zip','product','extraFields'])if(values[key]!==undefined)patch[key]=values[key];
   }
@@ -20,7 +22,7 @@ export function mergeCloudContact<T extends SyncedContact>(local:T,remote:T):T{
     for(const key of ['automationEnabled','automationSequenceId','automationStep','automationNextAt','automationStatus','automationUpdatedAt'])if(values[key]!==undefined)patch[key]=values[key];
   }
   if(Date.parse(remote.workflowUpdatedAt||'')>(Date.parse(local.workflowUpdatedAt||'')||0)){
-    for(const key of ['stage','status','outcome','sourceDisposition','automationEnabled','automationNextAt','automationStatus','automationUpdatedAt','workflowUpdatedAt'])if(values[key]!==undefined)patch[key]=values[key];
+    for(const key of ['stage','status','outcome','sourceDisposition','followUp','automationEnabled','automationNextAt','automationStatus','automationUpdatedAt','workflowUpdatedAt'])if(values[key]!==undefined)patch[key]=values[key];
   }
   for(const channel of ['sms','email'] as const){const review=remote.replyReviews?.[channel];if(review&&Date.parse(review.at)>(Date.parse(local.replyReviews?.[channel]?.at||'')||0))patch.replyReviews={...(patch.replyReviews as ReplyReviews||local.replyReviews),[channel]:review};}
   if(Date.parse(remote.lastInboundAt||'')>(Date.parse(local.lastInboundAt||'')||0)){

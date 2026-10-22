@@ -1,3 +1,4 @@
+import {cleanWarming} from "./lead-warming-policy";
 import {createHash} from 'node:crypto';
 import {cleanAiControl,inOutreachWindow,matchesOutreach} from './ai-control';
 import {smsRecipients,emailRecipients} from './ai-sms-recipients';
@@ -21,6 +22,7 @@ export function localOutreachDay(now:Date,timeZone:string){
 }
 const address=(l:Lead,c:Channel)=>c==='sms'?String(l.phone||'').replace(/\D/g,'').slice(-10):String(l.email||'').trim().toLowerCase();
 export function dailyCandidates(workspace:StoredWorkspace,channel:Channel,now=new Date()){
+ if(cleanWarming(workspace.profile.leadWarming).enabled)return [];
  const control=cleanAiControl(workspace.aiControl),rule=control.rules[channel];
  if(!(control.salesEnabled??workspace.profile.serverAutomationEnabled)||!rule?.dailyAt||!inOutreachWindow(rule,now))return [];
  const day=localOutreachDay(now,rule.timeZone),leads=workspace.leads as Lead[],limit=Math.min(3,Math.max(1,workspace.profile.maxAutomatedTouchesPerLeadPerDay||1));

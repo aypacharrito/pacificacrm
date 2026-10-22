@@ -1,3 +1,4 @@
+import {cleanWarming} from "./lead-warming-policy";
 import {cleanAiControl,matchesOutreach,inOutreachWindow} from "./ai-control";
 import {workspaceAutomationAccess} from "./clerk-access";
 import {emailWithComplianceFooter} from "./message-footer";
@@ -118,6 +119,7 @@ export async function runFollowUpAutomation(options:{workspaceId?:string;workspa
     const assigned=assignRoundRobin(currentLeads,profile);if(assigned!==currentLeads){currentLeads=assigned;workspaceChanged=true}
     const control=cleanAiControl(record.workspace.aiControl);
     if(!(control.salesEnabled??profile.serverAutomationEnabled)){if(workspaceChanged){await saveWorkspaceChanges(record.workspaceId,record.workspace,{...record.workspace,leads:currentLeads});changed++}continue}
+    if(cleanWarming(profile.leadWarming).enabled){if(workspaceChanged)await saveWorkspaceChanges(record.workspaceId,record.workspace,{...record.workspace,leads:currentLeads});continue;}
     const leads=currentLeads.map(raw=>{const prepared=prepareAutomationLead(raw,profile);if(JSON.stringify(prepared)!==JSON.stringify(raw))workspaceChanged=true;return prepared});
     for(let index=0;index<leads.length&&Date.now()<(options.deadline??Infinity)-7000&&attempted<(options.sendLimit||250);index++){
       const lead=leads[index];if(lead.automationStatus!=="action due")continue;due++;

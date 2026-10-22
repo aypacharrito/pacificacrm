@@ -1,3 +1,4 @@
+import {cleanWarming,defaultWarming,type WarmingSettings} from "./lead-warming-policy";
 // PACIFICA_VERTICAL_PLATFORM_V1
 export type WorkspaceMode="sales"|"insurance";
 export type WorkspaceIndustry="general"|"insurance"|"automotive"|"home-services"|"legal"|"real-estate"|"financial-services"|"health-beauty"|"custom";
@@ -30,6 +31,7 @@ export const defaultAutomationSequences:AutomationSequence[]=[
 ];
 
 export type WorkspaceProfile={
+  leadWarming:WarmingSettings;
   mode:WorkspaceMode;
   industry:WorkspaceIndustry;
   onboardingCompleted:boolean;
@@ -81,6 +83,7 @@ export type WorkspaceProfile={
 };
 
 export const defaultWorkspaceProfile:WorkspaceProfile={
+  leadWarming:{...defaultWarming},
   mode:"sales",
   industry:"general",
   onboardingCompleted:false,
@@ -179,6 +182,7 @@ export function cleanWorkspaceProfile(value:unknown):WorkspaceProfile{
     outreachTone:profile.outreachTone==="casual"||profile.outreachTone==="concise"||profile.outreachTone==="consultative"||profile.outreachTone==="luxury"?profile.outreachTone:"professional-friendly",
     customAiInstructions:String(profile.customAiInstructions||"").trim().slice(0,2000),
     aiPersonalizationEnabled:profile.aiPersonalizationEnabled!==false,
+    leadWarming:cleanWarming(profile.leadWarming),
     maxAutomatedTouchesPerLeadPerDay:Math.min(3,Math.max(1,Math.round(Number(profile.maxAutomatedTouchesPerLeadPerDay)||1))),
     appearance:profile.appearance==="light"?"light":"dark",
     dialerLightBackdropUrl:cleanDialerBackdropUrl(profile.dialerLightBackdropUrl),

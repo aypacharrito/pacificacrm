@@ -3,7 +3,7 @@ import {dailyCandidates,claimDailyOutreach,runDailyOutreach,localOutreachDay} fr
 import {defaultWorkspaceProfile} from '../../app/lib/workspace-profile.ts';
 import {defaultRule} from '../../app/lib/ai-control.ts';
 const lead=(id)=>({id,name:'Person '+id,phone:'8185550'+String(99+id),stage:'Follow-up',outcome:'Completed',smsConsent:true,automationEnabled:true,automationStatus:'complete',communications:[]});
-const fixture=()=>({leads:[lead(1),lead(2),lead(3)],callLogs:[],profile:{...defaultWorkspaceProfile},aiControl:{revision:1,salesEnabled:true,receipts:[],rules:{sms:{...defaultRule(),dailyAt:'09:30',audience:'follow-ups'}}}});
+const fixture=()=>({leads:[lead(1),lead(2),lead(3)],callLogs:[],profile:{...defaultWorkspaceProfile,leadWarming:{...defaultWorkspaceProfile.leadWarming,enabled:false}},aiControl:{revision:1,salesEnabled:true,receipts:[],rules:{sms:{...defaultRule(),dailyAt:'09:30',audience:'follow-ups'}}}});
 test('daily rules repeat after completed sequences, at local time across DST',()=>{
  const w=fixture();assert.equal(dailyCandidates(w,'sms',new Date('2026-10-01T16:29:00Z')).length,0);
  assert.equal(dailyCandidates(w,'sms',new Date('2026-10-01T16:30:00Z')).length,3);
@@ -38,3 +38,5 @@ test('reply-interest route validates origin and refuses invented inbound message
  const response=await POST(request('https://example.test'));assert.equal(response.status,200);assert.equal(testWorkspace.leads[0].outcome,'Interested');assert.equal(testWorkspace.leads[0].automationEnabled,false);
  assert.equal((await response.json()).patches.length,1);
 });
+
+test('smart lead warming disables the legacy recurring daily blast path',()=>{const w=fixture();w.profile.leadWarming.enabled=true;assert.equal(dailyCandidates(w,'sms',new Date('2026-10-01T16:30:00Z')).length,0)});
