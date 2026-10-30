@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("pacificaDesktop",{
   isDesktop:true,
+  getSystemAppearance:()=>ipcRenderer.invoke('pacifica:system-appearance'),
+  onSystemAppearance:callback=>{if(typeof callback!=='function')return ()=>{};const handler=(_event,value)=>callback(value);ipcRenderer.on('pacifica:system-appearance',handler);return ()=>ipcRenderer.removeListener('pacifica:system-appearance',handler)},
   connectedBrowser:{
     open:(url,workspaceId)=>ipcRenderer.invoke('pacifica:page-open',url,workspaceId),
     bounds:value=>ipcRenderer.invoke('pacifica:page-bounds',value),
