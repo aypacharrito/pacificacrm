@@ -37,6 +37,6 @@ Each request keeps the latest result in `jarvis` and the last 10 in `jarvisHisto
 ## Tests
 
 `node --import tsx --import ./tests/review/jarvis-integration-loader.mjs --test tests/review/jarvis-integration-api.test.mjs`
-Add this to the `test:routes` script in package.json so CI runs it.
+It runs in CI as part of `npm run test:routes`.
 
 Not built yet: showing Jarvis results inside the CRM's Quotes view.
