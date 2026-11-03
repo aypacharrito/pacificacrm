@@ -1,18 +1,20 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import { useClerk, useUser } from "@clerk/expo";
 import { router } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Screen } from "../../src/components/Screen";
 import { Button, Card, Muted, Pill, Title, usePalette } from "../../src/components/Primitives";
+import * as Application from "expo-application";
 import { API_URL } from "../../src/lib/api";
 import { useWorkspace } from "../../src/state/WorkspaceProvider";
+import DisplaySizeSlider from "../../src/components/DisplaySizeSlider";
 
 export default function MoreScreen() {
   const p = usePalette();
   const { user } = useUser();
   const { signOut } = useClerk();
   const { workspace, syncing, offline, refresh, updateProfile } = useWorkspace();
-  const displaySize = String(workspace.profile.displaySize || "large");
 
   return (
     <Screen>
@@ -29,12 +31,15 @@ export default function MoreScreen() {
       </Card>
 
       <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Appearance</Text><View style={styles.sizeRow}>{["light","dark"].map(appearance=><Button key={appearance} title={appearance==="light"?"Light":"Dark"} kind={(p.dark?"dark":"light")===appearance?"primary":"secondary"} onPress={()=>void updateProfile({appearance})} style={styles.sizeButton}/>)}</View>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Display size</Text>
-        <Muted>Choose comfortable, large, or extra-large text across Pacifica.</Muted>
-        <View style={styles.sizeRow}>
-          {["comfortable", "large", "extra-large"].map(size => <Button key={size} title={size === "extra-large" ? "Extra large" : size.charAt(0).toUpperCase() + size.slice(1)} kind={displaySize === size ? "primary" : "secondary"} onPress={() => void updateProfile({ displaySize: size })} style={styles.sizeButton} />)}
-        </View>
+        <Text style={[styles.sectionTitle, { color: p.text }]}>Appearance</Text><View style={[styles.sizeRow,{flexWrap:'wrap'}]}>{["system","light","dark"].map(appearance=><Button key={appearance} title={appearance==='system'?'Follow device':appearance==="light"?"Light":"Dark"} kind={(workspace.profile.appearance||'system')===appearance?"primary":"secondary"} onPress={()=>void updateProfile({appearance})} style={{paddingHorizontal:10}}/>)}</View>
+        <Text style={[styles.sectionTitle,{color:p.text}]}>Color palette</Text><View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>{['system','blue','teal','violet','rose','amber','slate'].map(colorPalette=><Button key={colorPalette} title={colorPalette==='system'?'Follow device':colorPalette==='slate'?'Graphite':colorPalette.charAt(0).toUpperCase()+colorPalette.slice(1)} kind={(workspace.profile.colorPalette||'system')===colorPalette?'primary':'secondary'} onPress={()=>void updateProfile({colorPalette})} style={{paddingHorizontal:10}}/>)}</View>
+        <DisplaySizeSlider/>
+      </Card>
+
+      <Card style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: p.text }]}>Pacifica AI</Text>
+        <Muted>Your assistant for this workspace.</Muted>
+        <Button title="Open Pacifica AI" kind="secondary" onPress={() => router.push("/ai")} />
       </Card>
 
       <Card style={styles.section}>
@@ -52,6 +57,7 @@ export default function MoreScreen() {
       </Card>
 
       <Card style={styles.section}>
+        <Text accessibilityLabel="Pacifica app version" style={{color:p.muted,fontSize:12}}>Pacifica {Application.nativeApplicationVersion||"1.1.0"} · Build {Application.nativeBuildVersion||"preview"}</Text>
         <Text style={[styles.sectionTitle, { color: p.text }]}>Connection</Text>
         <Muted>Backend: {API_URL}</Muted>
         <Button title="Sync now" kind="secondary" onPress={() => void refresh()} />

@@ -295,7 +295,7 @@ export function mergeStoredWorkspace(
   return cleanWorkspacePayload({
     leads: leads.slice(0, 5000),
     callLogs: callLogs.slice(0, 1000),
-    profile,
+    profile:{...profile,leadWarming:newer(server.profile.leadWarming.policyUpdatedAt,profile.leadWarming.policyUpdatedAt)?server.profile.leadWarming:profile.leadWarming},
     smsLedger:server.smsLedger,
     ...(server.aiControl?{aiControl:server.aiControl}:{}),
     minerState:server.minerState,

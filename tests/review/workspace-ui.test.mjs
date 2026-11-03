@@ -29,7 +29,7 @@ async function setup(fail,mode=defaultWorkspaceProfile.mode,preferences={}){
   return new Response(JSON.stringify({configured:false,phone:'',leads:[]}));
  };
  const {createRoot}=await import('react-dom/client');const root=createRoot(document.getElementById('root'));
- await act(async()=>root.render(React.createElement(CRM,{clerkEnabled:!preferences.local,isOwner:true,workspaceId:'test-workspace'})));
+ await act(async()=>root.render(React.createElement(CRM,{clerkEnabled:!preferences.local,isOwner:true,workspaceId:'test-workspace',featureAccess:preferences.features})));
  await act(async()=>new Promise(resolve=>setTimeout(resolve,750)));
  return {dom,root,requests,cleanup:async()=>{await act(async()=>root.unmount());dom.window.close()}};
 }
@@ -94,7 +94,7 @@ test('dialer contact, keypad and queue are independently editable siblings',asyn
  await h.cleanup();
 });
 test('video navigation merges quote preparation into Industry Tools and billing into Settings',async()=>{
- const h=await setup(false,'insurance');
+ const h=await setup(false,'insurance',{features:{miner:false,industryTools:true}});
  try{
   const nav=label=>document.querySelector(`.sidebar nav button[aria-label="${label}"]`);
   assert.equal(nav('Quote desk'),null);assert.equal(nav('Plans & Billing'),null);
@@ -104,6 +104,10 @@ test('video navigation merges quote preparation into Industry Tools and billing 
   const settings=[...document.querySelectorAll('.sidebar button')].find(b=>b.getAttribute('aria-label')==='Owner settings');await act(async()=>settings.click());
   const billing=[...document.querySelectorAll('.settings-nav button')].find(b=>/Plans & Billing/.test(b.textContent));assert.ok(billing);await act(async()=>billing.click());assert.ok(document.querySelector('.settings-content .pricing-grid'));
  }finally{await h.cleanup()}
+});
+
+test('optional discovery and industry tools are hidden unless enabled in developer settings',async()=>{
+ const h=await setup(false,'insurance');try{for(const name of ['Miner','Industry Tools'])assert.equal(document.querySelector(`.sidebar nav button[aria-label="${name}"]`),null);assert.ok(document.querySelector('.sidebar nav button[aria-label="Contacts"]'))}finally{await h.cleanup()}
 });
 test('PDF drops in a message conversation never activate the global lead scanner',async()=>{
  const h=await setup(false);globalThis.Element=h.dom.window.Element;
@@ -152,6 +156,8 @@ test('local appearance changes paint immediately and pending saves flush on page
  const h=await setup(false,'sales',{local:true});let closed=false;
  try{
   await act(async()=>document.querySelector('[aria-label="Owner settings"]').click());
+  assert.equal(document.querySelector(".workspace-appearance-controls"),null);
+  await act(async()=>[...document.querySelectorAll(".settings-sections button,.settings-nav button,.settings-menu button,.settings-layout button")].find(b=>b.textContent==="Appearance").click());
   const pick=theme=>[...document.querySelectorAll('.appearance-picker button')].find(b=>b.textContent.includes(theme));
   await act(async()=>pick('Light').click());assert.equal(document.documentElement.dataset.theme,'light');
   await act(async()=>window.dispatchEvent(new window.Event('pagehide')));

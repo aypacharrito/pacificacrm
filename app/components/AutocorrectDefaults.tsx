@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState,useSyncExternalStore} from 'react';
+import {createPortal} from 'react-dom';
 import {useLanguage} from './LanguageProvider';
 import {proseCorrection} from '../lib/prose-correction';
 type Editor=HTMLInputElement|HTMLTextAreaElement;
@@ -13,7 +14,17 @@ function replaceValue(target:Editor,value:string,caret:number){const proto=targe
 export default function AutocorrectDefaults(){
  const enabled=useSyncExternalStore(subscribe,snapshot,()=>true),{writingLanguage}=useLanguage();
  const [active,setActive]=useState<Editor|null>(null),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[hasUndo,setHasUndo]=useState(false);
+ const [host,setHost]=useState<HTMLDivElement|null>(null);
  const changing=useRef(false),undo=useRef<{target:Editor;before:string;after:string;caret:number}|null>(null);
+ useEffect(()=>{
+  if(!active?.isConnected){setHost(null);return;}
+  const slot=document.createElement('div');slot.className='writing-assistance-slot';
+  active.insertAdjacentElement('afterend',slot);setHost(slot);
+  document.documentElement.dataset.writingAssistance='true';
+  const observer=typeof MutationObserver==='undefined'?null:new MutationObserver(()=>{if(!active.isConnected)setActive(null)});
+  observer?.observe(document.body,{childList:true,subtree:true});
+  return()=>{observer?.disconnect();slot.remove();delete document.documentElement.dataset.writingAssistance};
+ },[active]);
  useEffect(()=>{
   document.querySelectorAll(selector).forEach(enable);
   const focus=(event:FocusEvent)=>{if(editor(event.target)&&event.target.matches(selector)){enable(event.target);setActive(event.target);setStatus('')}};
@@ -32,5 +43,5 @@ export default function AutocorrectDefaults(){
  function toggle(){try{localStorage.setItem(key,enabled?'off':'on')}catch{}window.dispatchEvent(new Event('pacifica:autocorrect'))}
  function undoCorrection(){const last=undo.current;if(!last||!last.target.isConnected||last.target.value!==last.after){setStatus('Text changed; undo is no longer available.');return}changing.current=true;try{replaceValue(last.target,last.before,last.caret);last.target.focus()}finally{changing.current=false}undo.current=null;setHasUndo(false);setStatus('Correction undone')}
  async function polish(){if(!active||busy||!active.value.trim())return;const target=active,before=target.value;setBusy(true);setStatus('Checking grammar…');try{const response=await fetch('/api/ai/proofread',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:before,language:writingLanguage})});const data=await response.json();if(!response.ok)throw Error(data.error||'Grammar check unavailable');if(!target.isConnected||target.value!==before){setStatus('Text changed while checking. Your edits were kept.');return}undo.current={target,before,after:data.text,caret:target.selectionStart??before.length};setHasUndo(true);changing.current=true;try{replaceValue(target,data.text,data.text.length)}finally{changing.current=false}target.focus();setStatus('Grammar corrected')}catch(e){setStatus(e instanceof Error?e.message:'Grammar check unavailable')}finally{setBusy(false)}}
- return active?<div className="autocorrect-toolbar" role="region" aria-label="Writing assistance" onPointerDown={e=>e.preventDefault()}><button type="button" aria-pressed={enabled} onClick={toggle}>Autocorrect {enabled?'on':'off'}</button><button type="button" disabled={busy} onClick={()=>void polish()}>{busy?'Checking…':'Fix grammar'}</button>{hasUndo&&<button type="button" onClick={undoCorrection}>Undo</button>}<span role="status" aria-live="polite">{status}</span></div>:null;
+ return active&&host?createPortal(<div className="autocorrect-toolbar autocorrect-toolbar-inline" role="region" aria-label="Writing assistance" onPointerDown={e=>e.preventDefault()}><button type="button" aria-pressed={enabled} onClick={toggle}>Autocorrect {enabled?'on':'off'}</button><button type="button" disabled={busy} onClick={()=>void polish()}>{busy?'Checking…':'Fix grammar'}</button>{hasUndo&&<button type="button" onClick={undoCorrection}>Undo</button>}<button type="button" aria-label="Hide writing assistance" onClick={()=>setActive(null)}>×</button>{status&&<span role="status" aria-live="polite">{status}</span>}</div>,host):null;
 }

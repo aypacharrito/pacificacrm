@@ -14,8 +14,8 @@ export function matchingContact(leads:Lead[],draft:ContactDraft){
 }
 export function capturedContact(value:ContactDraft,id:number):Lead{
   const draft=cleanContactDraft(value);
-  if(!draft.phone&&!draft.email)throw new Error("Add a phone number or email before saving.");
+  if(!draft.phone&&!draft.email&&!(draft.name&&(draft.licenseNumber||draft.address||draft.dateOfBirth)))throw new Error("Add contact details or a name with readable ID/address details.");
   if(draft.phone&&phoneKey(draft.phone).length<7)throw new Error("Check the full phone number before saving.");
   const amount=(value:string)=>{const clean=value.replace(/[$,\s]/g,"");return /^\d+(\.\d{1,2})?$/.test(clean)?Number(clean):0};
-  return {...draft,importedFields:Object.fromEntries(documentContactFields.filter(key=>draft[key]).map(key=>[key,draft[key]])),policyPremium:amount(draft.policyPremium),policyTermMonths:amount(draft.policyTermMonths),installmentAmount:amount(draft.installmentAmount),id,name:draft.name||draft.phone||draft.email,status:"Ready",stage:"New lead",outcome:"Not contacted",followUp:"",doNotCall:false,lastContact:"Never",source:"Mobile AI capture",leadCost:0,sourceDisposition:"",importedAt:new Date().toISOString(),smsConsent:false,emailConsent:false};
+  return {...draft,importedFields:Object.fromEntries(documentContactFields.filter(key=>draft[key]).map(key=>[key,draft[key]])),policyPremium:amount(draft.policyPremium),policyTermMonths:amount(draft.policyTermMonths),installmentAmount:amount(draft.installmentAmount),id,name:draft.name||draft.phone||draft.email,status:"Ready",stage:"New lead",outcome:"Not contacted",followUp:"",doNotCall:false,lastContact:"Never",source:"Mobile AI capture",leadCost:0,sourceDisposition:"",importedAt:new Date().toISOString(),smsConsent:false,emailConsent:false,automationEnabled:false};
 }

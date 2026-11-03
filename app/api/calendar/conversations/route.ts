@@ -8,7 +8,7 @@ export async function GET(){const access=await getPacificaAccess();if(!access.al
 export async function POST(request:Request){
  const access=await getPacificaAccess();if(!access.allowed)return Response.json({error:'Sign in required'},{status:403});
  const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)return Response.json({error:'Invalid origin'},{status:403});
- try{const body=await request.json();if(body.action==='run')return Response.json(await reviewConversationCalendar(access.userId));
+ try{const body=await request.json();if(body.action==='run')return Response.json(await reviewConversationCalendar(access.userId,true));
  if(body.action!=='settings'||typeof body.enabled!=='boolean')return Response.json({error:'Invalid action'},{status:400});
  if(access.role!=='owner'||access.accountUserId!==access.userId)return Response.json({error:'The workspace owner manages text review.'},{status:403});
  await updateStoredWorkspace(access.userId,w=>({...w,conversationCalendar:{...cleanConversationCalendar(w.conversationCalendar),enabled:body.enabled,lease:'',nextRunAt:0}}));return Response.json({ok:true});

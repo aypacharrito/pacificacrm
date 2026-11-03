@@ -3,6 +3,7 @@ import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { isClerkConfigured } from "./clerk-config";
 import { getStripe } from "./stripe";
+import {getPlatformFeatures} from "./platform-feature-store";
 
 export const PACIFICA_ADMIN_EMAILS=new Set([
   "pacificalegalinsurance@gmail.com",
@@ -94,6 +95,7 @@ export async function isPacificaPlatformOwnerApi(){
 }
 
 export async function getPacificaMinerOwnerAccess(){
+  if(!(await getPlatformFeatures()).miner)return null;
   if(!isClerkConfigured())return process.env.NODE_ENV==="production"?null:{allowed:true,role:"owner" as const,email:"local@pacifica",userId:"local",accountUserId:"local",displayName:"Local owner"};
   const access=await getPacificaAccess();
   return access.allowed&&isPacificaPlatformOwnerEmail(access.email)?access:null;
@@ -101,6 +103,7 @@ export async function getPacificaMinerOwnerAccess(){
 
 /** Cron jobs have no signed-in session; check the workspace owner before dispatch. */
 export async function workspaceAutomationAccess(workspaceId:string,feature:"crm"|"miner"="crm"){
+ if(feature==="miner"&&!(await getPlatformFeatures()).miner)return false;
  if(!isClerkConfigured())return !process.env.VERCEL;
  try{const owner=await (await clerkClient()).users.getUser(workspaceId);const email=owner.primaryEmailAddress?.emailAddress||owner.emailAddresses[0]?.emailAddress||"";
   if(isPacificaPlatformOwnerEmail(email))return true;

@@ -1,0 +1,6 @@
+/* Actual artwork is monochrome; choose readable ink for all Pacifica mark images. */
+:root{--pacifica-mark-filter:brightness(0)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--pacifica-mark-filter:brightness(0) invert(1)}}
+html[data-theme="light"]{--pacifica-mark-filter:brightness(0)}
+html[data-theme="dark"]{--pacifica-mark-filter:brightness(0) invert(1)}
+img[src*="pacifica-mark"]{filter:var(--pacifica-mark-filter)!important;object-fit:contain}

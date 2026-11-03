@@ -1,0 +1,11 @@
+.env
+.env.*
+.vercel/
+.next/
+node_modules/
+desktop/
+mobile/
+build/
+.pacifica-backups/
+*.tsbuildinfo
+tests/

@@ -38,3 +38,26 @@ test('HELP identifies the business and Advanced Opt-Out is not answered twice',a
  const advanced=await inbound(request('/api/twilio/inbound',{...fields,MessageSid:'SM-help-2',OptOutType:'HELP'}));assert.doesNotMatch(await advanced.text(),/<Message>/);
  const stop=await inbound(request('/api/twilio/inbound',{...fields,MessageSid:'SM-stop-localized',Body:'BAJA',OptOutType:'STOP'}));assert.equal(stop.status,200);assert.equal(globalThis.testWorkspace.leads[0].smsOptOut,true);
 });
+
+test('an inbound text queues one tracked phone alert after acknowledgement and duplicate callbacks do not repeat it',async()=>{
+ const originalFetch=globalThis.fetch,requests=[];globalThis.testAfterResponseJobs=[];
+ globalThis.testWorkspace={leads:[{id:1,phone:'8185550100',communications:[]}],callLogs:[],profile:{expoPushToken:'ExpoPushToken[test-device]'}};
+ globalThis.fetch=async(url,init)=>{requests.push({url,init});return Response.json({data:{status:'ok'}})};
+ try{
+  const fields={MessageSid:'SM-phone-alert',From:'+18185550100',To:'+18185550199',Body:'Could you call me tomorrow?'};
+  const response=await inbound(request('/api/twilio/inbound',fields));assert.equal(response.status,200);assert.equal(requests.length,0);assert.equal(testAfterResponseJobs.length,1);
+  await testAfterResponseJobs.shift()();assert.equal(requests.length,1);assert.equal(requests[0].url,'https://exp.host/--/api/v2/push/send');
+  const payload=JSON.parse(requests[0].init.body);assert.equal(payload.to,'ExpoPushToken[test-device]');assert.equal(payload.body,fields.Body);assert.equal(payload.channelId,'pacifica');assert.ok(requests[0].init.signal instanceof AbortSignal);
+  assert.equal((await inbound(request('/api/twilio/inbound',fields))).status,200);assert.equal(testAfterResponseJobs.length,0);assert.equal(testWorkspace.leads[0].communications.length,1);
+ }finally{globalThis.fetch=originalFetch;globalThis.testAfterResponseJobs=[]}
+});
+
+test('phone notification failure cannot undo a saved customer message or fail the webhook',async()=>{
+ const originalFetch=globalThis.fetch;globalThis.testAfterResponseJobs=[];
+ globalThis.testWorkspace={leads:[],callLogs:[],profile:{expoPushToken:'ExponentPushToken[test-device]'}};
+ globalThis.fetch=async()=>{throw Error('Simulated push-provider outage')};
+ try{
+  const response=await inbound(request('/api/twilio/inbound',{MessageSid:'SM-push-offline',From:'+18185550100',To:'+18185550199',Body:'A new message'}));
+  assert.equal(response.status,200);assert.equal(testAfterResponseJobs.length,1);await assert.doesNotReject(testAfterResponseJobs.shift()());assert.equal(testWorkspace.leads[0].communications.length,1);
+ }finally{globalThis.fetch=originalFetch;globalThis.testAfterResponseJobs=[]}
+});

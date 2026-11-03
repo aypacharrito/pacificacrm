@@ -14,6 +14,8 @@ test('typing a typo updates a controlled editor and Undo restores the original',
   await act(async()=>root.render(React.createElement(Editor)));const input=document.querySelector('textarea');await act(async()=>input.focus());
   await act(async()=>{Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'teh ');input.setSelectionRange(4,4);input.dispatchEvent(new window.InputEvent('input',{bubbles:true,inputType:'insertText',data:' '}));});
   assert.equal(input.value,'the ');assert.equal(document.querySelector('output').textContent,'the ');assert.match(document.querySelector('.autocorrect-toolbar').textContent,/teh → the/);
+  assert.equal(input.nextElementSibling.className,'writing-assistance-slot');assert.ok(input.parentElement.contains(document.querySelector('.autocorrect-toolbar-inline')));
   await act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Undo').click());assert.equal(input.value,'teh ');assert.equal(document.querySelector('output').textContent,'teh ');
+  await act(async()=>document.querySelector('[aria-label="Hide writing assistance"]').click());assert.equal(document.querySelector('.autocorrect-toolbar'),null);assert.equal(document.querySelector('.writing-assistance-slot'),null);
  }finally{await act(async()=>root.unmount());dom.window.close()}
 });

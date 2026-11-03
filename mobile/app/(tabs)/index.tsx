@@ -1,7 +1,8 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import { router } from "expo-router";
 import NoteReminders from "../../src/components/NoteReminders";
 import React, { useMemo } from "react";
-import { RefreshControl, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { Screen } from "../../src/components/Screen";
 import { Button, Card, Muted, Pill, Title, usePalette } from "../../src/components/Primitives";
 import { LeadRow } from "../../src/components/LeadRow";

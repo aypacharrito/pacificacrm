@@ -15,6 +15,7 @@ export function scopeAllows(scope:AccessScope,path:string,method:string,action?:
  return path==='/api/ai/crm'||path==='/api/ai/message'||['/api/miner/public-records','/api/miner/prospects'].includes(path)&&['search','analyze','csv-preview'].includes(String(action));
 }
 export function isSessionApi(path:string,method="GET"){
+ if(path==="/api/lead-campaigns")return true;
  if(path==="/api/twilio/status"||path==="/api/integrations/leads")return method==="GET";
  if(path==="/api/calendar/feed")return method!=="GET";
  if(["/api/integrations/reconcile","/api/integrations/dispositions"].includes(path))return true;

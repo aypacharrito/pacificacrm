@@ -6,6 +6,6 @@ export function documentMissingFields(value:DocumentLeadExtraction){
 /** Combine only visible values. Barcode fields outrank OCR; conflicts remain reviewable. */
 export function combineDocumentReads(primary:DocumentLeadExtraction,secondary:DocumentLeadExtraction){
  const result=cleanDocumentLeadExtraction(primary),other=new Map(result.otherFields.map(item=>[item.label.toLowerCase(),item]));
- for(const key of Object.keys(result) as Array<keyof DocumentLeadExtraction>){if(key==="otherFields")continue;if(!result[key])result[key]=secondary[key];else if(secondary[key]&&result[key]!==secondary[key]&&["dateOfBirth","licenseNumber","licenseExpiration"].includes(key)){const label=`Review ${key}`;other.set(label,{label,value:`Read 1: ${result[key]}; read 2: ${secondary[key]}`})}}
+ for(const key of Object.keys(result) as Array<keyof DocumentLeadExtraction>){if(key==="otherFields")continue;if(!result[key])result[key]=secondary[key];else if(secondary[key]&&result[key]!==secondary[key]&&["firstName","lastName","fullName","dateOfBirth","address","city","state","zip","licenseNumber","licenseState","licenseExpiration","policyNumber","vin"].includes(key)){const label=`Review ${key}`;other.set(label,{label,value:`Read 1: ${result[key]}; read 2: ${secondary[key]}`})}}
  for(const item of secondary.otherFields)if(!other.has(item.label.toLowerCase()))other.set(item.label.toLowerCase(),item);result.otherFields=[...other.values()].slice(0,80);return result;
 }

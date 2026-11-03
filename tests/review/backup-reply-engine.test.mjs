@@ -1,0 +1,14 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {runBackupReplies} from '../../app/lib/backup-reply-engine.ts';
+import {defaultWorkspaceProfile} from '../../app/lib/workspace-profile.ts';
+import {cleanWarming} from '../../app/lib/lead-warming-policy.ts';
+const OriginalDate=Date,now=Date.parse('2026-10-27T18:00:00Z');
+function setup(body='Can you explain the options?'){
+ globalThis.Date=class extends OriginalDate{constructor(...args){super(...(args.length?args:[now]))}static now(){return now}};
+ globalThis.backupWorkspace={profile:{...defaultWorkspaceProfile,businessName:'Pacifica',automationTimezone:'America/Los_Angeles',leadWarming:{...cleanWarming({}),backupRepliesEnabled:true,backupRepliesSince:'2026-10-26T18:00:00Z'}},leads:[{id:1,name:'Test',phone:'8185550100',stage:'Follow-up',outcome:'Interested',automationEnabled:false,smsConsent:true,communications:[{id:'reply',channel:'sms',direction:'inbound',body,status:'received',sentAt:'2026-10-27T16:00:00Z'}]}],callLogs:[]};
+ globalThis.backupAiCalls=0;globalThis.backupDeliveries=[];globalThis.backupDuringAi=null;globalThis.backupProviderError=false;globalThis.backupDraft={reply:true,text:'What would you like to compare?'};
+}
+test('concurrent workers send one bounded backup response and preserve the sales handoff',async()=>{setup();try{await Promise.all([runBackupReplies(),runBackupReplies()]);assert.equal(backupDeliveries.length,1);assert.equal(backupDeliveries[0].purpose,'unanswered-reply');assert.equal(backupWorkspace.leads[0].automationEnabled,false);await runBackupReplies();assert.equal(backupDeliveries.length,1)}finally{globalThis.Date=OriginalDate}});
+test('acknowledgments and exhausted budgets do not spend an AI call or send a text',async()=>{try{setup('Thanks!');await runBackupReplies();assert.equal(backupAiCalls,0);assert.equal(backupDeliveries.length,0);setup();backupWorkspace.profile.leadWarming.weeklyBudgetCents=0;await runBackupReplies();assert.equal(backupAiCalls,0);assert.equal(backupDeliveries.length,0)}finally{globalThis.Date=OriginalDate}});
+test('a human response while the AI is drafting cancels the backup before provider submission',async()=>{setup();try{backupDuringAi=()=>backupWorkspace.leads[0].communications.push({id:'human',channel:'sms',direction:'outbound',body:'I can help.',status:'sent',sentAt:'2026-10-27T17:30:00Z'});await runBackupReplies();assert.equal(backupDeliveries.length,0)}finally{globalThis.Date=OriginalDate}});
+test('invented numbers are rejected and an uncertain provider outcome is never replayed',async()=>{try{setup();backupDraft.text='Your price is $20.';await runBackupReplies();assert.equal(backupDeliveries.length,0);setup();backupProviderError=true;await runBackupReplies();await runBackupReplies();assert.equal(backupDeliveries.length,1)}finally{globalThis.Date=OriginalDate}});

@@ -19,6 +19,8 @@ test('permanent grants work for the owner and team; limited scopes also constrai
  globalThis.workspaceOwner.privateMetadata.pacificaAccessPaused=true;assert.equal((await getPacificaAccess()).allowed,false);
 });
 test('only the Pacifica platform owner can run Miner automation',async()=>{
+ globalThis.optionalFeatures={miner:true,industryTools:false};
  globalThis.identity={...owner({pacificaManaged:true,pacificaPermanentAccess:true}),primaryEmailAddress:{emailAddress:'pacificalegalinsurance@gmail.com'}};globalThis.workspaceOwner=globalThis.identity;
  assert.equal(await workspaceAutomationAccess('owner-id','miner'),true);
+ globalThis.optionalFeatures={miner:false,industryTools:false};assert.equal(await workspaceAutomationAccess('owner-id','miner'),false);assert.equal(await workspaceAutomationAccess('owner-id','crm'),true);
 });

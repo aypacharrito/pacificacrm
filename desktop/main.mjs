@@ -1,4 +1,4 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, session, shell, screen, nativeTheme, dialog } from "electron";
+import { app, BrowserWindow, WebContentsView, ipcMain, session, shell, screen, nativeTheme, systemPreferences, dialog } from "electron";
 import electronUpdater from "electron-updater";
 import {createConnectedBrowser} from "./connected-browser.mjs";
 import {createDesktopUpdater} from "./updater.mjs";
@@ -8,6 +8,11 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
+function systemAppearance(){let accent;try{const value=systemPreferences.getAccentColor();if(typeof value==='string'&&/^[a-f0-9]{8}$/i.test(value))accent='#'+value.slice(0,6)}catch{}return {theme:nativeTheme.shouldUseDarkColors?'dark':'light',accent}}
+const publishSystemAppearance=()=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('pacifica:system-appearance',systemAppearance())};
+nativeTheme.on('updated',publishSystemAppearance);
+if(process.platform==='win32'||process.platform==='linux')systemPreferences.on('accent-color-changed',publishSystemAppearance);
+ipcMain.handle('pacifica:system-appearance',event=>trustedMain(event)?systemAppearance():null);
 const appUrl=(process.env.PACIFICA_APP_URL||"https://pacificacrm.com/dashboard?desktop=1").trim();
 const appOrigin=new URL(appUrl).origin;
 let mainWindow=null;
@@ -64,7 +69,7 @@ function isTrustedNavigation(url){return isAppUrl(url)||isAuthUrl(url)}
 
 function loadOverlayLayout(){
   try{const value=JSON.parse(fs.readFileSync(path.join(app.getPath("userData"),"overlay-settings.json"),"utf8"));if(value.appearance==="light")desktopAppearance="light";if(value.layout==="vertical")overlayLayout="vertical";if(value.sizes&&typeof value.sizes==="object")overlaySizes=value.sizes;if(Number.isFinite(value.position?.x)&&Number.isFinite(value.position?.y))overlayPosition=value.position}catch{/* First launch or invalid preferences: use the compact horizontal bar. */}
-  nativeTheme.themeSource=desktopAppearance;
+  nativeTheme.themeSource="system";
 }
 let saveLayoutTimer;
 function scheduleOverlayLayoutSave(){clearTimeout(saveLayoutTimer);saveLayoutTimer=setTimeout(saveOverlayLayout,250)}
@@ -306,7 +311,7 @@ ipcMain.handle("pacifica:show-main-window",(event)=>{if(!trustedMain(event))retu
 ipcMain.on("pacifica:theme",(event,theme)=>{
   if(!mainWindow||event.sender!==mainWindow.webContents||!isAppUrl(event.senderFrame?.url||"")||(theme!=="dark"&&theme!=="light"))return;
   if(desktopAppearance!==theme){desktopAppearance=theme;saveOverlayLayout()}
-  nativeTheme.themeSource=theme;
+  nativeTheme.themeSource="system";
   const chrome=desktopChrome(theme);
   mainWindow.setBackgroundColor(chrome.background);
   mainWindow.setTitleBarOverlay({color:chrome.background,symbolColor:chrome.symbols,height:60});

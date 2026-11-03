@@ -1,0 +1,170 @@
+/* Calm paper and deep charcoal. Keep the same sage identity in both modes. */
+html[data-theme="light"] {
+  --ps-bg:#f3f1eb; --ps-surface:#faf8f2; --ps-surface-2:#eeece5; --ps-surface-3:#e7e6df;
+  --ps-text:#303b35; --ps-text-strong:#202c25; --ps-muted:#616c63; --ps-subtle:#69746b;
+  --ps-line:#dedfd6; --ps-line-strong:#c2c9bf; --ps-accent:#37694f; --ps-accent-hover:#2a563e; --ps-accent-soft:#e0e9de; --ps-hover:#eaece3;
+  --ui-bg:var(--ps-bg); --ui-surface:var(--ps-surface); --ui-surface-soft:var(--ps-surface-2); --ui-text:var(--ps-text); --ui-muted:var(--ps-muted); --ui-border:var(--ps-line); --dialer-button-text:#faf8f2;
+  --scroll-thumb:#a3aea0; --scroll-thumb-hover:#768672;
+}
+html[data-theme="dark"] {
+  --ps-bg:#0b0e0d; --ps-surface:#121714; --ps-surface-2:#1a211d; --ps-surface-3:#242d27;
+  --ps-text:#d7ded8; --ps-text-strong:#edf0e8; --ps-muted:#a4b0a5; --ps-subtle:#94a094;
+  --ps-line:#253029; --ps-line-strong:#435247; --ps-accent:#bbd0bb; --ps-accent-hover:#d1e1ca; --ps-accent-soft:#223028; --ps-hover:#18201b;
+  --ui-bg:var(--ps-bg); --ui-surface:var(--ps-surface); --ui-surface-soft:var(--ps-surface-2); --ui-text:var(--ps-text); --ui-muted:var(--ps-muted); --ui-border:var(--ps-line); --dialer-button-text:#112016;
+  --scroll-thumb:#3e5043; --scroll-thumb-hover:#657b69;
+}
+html[data-theme] body,html[data-theme] .app-shell {background:var(--ps-bg)!important;color:var(--ps-text)!important}
+html[data-theme] .app-shell :is(.workspace,.workspace>.topbar,.sidebar,.messages-center,.messages-layout,.message-contacts,.message-thread,.message-history,.message-thread>header,.message-thread>footer,.message-contacts>header){background:var(--ps-bg)!important;color:var(--ps-text)!important}
+html[data-theme] .app-shell :is(.settings-card,.workspace-profile-settings,.phone-config,.number-center,.table-card,.client-table,.contact-drawer,.settings-content,.template-vault){background:var(--ps-surface)!important;color:var(--ps-text)!important}
+html[data-theme] .app-shell :is(input:not([type=checkbox]):not([type=range]),textarea,select){background:var(--ps-surface-2)!important;color:var(--ps-text-strong)!important;border-color:transparent!important}
+html[data-theme] .app-shell :is(input,textarea)::placeholder{color:var(--ps-subtle)!important;opacity:1}
+html[data-theme] .app-shell .message-history>article{background:var(--ps-surface-2)!important;color:var(--ps-text)!important}
+html[data-theme] .app-shell .message-history>article.outgoing{background:var(--ps-accent-soft)!important;color:var(--ps-text-strong)!important}
+html[data-theme] .app-shell :is(.sidebar,.topbar,.message-thread>header,.message-thread>footer,.message-contacts>header){border:0!important;box-shadow:none!important}
+html[data-theme] .app-shell .workspace .messages-center .message-history article small{color:var(--ps-muted)!important;opacity:1!important}
+html[data-theme] .app-shell .workspace .messages-center .message-thread>footer textarea{background:var(--ps-surface-2)!important;color:var(--ps-text-strong)!important}
+html[data-theme] .app-shell .workspace .messages-center .message-thread>footer textarea::placeholder{color:var(--ps-subtle)!important;opacity:1!important}
+html[data-theme] .app-shell .workspace .messages-center>.messages-module-bar{border:0!important;box-shadow:none!important}
+.mobile-navigation,.mobile-workspace-header,.mobile-menu-overlay,.thread-mobile-actions {display:none}
+.writing-assistance-slot{min-width:0;width:100%}
+.autocorrect-toolbar.autocorrect-toolbar-inline{position:static!important;inset:auto!important;z-index:auto!important;max-width:100%!important;width:auto!important;display:flex;gap:6px;padding:6px 0!important;border:0!important;box-shadow:none!important;background:transparent!important;box-sizing:border-box;font-size:11px;flex-wrap:wrap}
+.autocorrect-toolbar-inline button{min-height:32px;padding:5px 8px!important;font-size:11px!important;line-height:1.3;background:var(--ps-hover);color:var(--ps-muted)}
+.autocorrect-toolbar-inline [role="status"]{flex-basis:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ps-muted);font-size:11px}
+.backup-reply-settings{padding:18px 0;margin-bottom:18px}.backup-reply-settings h3{margin:0 0 16px}.backup-reply-settings>label{display:flex;align-items:center;gap:10px}.backup-reply-settings p,.backup-reply-settings li{color:var(--ps-muted);font-size:13px;line-height:1.6}.backup-reply-settings>button{padding:10px 14px;min-height:44px;border:0;border-radius:10px;background:var(--ps-accent-soft);color:var(--ps-accent);cursor:pointer}
+
+@media(max-width:760px) {
+  html[data-theme] .app-shell{display:flex!important;flex-direction:column!important;--navigation-width:0px;--phone-nav-height:calc(72px + env(safe-area-inset-bottom,0px));height:var(--crm-phone-height,100dvh)!important;min-height:0!important;overflow:hidden!important}
+  html[data-phone-keyboard="true"] .app-shell{--phone-nav-height:0px}
+  html[data-phone-keyboard="true"] .app-shell .mobile-navigation{display:none!important}
+  html[data-phone-keyboard="true"] .app-shell :is(.mobile-workspace-header,.workspace>.topbar,.messages-module-bar,.messages-center>.channel-tabs,.reply-interest-prompt){display:none!important}
+  html[data-phone-keyboard="true"] .app-shell .workspace>.messages-view{padding-top:0!important;display:flex!important;overflow:hidden!important}
+  html[data-phone-keyboard="true"] .app-shell .messages-center,html[data-phone-keyboard="true"] .app-shell .messages-center>.messages-layout{min-height:0!important}
+  html[data-theme] .app-shell>.sidebar{display:none!important}
+  html[data-theme] .app-shell>.workspace{width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;flex:1;min-height:0;margin:0!important;padding:0 0 var(--phone-nav-height)!important;overflow:hidden!important;container-type:inline-size}
+  .mobile-workspace-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:calc(16px + env(safe-area-inset-top,0px)) 20px 12px;background:var(--ps-bg);min-width:0}
+  .mobile-workspace-header{position:relative;z-index:80}
+  .mobile-brand{display:flex;align-items:center;gap:11px;min-width:0}.mobile-brand>span{display:grid;gap:1px}.mobile-brand b{font-size:11px;letter-spacing:.19em;font-weight:650}.mobile-brand small{font-family:var(--font-pacifica-display);font-size:21px;color:var(--ps-text-strong);letter-spacing:-.04em;font-weight:600}
+  html[data-theme="dark"] .mobile-brand img{filter:brightness(0) invert(1)}
+  .mobile-save-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ps-muted);text-align:right;max-width:42%}.mobile-save-status i{width:5px;height:5px;background:var(--ps-accent);border-radius:50%;flex:none}
+  html[data-theme] .app-shell .workspace>.topbar{display:flex!important;flex-wrap:wrap!important;align-items:center;justify-content:space-between!important;gap:6px 12px!important;padding:2px 20px 12px!important;min-height:0!important;background:var(--ps-bg)!important}
+  html[data-theme] .app-shell .workspace>.topbar{height:auto!important;flex-shrink:0!important}
+  html[data-theme] .app-shell .topbar>.caller-id{display:none!important}
+  html[data-theme] .app-shell .topbar .lead-line-switch{display:flex!important;gap:3px;max-width:100%;min-width:0}
+  html[data-theme] .app-shell .topbar>.lead-line-switch{order:0!important;flex:1 1 auto!important;width:auto!important;height:auto!important;overflow:visible!important}
+  html[data-theme] .app-shell .topbar .lead-line-switch button{min-height:36px!important;font-size:11px!important;padding:7px 10px!important;white-space:normal!important}
+  html[data-theme] .app-shell .topbar>.top-actions{display:flex!important;gap:6px!important;margin:0!important;min-width:0!important}
+  html[data-theme] .app-shell .topbar>.top-actions{order:1!important;flex:0 0 auto!important;width:auto!important}
+  html[data-theme] .app-shell .topbar .top-actions>:not(.inbound-availability):not(.notification){display:none!important}
+  html[data-theme] .app-shell .topbar .inbound-availability{font-size:10px!important;padding:6px!important;min-height:36px!important;max-width:90px;white-space:normal}
+  html[data-theme] .app-shell .topbar .inbound-availability{display:inline-flex!important;width:auto!important;height:auto!important}
+  html[data-theme] .app-shell .topbar .notification{min-width:36px;min-height:36px}
+  html[data-theme] .app-shell .workspace>:is(.page-view,.dialer-view,.today-workspace,.conversation-workspace){padding:16px 20px!important;scrollbar-gutter:auto!important;min-width:0}
+  html[data-theme] .app-shell .workspace>.messages-view{padding:6px 12px 0!important}
+  html[data-theme] .app-shell :is(button,input,textarea,select){touch-action:manipulation}
+  html[data-theme] .app-shell :is(input:not([type=checkbox]):not([type=range]),textarea,select){font-size:max(16px,1rem)!important;max-width:100%;min-width:0}
+  html[data-theme] .app-shell :is(.module-bar,.dialer-toolbar){gap:12px!important;flex-wrap:wrap!important}
+  html[data-theme] .app-shell :is(.module-bar,.dialer-toolbar) h1{font-size:28px!important}
+  html[data-theme] .app-shell :is(.module-actions,.today-actions,.dialer-toolbar-actions){display:flex;flex-wrap:wrap;gap:6px!important;max-width:100%}
+  html[data-theme] .app-shell :is(.module-actions,.today-actions,.dialer-toolbar-actions)>button{min-height:44px!important;font-size:12px!important}
+  html[data-theme] .app-shell .today-metrics{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  html[data-theme] .app-shell .today-metrics>article{padding:18px!important;border-radius:16px!important}
+  html[data-theme] .app-shell .today-metrics b{font-size:30px!important;font-weight:500!important}
+  html[data-theme] .app-shell :is(.today-grid,.today-main,.bottom-grid,.settings-layout,.workspace-profile-fields,.field-grid,.report-grid){grid-template-columns:minmax(0,1fr)!important;min-width:0}
+  html[data-theme] .app-shell .dialer-layout{margin-top:8px!important}
+  html[data-theme] .app-shell.is-dialer .workspace>.conversation-workspace .dialer-layout{margin:0!important}
+  html[data-theme] .app-shell .conversation-workspace .dialer-toolbar{padding-bottom:12px!important;gap:8px!important}
+  html[data-theme] .app-shell .conversation-workspace .dialer-toolbar-actions{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;width:100%;scrollbar-width:thin}
+  html[data-theme] .app-shell .dialer-toolbar-actions>:is(button,details,label){flex:0 0 auto!important;white-space:nowrap!important;min-height:44px}
+  html[data-theme] .app-shell .dialer-widget .hero-call,html[data-theme] .app-shell .dialer-widget .call-grid{min-height:0!important}
+  html[data-theme] .app-shell .dialer-widget .call-grid{display:flex!important;flex-direction:column!important;gap:14px!important}
+  html[data-theme] .app-shell .dialer-widget .contact-card{min-height:90px!important;flex-wrap:nowrap!important}
+  html[data-theme] .app-shell .dialer-widget .call-grid{padding:12px 0 20px!important}
+  html[data-theme] .app-shell .dialer-widget .side-pad{padding:12px 8px!important;max-width:none!important}
+  html[data-theme] .app-shell .dialer-widget .contact-card{flex-wrap:wrap;min-width:0;gap:14px!important}
+  html[data-theme] .app-shell .contact-card h2{font-size:30px!important;overflow-wrap:anywhere}
+  html[data-theme] .app-shell .call-controls{display:flex;flex-wrap:wrap!important;gap:10px!important}
+  html[data-theme] .app-shell .call-controls button{min-height:52px!important;flex:1 1 130px}
+  html[data-theme] .app-shell .dialer-widget .dialer-timeout-control{padding:8px 0 20px!important;gap:8px!important;flex-wrap:wrap}
+  html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid{grid-template-rows:repeat(4,58px)!important;gap:4px!important}
+  html[data-theme] .app-shell .key-grid button b{font-size:28px!important}
+  html[data-theme] .app-shell .message-contacts{padding:0!important}
+  html[data-theme] .app-shell .messages-center>.messages-module-bar{position:static!important;align-self:flex-end;min-height:28px!important}
+  html[data-theme] .app-shell .messages-center>.messages-module-bar{position:absolute!important;right:0!important;top:6px!important;z-index:2;min-height:0!important;padding:0!important}
+  html[data-theme] .app-shell .messages-center>.messages-module-bar .message-connection{font-size:10px!important;min-height:32px!important;padding:0!important;border:0!important;gap:5px!important;background:transparent!important}
+  html[data-theme] .app-shell .message-connection button{min-height:32px!important;width:32px!important;border:0!important}
+  html[data-theme] .app-shell .messages-center>.channel-tabs{padding:0 0 10px!important;display:flex!important}
+  html[data-theme] .app-shell .messages-center>.channel-tabs{width:calc(100% - 130px)!important;min-height:44px!important;padding:0 0 6px!important;margin-bottom:4px!important}
+  html[data-theme] .app-shell .messages-center>.channel-tabs>button{padding:8px!important;min-height:38px!important;font-size:12px!important}
+  html[data-theme] .app-shell .messages-center>.channel-tabs>button{min-width:0!important;flex:1!important;min-height:44px!important}
+  html[data-theme] .app-shell .messages-center>.messages-layout{grid-template-columns:minmax(0,1fr)!important;gap:0!important;border-radius:0!important;background:transparent!important}
+  html[data-theme] .app-shell .messages-layout.inbox-open .message-thread,html[data-theme] .app-shell .messages-layout.thread-open .message-contacts{display:none!important}
+  html[data-theme] .app-shell .messages-layout.thread-open .message-thread{display:grid!important}
+  html[data-theme] .app-shell .messages-layout.thread-open .message-thread{display:flex!important;flex-direction:column!important;min-height:0!important;height:100%!important}
+  html[data-theme] .app-shell .message-back{display:inline-flex!important;min-width:44px!important;min-height:44px!important}
+  html[data-theme] .app-shell .message-thread>header>.message-back{border:0!important;background:var(--ps-hover)!important}
+  html[data-theme] .app-shell .message-contacts>header{padding:8px 4px 12px!important}
+  html[data-theme] .app-shell .message-contacts>button{min-height:82px!important;padding:16px 12px!important;margin:0 0 4px!important}
+  html[data-theme] .app-shell .message-contacts>button b{font-size:16px!important}
+  html[data-theme] .app-shell .message-thread>header{padding:8px 4px 12px!important;gap:8px;flex-wrap:wrap}
+  html[data-theme] .app-shell .message-thread>header{display:grid!important;grid-template-columns:auto minmax(0,1fr) 44px!important;min-height:64px!important;flex:none}
+  html[data-theme] .app-shell .thread-contact{min-width:0;flex:1}.thread-contact b{overflow-wrap:anywhere}
+  html[data-theme] .app-shell .thread-contact b{font-size:19px!important}
+  html[data-theme] .app-shell .message-thread .thread-contact{display:grid!important;gap:2px!important;padding:0!important;min-height:44px!important;align-content:center}
+  html[data-theme] .app-shell .message-thread .thread-contact b{line-height:1.2!important}
+  html[data-theme] .app-shell .message-thread .thread-contact small{font-size:10px!important;line-height:1.3!important;margin:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;min-width:0}
+  html[data-theme] .app-shell .thread-contact-actions{display:flex;gap:6px;width:100%}.thread-contact-actions button{min-height:44px!important;flex:1}
+  html[data-theme] .app-shell .message-thread>header>.thread-contact-actions{display:none!important}
+  .thread-mobile-actions{display:block;position:relative;align-self:center}.thread-mobile-actions>summary{display:grid;place-items:center;width:44px;height:44px;border:0;list-style:none;cursor:pointer;color:var(--ps-muted)}.thread-mobile-actions>summary::-webkit-details-marker{display:none}.thread-mobile-actions>div{position:absolute;right:0;top:44px;z-index:12;min-width:160px;padding:8px;background:var(--ps-surface-3);border-radius:12px;box-shadow:0 8px 30px #0003}.thread-mobile-actions button{width:100%;padding:12px;border:0;background:transparent;color:var(--ps-text);text-align:left;font:inherit;min-height:44px}
+  html[data-theme] .app-shell .reply-interest-prompt{flex:none;margin:4px 0 8px!important;padding:10px 12px!important;gap:6px!important;border:0!important;border-radius:12px!important;box-shadow:none!important}
+  html[data-theme] .app-shell .reply-interest-prompt>div{flex:1 1 100%;min-width:0}.reply-interest-prompt b{font-size:12px!important}.reply-interest-prompt small{font-size:10px!important;margin-top:2px!important}
+  html[data-theme] .app-shell .reply-interest-prompt>button{min-height:36px!important;padding:6px 10px!important;font-size:11px!important;border:0!important}
+  html[data-theme] .app-shell .reply-interest-prompt b{font-size:12px!important;line-height:1.3!important}
+  html[data-theme] .app-shell .reply-interest-prompt small{font-size:10px!important;line-height:1.3!important;margin:2px 0 0!important}
+  html[data-theme] .app-shell .nurture-summary{flex:none;max-height:90px;overflow:auto;padding:10px!important}
+  html[data-theme] .app-shell .message-history{padding:12px 4px!important;gap:12px!important}
+  html[data-theme] .app-shell .message-thread>.message-history{flex:1 1 100px!important;min-height:90px!important;max-height:none!important;overflow:auto!important}
+  html[data-writing-assistance="true"] .app-shell .message-thread>.message-history{min-height:48px!important}
+  html[data-theme] .app-shell .message-history>article{max-width:90%!important;padding:12px 15px!important;border-radius:16px!important}
+  html[data-theme] .app-shell .message-history>article p{font-size:15px!important;line-height:1.6!important}
+  html[data-theme] .app-shell .message-thread>footer{padding:10px 0!important;max-height:48dvh;overflow:auto;flex:none}
+  html[data-theme] .app-shell .message-thread>footer{min-height:0!important;max-height:55%!important;overflow:auto!important;overscroll-behavior:contain}
+  html[data-theme] .app-shell .message-thread textarea{min-height:84px!important;padding:14px!important;resize:none}
+  html[data-theme] .app-shell .message-thread>footer textarea{height:64px!important;min-height:64px!important;max-height:100px!important;background:var(--ps-surface-2)!important;padding:12px!important}
+  html[data-theme] .app-shell .message-attachment-panel{display:block!important;margin:0!important;padding:0!important;width:100%!important}
+  html[data-theme] .app-shell .message-attachment-toolbar{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;justify-content:flex-start!important;gap:4px!important;width:100%!important;margin:4px 0 0!important;padding:0!important}
+  html[data-theme] .app-shell .message-attachment-toolbar button{min-height:36px!important;font-size:11px!important;padding:6px!important;border:0!important;background:transparent!important;color:var(--ps-muted)!important;white-space:normal}
+  html[data-theme] .app-shell .message-attachment-toolbar .voice-message-recorder{display:flex!important;flex-direction:row!important;flex:0 1 auto!important;width:auto!important;margin:0!important}
+  html[data-theme] .app-shell .message-thread>footer .template-vault>header>button{font-size:11px!important;min-height:26px!important}
+  html[data-theme] .app-shell .message-thread>footer>.template-vault{margin:0!important}
+  html[data-theme] .app-shell .composer-actions{display:flex!important;flex-wrap:wrap!important;gap:6px!important;padding-top:8px!important}
+  html[data-theme] .app-shell .message-thread>footer>.composer-actions>button{flex:1 1 110px!important;min-height:44px!important;padding:10px!important;font-size:12px!important}
+  html[data-theme] .app-shell .message-thread>footer>.composer-actions>button{flex:1 1 80px!important}
+  html[data-theme] .app-shell .message-thread>footer>.composer-actions{margin:0!important}
+  html[data-theme] .app-shell .message-thread>footer>.composer-actions button{height:44px!important;min-height:44px!important;padding:8px!important;font-size:11px!important;line-height:1.2!important}
+  html[data-theme] .app-shell .reply-interest-prompt>div{line-height:1.3!important}.reply-interest-prompt b,.reply-interest-prompt small{line-height:1.3!important;margin-bottom:0!important}
+  html[data-theme] .app-shell .message-thread>footer>.composer-actions>.send-message{background:var(--ps-accent)!important;color:var(--dialer-button-text)!important}
+  .mobile-navigation{position:fixed;inset:auto 0 0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));height:var(--phone-nav-height);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--ps-surface);box-shadow:0 -10px 32px #00000008;box-sizing:border-box;border:0}
+  html[data-theme] .app-shell .mobile-navigation>button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;min-width:0;padding:4px 2px;border:0!important;border-radius:12px;background:transparent;color:var(--ps-muted);font:inherit;cursor:pointer}
+  html[data-theme] .app-shell .mobile-navigation>button[aria-current="page"]{color:var(--ps-accent);background:var(--ps-accent-soft)}
+  .mobile-navigation button>span{position:relative;display:grid;place-items:center;height:23px}.mobile-navigation svg{width:21px;height:21px}.mobile-navigation small{font-size:10px;font-weight:600;letter-spacing:0}.mobile-navigation em{position:absolute;left:16px;top:-5px;font-size:9px;background:var(--ps-accent);color:var(--dialer-button-text);padding:0 4px;min-width:15px;min-height:15px;border-radius:8px;font-style:normal;text-align:center}
+  .mobile-menu-overlay{display:flex;position:fixed;inset:0;z-index:600;background:#0009;align-items:flex-end}
+  .mobile-menu{width:100%;max-height:92dvh;overflow:auto;overscroll-behavior:contain;background:var(--ps-surface);padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px));border-radius:24px 24px 0 0;box-sizing:border-box;box-shadow:0 -16px 70px #0003;outline:0}
+  .mobile-menu>header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}.mobile-menu>header small{font-size:10px;letter-spacing:.17em;color:var(--ps-muted)}.mobile-menu h2{margin:6px 0 0;font-size:27px;color:var(--ps-text-strong)}
+  html[data-theme] .app-shell .mobile-menu>header>button{width:44px;height:44px;border:0;border-radius:50%;background:var(--ps-hover);color:var(--ps-text);font-size:28px;cursor:pointer}
+  .mobile-menu nav{display:grid;gap:4px}.mobile-menu nav button{display:flex;align-items:center;gap:16px;min-height:56px;padding:12px 16px;background:transparent;border:0;border-radius:12px;color:var(--ps-text);text-align:left;font:inherit;cursor:pointer}.mobile-menu nav button[aria-current="page"]{background:var(--ps-accent-soft);color:var(--ps-accent)}.mobile-menu nav button>span:first-of-type{flex:1}.mobile-menu nav svg{width:21px;height:21px;flex:none}.mobile-menu nav button>span:last-child{color:var(--ps-muted)}
+  html[data-theme] .app-shell :is(.drawer-backdrop,.contact-drawer-backdrop){top:0!important;bottom:0!important}.contact-drawer{max-width:100vw!important;width:100%!important}
+  html[data-theme] .app-shell .toast{max-width:calc(100vw - 32px);left:16px!important;right:16px!important;bottom:calc(var(--phone-nav-height) + 12px)!important}
+}
+@media(max-width:360px){.mobile-workspace-header{padding-inline:14px}.mobile-save-status{font-size:10px}html[data-theme] .app-shell .workspace>.topbar{padding-inline:14px!important}html[data-theme] .app-shell .workspace>:is(.page-view,.dialer-view,.today-workspace,.conversation-workspace){padding-inline:14px!important}}
+/* Keyboard overrides come after the phone rules so desktop header declarations
+   cannot reclaim space from the conversation while the keyboard is open. */
+@media(max-width:760px){
+  html[data-theme][data-phone-keyboard="true"] .app-shell .workspace>.topbar,
+  html[data-theme][data-phone-keyboard="true"] .app-shell .messages-center>.messages-module-bar,
+  html[data-theme][data-phone-keyboard="true"] .app-shell .messages-center>.channel-tabs{display:none!important}
+  html[data-theme][data-phone-keyboard="true"] .app-shell .workspace>.messages-view{padding-top:0!important}
+  html[data-theme][data-phone-keyboard="true"] .app-shell .message-thread>.message-history{min-height:48px!important}
+  html[data-theme][data-phone-keyboard="true"] .app-shell .message-thread>footer{max-height:calc(100% - 112px)!important}
+  html[data-theme][data-phone-keyboard="true"] .app-shell .message-thread>footer>.composer-actions{position:sticky;bottom:0;background:var(--ps-bg);z-index:3}
+}
+@media(prefers-reduced-motion:reduce){.mobile-navigation *,.mobile-menu *{animation:none!important;transition:none!important}}

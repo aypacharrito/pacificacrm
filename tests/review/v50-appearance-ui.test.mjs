@@ -17,7 +17,7 @@ test('each default scene clears only its own saved custom background',async()=>{
   const defaults=[...document.querySelectorAll('.dialer-scene-previews button')];
   await act(async()=>defaults[0].click());assert.equal(changes.at(-1).dialerLightBackdropUrl,'');assert.equal(changes.at(-1).dialerDarkBackdropUrl,profile.dialerDarkBackdropUrl);
   await act(async()=>defaults[1].click());assert.equal(changes.at(-1).dialerDarkBackdropUrl,'');assert.equal(changes.at(-1).dialerLightBackdropUrl,profile.dialerLightBackdropUrl);
-  assert.equal(document.querySelectorAll('.dialer-native-preview canvas').length,1);
+  assert.equal(document.querySelectorAll('.dialer-native-preview canvas').length,0);
   assert.equal(document.querySelectorAll('.dialer-scene-plain[role="img"]').length,1);
   assert.equal(document.querySelectorAll('.dialer-scene-previews img').length,0);
  }finally{await act(async()=>root.unmount());dom.window.close()}

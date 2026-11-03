@@ -9,8 +9,8 @@ import {overlayTop} from '../../app/lib/workspace-chrome.ts';
 import WorkspaceChromeMetrics from '../../app/components/WorkspaceChromeMetrics.tsx';
 import {desktopChrome} from '../../desktop/chrome.mjs';
 const read=name=>fs.readFileSync(new URL('../../'+name,import.meta.url),'utf8');
-const css=read('app/polished-workspace.css');
-function lastToken(theme,name){const blocks=[...css.matchAll(new RegExp(`html\\[data-theme="${theme}"\\]\\{([^}]+)\\}`,'g'))];const values=blocks.flatMap(b=>[...b[1].matchAll(new RegExp(`--${name}:([^;}]*)`,'g'))].map(m=>m[1].trim()));return values.at(-1)}
+const css=read('app/polished-workspace.css')+'\n'+read('app/floating-workspace.css');
+function lastToken(theme,name){const blocks=[...css.matchAll(new RegExp(`html\\[data-theme="${theme}"\\]\\s*\\{([^}]+)\\}`,'g'))];const values=blocks.flatMap(b=>[...b[1].matchAll(new RegExp(`--${name}:([^;}]*)`,'g'))].map(m=>m[1].trim()));return values.at(-1)}
 function luminance(hex){if(hex.length===4)hex='#'+hex.slice(1).split('').map(x=>x+x).join('');const rgb=hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722}
 function contrast(a,b){const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
 test('native caption backgrounds exactly match the final light and dark web-shell colors',()=>{
@@ -24,8 +24,8 @@ test('theme IPC updates native controls only for the trusted CRM and a valid the
  const colors=[],overlays=[];const contents={};const window={webContents:contents,setBackgroundColor:c=>colors.push(c),setTitleBarOverlay:c=>overlays.push(c)};
  const context={mainWindow:window,desktopAppearance:'dark',saveOverlayLayout(){},nativeTheme:{},desktopChrome,lastCallState:{},overlayWindow:null,messageWindow:null,isAppUrl:url=>url==='https://pacificacrm.com/dashboard',overlayState:()=>({}),showMessagePopup(){}};
  const apply=vm.runInNewContext('('+handler+'\n})',context),event={sender:contents,senderFrame:{url:'https://pacificacrm.com/dashboard'}};
- apply(event,'light');assert.equal(colors.at(-1),'#fafafa');assert.equal(overlays.at(-1).symbolColor,'#202428');assert.equal(overlays.at(-1).height,60);
- apply(event,'dark');assert.equal(colors.at(-1),'#141618');
+ apply(event,'light');assert.equal(colors.at(-1),lastToken('light','ps-bg'));assert.equal(overlays.at(-1).symbolColor,desktopChrome('light').symbols);assert.equal(overlays.at(-1).height,60);
+ apply(event,'dark');assert.equal(colors.at(-1),lastToken('dark','ps-bg'));
  apply({...event,sender:{}},'light');apply({...event,senderFrame:{url:'https://evil.test'}},'light');apply(event,'invalid');assert.equal(colors.length,2);
 });
 test('drawer offset handles wrapped headers, fractional pixels and short windows',()=>{

@@ -8,3 +8,4 @@ const sources={
 'phone-assignments':`export async function phoneAssignmentForWorkspace(){return null} export async function phoneAssignmentForNumber(){return {workspaceId:'test'}}`,
 };
 registerHooks({resolve(specifier,context,next){const name=specifier.split('/').at(-1)?.replace(/\.ts$/,'');if(sources[name])return {url:'data:text/javascript,'+encodeURIComponent(sources[name]),shortCircuit:true};return next(specifier,context)}});
+registerHooks({resolve(specifier,context,next){if(specifier==='next/server')return {url:'data:text/javascript,export function after(callback){(globalThis.testAfterResponseJobs??=[]).push(callback)}',shortCircuit:true};return next(specifier,context)}});

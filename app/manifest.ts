@@ -14,9 +14,9 @@ export default function manifest():MetadataRoute.Manifest{
     orientation:"any",
     categories:["business","productivity"],
     icons:[
-      {src:"/pacifica-icon-192.png?v=3",sizes:"192x192",type:"image/png"},
-      {src:"/pacifica-icon-512.png?v=3",sizes:"512x512",type:"image/png"},
-      {src:"/pacifica-icon-512-maskable.png?v=3",sizes:"512x512",type:"image/png",purpose:"maskable"},
+      {src:"/pacifica-icon-192.png?v=5",sizes:"192x192",type:"image/png"},
+      {src:"/pacifica-icon-512.png?v=5",sizes:"512x512",type:"image/png"},
+      {src:"/pacifica-icon-512-maskable.png?v=5",sizes:"512x512",type:"image/png",purpose:"maskable"},
     ],
   };
 }

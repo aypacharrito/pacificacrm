@@ -1,7 +1,8 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Screen } from "../../src/components/Screen";
 import { Button, Card, Muted, Pill, Title, usePalette } from "../../src/components/Primitives";
 import { isHotLead } from "../../src/lib/lead";

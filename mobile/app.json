@@ -3,7 +3,7 @@
     "name": "Pacifica",
     "slug": "pacifica",
     "owner": "pacificacrm",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "pacifica",
     "userInterfaceStyle": "automatic",
@@ -12,7 +12,7 @@
     "splash": {
       "image": "./assets/splash-mark.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F7FAF9"
+      "backgroundColor": "#F2F3F5"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,10 +25,14 @@
       "package": "com.pacificacrm.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#EAF6F2"
+        "backgroundColor": "#101216",
+        "monochromeImage": "./assets/monochrome-icon.png"
       },
       "permissions": [
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "BLUETOOTH_CONNECT"
       ]
     },
     "web": {
@@ -43,19 +47,21 @@
       [
         "expo-notifications",
         {
-          "color": "#137A4A",
-          "defaultChannel": "pacifica"
+          "color": "#FFFFFF",
+          "defaultChannel": "pacifica",
+          "icon": "./assets/notification-icon.png"
         }
       ],
       [
         "expo-splash-screen",
         {
           "image": "./assets/splash-mark.png",
-          "imageWidth": 240,
+          "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#F7FAF9",
+          "backgroundColor": "#F2F3F5",
           "dark": {
-            "backgroundColor": "#0B1210"
+            "backgroundColor": "#101216",
+            "image": "./assets/splash-mark-dark.png"
           }
         }
       ],
@@ -64,9 +70,11 @@
         {
           "cameraPermission": "Take photos of contact details for Pacifica AI.",
           "photosPermission": "Choose a photo to read contact details with Pacifica AI.",
-          "microphonePermission": false
+          "microphonePermission": "Pacifica uses the microphone for business calls when you enable calling."
         }
-      ]
+      ],
+      "@twilio/voice-react-native-sdk",
+      "./plugins/with-pacifica-messaging"
     ],
     "experiments": {
       "typedRoutes": true

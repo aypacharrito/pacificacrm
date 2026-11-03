@@ -3,7 +3,6 @@
 import {useState} from "react";
 import type {WorkspaceProfile} from "../lib/workspace-profile";
 import {industryLabels} from "../lib/business-context";
-import DialerBackdrop from "./DialerBackdrop";
 
 function ListInput({values,onChange,placeholder}:{values:string[];onChange:(values:string[])=>void;placeholder:string}){
   const [draft,setDraft]=useState<string|null>(null);
@@ -37,21 +36,8 @@ export default function WorkspaceProfileSettings({profile,onChange}:{profile:Wor
     <label className="server-automation-toggle"><input type="checkbox" checked={profile.aiPersonalizationEnabled} onChange={event=>update({aiPersonalizationEnabled:event.target.checked})}/><span><b>Personalize automatic follow-ups</b><small>Uses your business profile and each contact&apos;s details.</small></span></label>
     <label className="server-automation-toggle"><input type="checkbox" checked={profile.serverAutomationEnabled} onChange={event=>update({serverAutomationEnabled:event.target.checked})}/><span><b>Background follow-ups</b><small>Runs your saved outreach sequences while Pacifica is closed.</small></span></label>
 
-    <div className="workspace-appearance-setting"><div><b>Appearance</b></div><div className="appearance-picker" role="group" aria-label="Workspace appearance"><button type="button" className={profile.appearance==="light"?"active":""} aria-pressed={profile.appearance==="light"} onClick={()=>update({appearance:"light"})}><span aria-hidden="true">☀</span><b>Light</b></button><button type="button" className={profile.appearance==="dark"?"active":""} aria-pressed={profile.appearance==="dark"} onClick={()=>update({appearance:"dark"})}><span aria-hidden="true">☾</span><b>Dark</b></button></div></div>
 
-    <section className="dialer-scene-settings" aria-label="Dialer background settings">
-      <div className="dialer-scene-heading"><b>Dialer background</b><button type="button" onClick={()=>update({dialerLightBackdropUrl:"",dialerDarkBackdropUrl:""})}>Reset both</button></div>
-      <div className="dialer-scene-previews">
-        {(["light","dark"] as const).map(theme=><article key={theme}>
-          {theme === "light" ? <div className="dialer-scene-plain" role="img" aria-label="Plain light workspace without stars or a watermark"/>
-            : <div className="dialer-native-preview" role="img" aria-label="Crisp screen-resolution stars without an image download"><DialerBackdrop appearance="dark"/></div>}
-          <div><b>{theme === "light" ? "Plain light" : "Night stars"}</b><button type="button" onClick={()=>update(theme === "light" ? {dialerLightBackdropUrl:""} : {dialerDarkBackdropUrl:""})}>Use default</button></div>
-        </article>)}
-      </div>
-      <div className="workspace-profile-fields"><label>Light image / GIF<input type="url" value={profile.dialerLightBackdropUrl} onChange={event=>update({dialerLightBackdropUrl:event.target.value})} placeholder="Optional HTTPS image or GIF"/></label><label>Dark image / GIF<input type="url" value={profile.dialerDarkBackdropUrl} onChange={event=>update({dialerDarkBackdropUrl:event.target.value})} placeholder="Optional HTTPS image or GIF"/></label></div>
-    </section>
 
-    <div className="workspace-display-setting"><div><b>Display size</b><small>Scale the entire workspace for clearer reading.</small></div><div className="display-size-picker" role="radiogroup" aria-label="Workspace display size">{(["comfortable","large","extra-large"] as const).map(size=><button key={size} type="button" role="radio" aria-checked={profile.displaySize===size} className={profile.displaySize===size?"active":""} onClick={()=>update({displaySize:size})}><b>{size==="extra-large"?"Extra large":size[0].toUpperCase()+size.slice(1)}</b></button>)}</div></div>
 
     <div className="workspace-safety-toggles"><label><input type="checkbox" checked={profile.callRecordingEnabled} onChange={event=>update({callRecordingEnabled:event.target.checked,callAiSummaryEnabled:event.target.checked?profile.callAiSummaryEnabled:false})}/><span><b>Recording reminders</b></span></label><label><input type="checkbox" checked={profile.callAiSummaryEnabled} disabled={!profile.callRecordingEnabled} onChange={event=>update({callAiSummaryEnabled:event.target.checked})}/><span><b>AI transcript and call summary</b><small>After a consent-confirmed recording, Pacifica extracts needs, objections, commitments, and next steps.</small></span></label></div>
   </section>;

@@ -17,6 +17,6 @@ import {pendingConversationThreads,conversationBatch,hash} from '../app/lib/conv
 test('backlog drains without rescanning unchanged conversations and includes inbound-only requests',()=>{
  const leads=Array.from({length:45},(_,i)=>({...lead,id:i+1,communications:[lead.communications[0]]}));
  let checked={};const sizes=[];
- for(let i=0;i<3;i++){const batch=conversationBatch(pendingConversationThreads(leads,checked,now));sizes.push(batch.length);checked={...checked,...Object.fromEntries(batch.map(t=>[t.leadId,'v3:'+hash(t.messages)]))}}
+ for(let i=0;i<3;i++){const batch=conversationBatch(pendingConversationThreads(leads,checked,now));sizes.push(batch.length);checked={...checked,...Object.fromEntries(batch.map(t=>[t.leadId,'v4:'+hash(t.messages)]))}}
  assert.deepEqual(sizes,[20,20,5]);assert.equal(pendingConversationThreads(leads,checked,now).length,0);
 });

@@ -5,6 +5,7 @@ import { requireChatGPTUser } from "../chatgpt-auth";
 import { isPacificaPlatformOwnerEmail, requirePacificaWorkspacePage } from "../lib/clerk-access";
 import { isClerkConfigured } from "../lib/clerk-config";
 import { redirect } from "next/navigation";
+import {getPlatformFeatures} from "../lib/platform-feature-store";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function DashboardPage(){
         clerkEnabled
         isOwner={access.role==="owner"||access.role==="manager"}
         isPlatformOwner={isPacificaPlatformOwnerEmail(access.email)}
+        featureAccess={await getPlatformFeatures()}
         workspaceId={access.userId}
         currentUserName={access.displayName}
         currentUserEmail={access.email}

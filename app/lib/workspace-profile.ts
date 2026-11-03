@@ -1,9 +1,11 @@
 import {cleanWarming,defaultWarming,type WarmingSettings} from "./lead-warming-policy";
+import {cleanDisplayScale, displayScaleLimits} from "./display-scale";
+import {cleanColorPalette,type ColorPalette} from "./color-palettes";
 // PACIFICA_VERTICAL_PLATFORM_V1
 export type WorkspaceMode="sales"|"insurance";
 export type WorkspaceIndustry="general"|"insurance"|"automotive"|"home-services"|"legal"|"real-estate"|"financial-services"|"health-beauty"|"custom";
 export type OutreachTone="professional-friendly"|"casual"|"concise"|"consultative"|"luxury";
-export type WorkspaceAppearance="light"|"dark";
+export type WorkspaceAppearance="light"|"dark"|"system";
 const workspaceIndustries=new Set<WorkspaceIndustry>(["general","insurance","automotive","home-services","legal","real-estate","financial-services","health-beauty","custom"]);
 export type WorkspaceDisplaySize="comfortable"|"large"|"extra-large";
 export type CommunicationTemplate={id:string;name:string;channel:"sms"|"email";subject:string;body:string;updatedAt:string};
@@ -42,15 +44,19 @@ export type WorkspaceProfile={
   idealCustomer:string;
   valueProposition:string;
   salesObjective:string;
+  learnWritingStyle:boolean;
+  writingStyleSince:string;
   outreachTone:OutreachTone;
   customAiInstructions:string;
   aiPersonalizationEnabled:boolean;
   maxAutomatedTouchesPerLeadPerDay:number;
   appearance:WorkspaceAppearance;
+  colorPalette:ColorPalette;
   dialerLightBackdropUrl:string;
   dialerDarkBackdropUrl:string;
   dialerBackdropMotion:boolean;
   displaySize:WorkspaceDisplaySize;
+  displayScale:number;
   quietDialing:boolean;
   dialerRingTimeoutSeconds:20|30;
   smsConsentSources:string[];
@@ -94,15 +100,19 @@ export const defaultWorkspaceProfile:WorkspaceProfile={
   idealCustomer:"",
   valueProposition:"",
   salesObjective:"",
+  learnWritingStyle:true,
+  writingStyleSince:"",
   outreachTone:"professional-friendly",
   customAiInstructions:"",
   aiPersonalizationEnabled:true,
   maxAutomatedTouchesPerLeadPerDay:1,
-  appearance:"dark",
+  appearance:"system",
+  colorPalette:"system",
   dialerLightBackdropUrl:"",
   dialerDarkBackdropUrl:"",
   dialerBackdropMotion:true,
   displaySize:"large",
+  displayScale:displayScaleLimits.default,
   quietDialing:true,
   dialerRingTimeoutSeconds:20,
   smsConsentSources:[],
@@ -179,16 +189,20 @@ export function cleanWorkspaceProfile(value:unknown):WorkspaceProfile{
     idealCustomer:String(profile.idealCustomer||"").trim().slice(0,800),
     valueProposition:String(profile.valueProposition||"").trim().slice(0,800),
     salesObjective:String(profile.salesObjective||"").trim().slice(0,1200),
+    learnWritingStyle:profile.learnWritingStyle!==false,
+    writingStyleSince:typeof profile.writingStyleSince==="string"&&Number.isFinite(Date.parse(profile.writingStyleSince))?profile.writingStyleSince:"",
     outreachTone:profile.outreachTone==="casual"||profile.outreachTone==="concise"||profile.outreachTone==="consultative"||profile.outreachTone==="luxury"?profile.outreachTone:"professional-friendly",
     customAiInstructions:String(profile.customAiInstructions||"").trim().slice(0,2000),
     aiPersonalizationEnabled:profile.aiPersonalizationEnabled!==false,
     leadWarming:cleanWarming(profile.leadWarming),
     maxAutomatedTouchesPerLeadPerDay:Math.min(3,Math.max(1,Math.round(Number(profile.maxAutomatedTouchesPerLeadPerDay)||1))),
-    appearance:profile.appearance==="light"?"light":"dark",
+    appearance:profile.appearance==="light"?"light":profile.appearance==="dark"?"dark":"system",
+    colorPalette:cleanColorPalette(profile.colorPalette),
     dialerLightBackdropUrl:cleanDialerBackdropUrl(profile.dialerLightBackdropUrl),
     dialerDarkBackdropUrl:cleanDialerBackdropUrl(profile.dialerDarkBackdropUrl),
     dialerBackdropMotion:profile.dialerBackdropMotion!==false,
     displaySize:profile.displaySize==="comfortable"?"comfortable":profile.displaySize==="extra-large"?"extra-large":"large",
+    displayScale:cleanDisplayScale(profile.displayScale, profile.displaySize),
     quietDialing:profile.quietDialing!==false,
     dialerRingTimeoutSeconds:Number(profile.dialerRingTimeoutSeconds)===30?30:20,
     smsConsentSources:!profile.smsConsentPolicyVersion&&String(profile.businessName||'').toLowerCase().replace(/[^a-z]/g,'')==='davidsinsurance'

@@ -11,6 +11,7 @@ import {
   validateTwilioWebhook,
 } from "../../../lib/twilio-webhook";
 import { sendExpoPush } from "../../../lib/expo-push";
+import { after } from "next/server";
 import {isSmsStopReply,isSmsStartReply} from "../../../lib/message-inbox";
 
 export const runtime = "nodejs";
@@ -166,12 +167,12 @@ export async function POST(request: Request) {
       return { ...current, leads };
     });
     if (!duplicate)
-      void sendExpoPush(
+      after(() => sendExpoPush(
         workspace.profile.expoPushToken,
         matched ? "New Pacifica message" : "New Pacifica lead",
         body,
         { channel: "sms" },
-      );
+      ));
     logEvent("inbound_sms_saved", {
       workspaceId: assignment.workspaceId,
       matched,

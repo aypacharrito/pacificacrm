@@ -9,7 +9,7 @@
 - `PACIFICA_INBOUND_EMAIL_DOMAIN`: receiving subdomain used for private workspace reply addresses.
 - `OPENAI_API_KEY`: AI drafting, CRM analysis, transcription, and call summaries.
 
-Existing Clerk, Upstash Redis, Twilio, Stripe, and lead webhook variables remain required. Vercel Hobby runs the included daily backup at 16:00 UTC; Pacifica also checks every five minutes while an Autopilot workspace is open. Use Vercel Pro or an external scheduler only if you need five-minute server runs while every browser is closed. After changing environment variables, redeploy Production.
+Existing Clerk, Upstash Redis, Twilio, Stripe, and lead webhook variables remain required. The production Vercel Pro project runs saved automation every five minutes, including while all browsers are closed. CRON_SECRET is required. The existing browser check remains a supplementary trigger; the server lease and per-action claims prevent duplicate delivery. The miner feed retains its daily schedule. After changing environment variables, redeploy Production.
 
 ## Provider callbacks
 
@@ -30,7 +30,7 @@ Existing Clerk, Upstash Redis, Twilio, Stripe, and lead webhook variables remain
 
 ## Production behavior
 
-- The automation worker runs every five minutes while Pacifica is open and once daily from the included Hobby cron. It uses deterministic idempotency keys, retries transient failures, and moves repeatedly failing actions to needs-attention status.
+- The automation worker runs every five minutes on Vercel Pro. Only enabled workspace rules and eligible, permission-confirmed contacts are processed. It uses deterministic idempotency keys, retries transient failures, and moves repeatedly failing actions to needs-attention status.
 - If the preferred provider is unavailable, Pacifica can use another consented and configured channel.
 - Incoming text/email replies stop active sequences while Pacifica is closed.
 - Email bounce, complaint, and suppression events block additional email.

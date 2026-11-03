@@ -1,6 +1,7 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Text, type ColorValue } from "react-native";
+import { type ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {usePalette} from "../../src/components/Primitives";
 import { useWorkspace } from "../../src/state/WorkspaceProvider";
@@ -20,8 +21,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: p.green,
         tabBarInactiveTintColor: p.muted,
         tabBarStyle: {
-          backgroundColor: p.card,
-          borderTopColor: p.border,
+          backgroundColor: p.bg,
+          borderTopWidth:0,
           height: 58 + Math.max(insets.bottom, 8),
           paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 6,
@@ -30,8 +31,8 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Today", tabBarIcon: ({ color }) => <Icon symbol="●" color={color} /> }} />
-      <Tabs.Screen name="ai" options={{ title: "Pacifica AI", tabBarIcon: ({ color }) => <Icon symbol="✦" color={color} /> }} />
-      <Tabs.Screen name="dialer" options={{ href: null }} />
+      <Tabs.Screen name="ai" options={{ href: null }} />
+      <Tabs.Screen name="dialer" options={{ title: "Calls", tabBarIcon: ({ color }) => <Icon symbol="☎" color={color} /> }} />
       <Tabs.Screen name="inbox" options={{ title: "Messages", tabBarBadge: unreadMessages || undefined, tabBarIcon: ({ color }) => <Icon symbol="✉" color={color} /> }} />
       <Tabs.Screen name="contacts" options={{ title: "Contacts", tabBarIcon: ({ color }) => <Icon symbol="◎" color={color} /> }} />
       <Tabs.Screen name="more" options={{ title: "More", tabBarIcon: ({ color }) => <Icon symbol="•••" color={color} /> }} />

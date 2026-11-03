@@ -46,7 +46,7 @@ export async function reviewNoteReminders(workspaceId:string,force=false){
    const outcome=reconcileToday(cleanNoteReminders(current.noteReminders),unchanged,tasks,resolutions,new Date(now).toISOString());summary={added:outcome.added,resolved:outcome.resolved,dismissed:outcome.dismissed};
    const checked={...state.checked,...Object.fromEntries(unchanged.map(c=>[`contact:${c.id}`,c.fingerprint]))};
    const more=latest.some(c=>checked[`contact:${c.id}`]!==c.fingerprint);
-   return {...current,noteReminders:outcome.items,noteReview:{...state,checked,lease:'',lastRunAt:now,nextRunAt:now+(more?15000:3600000),error:''}};
+   return {...current,noteReminders:outcome.items,noteReview:{...state,checked,lease:'',lastRunAt:now,nextRunAt:now+(more?15000:300000),error:''}};
   });logEvent('today_review_completed',{contacts:batch.length,...summary,policy:reviewPolicy});return summary;
  }catch(error){const notice=aiProviderIssue(error).notice;logEvent('today_review_failed',{contacts:batch.length,policy:reviewPolicy});await updateStoredWorkspace(workspaceId,current=>current.noteReview?.lease!==lease?current:{...current,noteReview:{...current.noteReview,lease:'',nextRunAt:now+120000,error:notice}});return {added:0,error:notice};}
 }

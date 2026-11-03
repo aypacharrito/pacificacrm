@@ -7,6 +7,7 @@ import {automationWorkspaces,updateStoredWorkspace,type StoredWorkspace} from '.
 import {workspaceAutomationAccess} from './clerk-access';
 import {appendCommunication,cleanCommunications,type StoredCommunication} from './communications';
 import {renderCommunicationTemplate,starterCommunicationTemplates} from './message-templates';
+import {ownerWritingStyle} from './owner-writing-style';
 import {personalizeAutomationMessage} from './ai-outreach';
 import {outboundSmsStatus,sendOutboundSms} from './outbound-sms';
 import {outboundEmailStatus,sendOutboundEmail,inboundReplyAddress} from './outbound-email';
@@ -64,7 +65,7 @@ export async function runDailyOutreach(options:{workspaceId?:string;workspaceLim
       const templateId=channel==='sms'?'starter-gentle-follow-up':'starter-email-follow-up';
       const template=profile.communicationTemplates.find(t=>t.id===templateId)||starterCommunicationTemplates.find(t=>t.id===templateId)!;
       const context={...claimed,name:claimed.name,product:String(claimed.product||''),city:String(claimed.city||'')};
-      const rendered=await personalizeAutomationMessage({profile,lead:claimed,channel,subject:renderCommunicationTemplate(template.subject,context,profile),body:renderCommunicationTemplate(template.body,context,profile),timeoutMs:3500});
+      const rendered=await personalizeAutomationMessage({profile,style:ownerWritingStyle(current.leads,profile),lead:claimed,channel,subject:renderCommunicationTemplate(template.subject,context,profile),body:renderCommunicationTemplate(template.body,context,profile),timeoutMs:3500});
       if(channel==='sms'){
        const result=await sendOutboundSms({workspaceId:record.workspaceId,to:claimed.phone,body:rendered.body,automated:true,scheduled:true,deadline});communication=result.communication;
       }else{

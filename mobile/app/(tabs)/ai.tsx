@@ -1,5 +1,6 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import React,{useEffect,useRef,useState} from "react";
-import {Image,Text,View} from "react-native";
+import { Image, View } from "react-native";
 import {useAuth} from "@clerk/expo";
 import {router} from "expo-router";
 import * as ImagePicker from "expo-image-picker";

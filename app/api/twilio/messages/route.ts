@@ -251,6 +251,7 @@ export async function POST(request: Request) {
       to,
       body: text,
       automated: body.sendMode === "ai",
+      authorship: body.sendMode === "ai" ? "automation" : "owner",
       mediaUrls,attachments,
     });
     const message: TwilioMessage = {

@@ -1,4 +1,7 @@
-import {SmsBudgetError} from "./sms-budget";
+import {ownerWritingStyle} from './owner-writing-style';
+import {missedFollowUp} from './missed-followups';
+import {personalizeAutomationMessage} from './ai-outreach';
+import {SmsBudgetError,budgetTotals,cleanSmsLedger} from "./sms-budget";
 import {assertAutomatedContact} from "./automated-contact";
 import {createHash} from 'node:crypto';
 import {automationWorkspaces,readStoredWorkspace,updateStoredWorkspace,type StoredWorkspace} from './workspace-storage';
@@ -11,7 +14,7 @@ import {automatedSmsBody,emailWithComplianceFooter} from './message-footer';
 import {outboundSmsStatus,sendOutboundSms} from './outbound-sms';
 import {outboundEmailStatus,sendOutboundEmail,inboundReplyAddress} from './outbound-email';
 import {classifyWarmingReply,draftWarmingReply,requestedFollowUp,type ReplyIntent} from './lead-warming-ai';
-import {cleanWarming,latestInbound,outboundHistory,phoneKey,renewalReady,smsSegments,warmingWindow,type WarmingLead,type NurtureState} from './lead-warming-policy';
+import {cleanWarming,latestInbound,outboundHistory,phoneKey,renewalReady,smsSegments,warmingWindow,localDay,type WarmingLead,type NurtureState} from './lead-warming-policy';
 const day=86400000;
 function same(a:WarmingLead,b:WarmingLead){return a.id===b.id||Boolean(phoneKey(a.phone)&&phoneKey(a.phone)===phoneKey(b.phone))||Boolean(a.email&&b.email&&a.email.toLowerCase()===b.email.toLowerCase());}
 function copies(w:StoredWorkspace,l:WarmingLead){return (w.leads as WarmingLead[]).filter(x=>same(x,l));}
@@ -51,11 +54,13 @@ export async function runLeadWarming(options:{workspaceId?:string;workspaceLimit
   const settings=cleanWarming(w.profile.leadWarming),control=cleanAiControl(w.aiControl);
   if(!settings.enabled||!(control.salesEnabled??w.profile.serverAutomationEnabled))continue;
   const seen=new Set<string>();
-  for(const seed of w.leads as WarmingLead[]){
+  // Give actual missed tasks a turn before scanning a large fresh-lead backlog.
+  const seeds=(w.leads as WarmingLead[]).map((lead,index)=>({lead,index,priority:missedFollowUp([lead],w!.profile)?1:0})).sort((a,b)=>b.priority-a.priority||a.index-b.index).map(x=>x.lead);
+  for(const seed of seeds){
    if(Date.now()>(options.deadline??Infinity)-10000||attempts>=(options.sendLimit??50))break;
    const identity=phoneKey(seed.phone)||String(seed.email||'').toLowerCase()||String(seed.id);if(seen.has(identity))continue;
-   const quickInbound=latestInbound([seed]),quickAge=Date.now()-Date.parse(String(seed.received||seed.importedAt||''));
-   if(stopped(seed)||!quickInbound&&!seed.nurture?.resumeAt&&(!Number.isFinite(quickAge)||quickAge>settings.maxLeadAgeDays*day))continue;
+   const quickRecovery=missedFollowUp(copies(w,seed),w.profile),quickInbound=latestInbound([seed]),quickAge=Date.now()-Date.parse(String(seed.received||seed.importedAt||''));
+   if(stopped(seed)||!quickRecovery&&!quickInbound&&!seed.nurture?.resumeAt&&(!Number.isFinite(quickAge)||quickAge>settings.maxLeadAgeDays*day))continue;
    seen.add(identity);
    w=await readStoredWorkspace(record.workspaceId);if(!w)break;
    let group=copies(w,seed),lead=group.find(l=>l.id===seed.id)||group[0];if(!lead||group.some(stopped))continue;
@@ -69,9 +74,9 @@ export async function runLeadWarming(options:{workspaceId?:string;workspaceLimit
     });w=saved;group=copies(w,seed);lead=group.find(l=>l.id===seed.id)||group[0];if(!lead)continue;
     result.reviewed++;if(lead.nurture?.phase==='interested')result.interested++;if(lead.nurture?.phase==='snoozed')result.snoozed++;
     // One bounded response for a question or a not-now reply missing timing. Never invent quotes.
-    if(intent.confidence>=.9&&['question','later'].includes(intent.intent)&&lead.nurture?.phase==='review'&&inbound.channel==='sms'&&!group.some(stopped)&&warmingWindow(new Date(),w.profile.automationTimezone)&&hasContactPermission(lead,w.profile,'sms')&&matchesOutreach(lead,control.rules.sms)&&inOutreachWindow(control.rules.sms)){
+    if(!settings.backupRepliesEnabled&&intent.confidence>=.9&&['question','later'].includes(intent.intent)&&lead.nurture?.phase==='review'&&inbound.channel==='sms'&&!group.some(stopped)&&warmingWindow(new Date(),w.profile.automationTimezone)&&hasContactPermission(lead,w.profile,'sms')&&matchesOutreach(lead,control.rules.sms)&&inOutreachWindow(control.rules.sms)){
      const key=`reply:${replyId}`,token=await claimAction(record.workspaceId,lead,key);if(!token)continue;attempts++;
-     try{let text=intent.intent==='later'?(intent.language==='es'?'¿En qué mes renueva tu seguro? ¿Te contacto antes?':'What month does your policy renew? May I follow up before then?'):await draftWarmingReply(inbound.body,w.profile,intent.language);
+     try{let text=intent.intent==='later'?(intent.language==='es'?'¿En qué mes renueva tu seguro? ¿Te contacto antes?':'What month does your policy renew? May I follow up before then?'):await draftWarmingReply(inbound.body,w.profile,intent.language,ownerWritingStyle(w.leads,w.profile));
       if(smsSegments(automatedSmsBody(text,w.profile.businessName)).segments>settings.maxSegments)text=intent.language==='es'?'¿Buscas mejor precio o cobertura?':'What would you like to compare?';
       await sendOutboundSms({workspaceId:record.workspaceId,to:String(lead.phone||''),body:text,automated:true,scheduled:true,replyId,idempotencyKey:key});result.smsSent++;await finishAction(record.workspaceId,lead,key,token);
      }catch(e){if(e instanceof SmsBudgetError)result.blocked++;else result.errors++;await finishAction(record.workspaceId,lead,key,token,e);}
@@ -81,20 +86,30 @@ export async function runLeadWarming(options:{workspaceId?:string;workspaceLimit
    if(inbound&&!renewalReady(lead))continue;
    if(lead.nurture?.phase==='review'||lead.nurture?.phase==='closed'||lead.nurture?.phase==='interested')continue;
    if(!warmingWindow(new Date(),w.profile.automationTimezone))continue;
+   const recovery=missedFollowUp(group,w.profile);
    const arrived=Date.parse(String(lead.received||lead.importedAt||'')),age=Date.now()-arrived;
-   if(!inbound&&(!Number.isFinite(arrived)||age<300000||age>settings.maxLeadAgeDays*day))continue;
+   if(!inbound&&!recovery&&(!Number.isFinite(arrived)||age<300000||age>settings.maxLeadAgeDays*day))continue;
    const language=lead.nurture?.language==='es'||/^es/i.test(String(lead.preferredLanguage||lead.language||''))?'es':'en';
    const messages=outboundHistory(group,'sms'),email=outboundHistory(group,'email'),renewal=Boolean(inbound&&renewalReady(lead));
    const lastSms=Date.parse(messages.at(-1)?.sentAt||'')||0;
    const smsDue=!lead.nurture?.smsExhausted&&!(lead.nurture?.smsRetryAt&&Date.parse(lead.nurture.smsRetryAt)>Date.now())&&(renewal||messages.length<settings.maxUnansweredTexts)&&(!lastSms||Date.now()-lastSms>=settings.gapHours*3600000);
-   const emailDue=!inbound&&email.length<2&&age>=(email.length?7:1)*day;
+   const emailDue=!recovery&&!inbound&&email.length<2&&age>=(email.length?7:1)*day;
    const channel=smsDue&&phoneKey(lead.phone).length===10&&hasContactPermission(lead,w.profile,'sms')?'sms':emailDue&&hasContactPermission(lead,w.profile,'email')?'email':null;
    if(!channel||!matchesOutreach(lead,control.rules[channel])||!inOutreachWindow(control.rules[channel]))continue;
+   if(channel==='sms'){
+    const ledger=cleanSmsLedger(w.smsLedger),day=localDay(new Date(),w.profile.automationTimezone),usage=budgetTotals(ledger,day);
+    // Skip paid drafting when the durable ledger already says sending must wait.
+    if(Math.min(settings.dailyBudgetCents-usage.dayCents,settings.weeklyBudgetCents-usage.weekCents,settings.monthlyBudgetCents-usage.monthCents)<settings.reserveCentsPerSegment)continue;
+    if(recovery&&ledger.claims.filter(c=>c.state!=='rejected'&&c.day===day&&c.key?.startsWith('recovery:')).length>=3)continue;
+   }
    if(channel==='sms'&&!(await outboundSmsStatus(record.workspaceId)).configured||channel==='email'&&(!outboundEmailStatus().configured||!w.profile.businessAddress))continue;
-   const key=`warming:${identity}:${channel}:${renewal?lead.nurture?.resumeAt:channel==='sms'?messages.length:email.length}`,token=await claimAction(record.workspaceId,lead,key);if(!token)continue;attempts++;
+   const key=recovery||`warming:${identity}:${channel}:${renewal?lead.nurture?.resumeAt:channel==='sms'?messages.length:email.length}`,token=await claimAction(record.workspaceId,lead,key);if(!token)continue;attempts++;
    try{
     if(channel==='sms'){
-     let body=renewal?(language==='es'?'Me pediste contactarte por estas fechas. ¿Quieres comparar opciones?':'You asked me to follow up around now. Would you like to compare options?'):shortText(w,lead,messages.length>0,language);
+     let body=recovery?(language==='es'?`Hola ${String(lead.name||'').split(' ')[0]}, ¿todavía te gustaría comparar opciones?`:`Hi ${String(lead.name||'').split(' ')[0]}, would you still like help comparing options?`):renewal?(language==='es'?'Me pediste contactarte por estas fechas. ¿Quieres comparar opciones?':'You asked me to follow up around now. Would you like to compare options?'):shortText(w,lead,messages.length>0,language);
+     const personalized=await personalizeAutomationMessage({profile:w.profile,lead,channel:'sms',subject:'',body,style:ownerWritingStyle(w.leads,w.profile),timeoutMs:2500});
+     const candidate=personalized.body.replace(/\s*Reply STOP to opt out\.?$/i,'').trim();
+     if(candidate&&candidate.length<=110&&!/[\d$€£%]|https?:|www\.|guarantee|approved|bound|confirm(?:ed|ation)|garantiz|aprobado/i.test(candidate))body=candidate;
      if(smsSegments(automatedSmsBody(body,w.profile.businessName)).segments>settings.maxSegments)body=language==='es'?'¿Buscas mejor precio o cobertura?':'Is price or coverage your main concern?';
      await sendOutboundSms({workspaceId:record.workspaceId,to:String(lead.phone||''),body,automated:true,scheduled:true,idempotencyKey:key});result.smsSent++;
     }else{

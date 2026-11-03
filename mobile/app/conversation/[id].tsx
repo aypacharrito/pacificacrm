@@ -1,5 +1,6 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import React,{useCallback,useEffect,useMemo,useRef,useState} from "react";
-import {AppState,FlatList,Image,KeyboardAvoidingView,Platform,Pressable,Text,View} from "react-native";
+import { AppState, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 import {router,useLocalSearchParams,useFocusEffect} from "expo-router";
 import {useAuth} from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";

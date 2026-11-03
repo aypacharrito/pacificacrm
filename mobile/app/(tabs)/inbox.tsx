@@ -1,5 +1,6 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Screen } from "../../src/components/Screen";
 import { Card, Muted, Title, usePalette } from "../../src/components/Primitives";
@@ -57,7 +58,7 @@ export default function InboxScreen() {
 }
 
 const styles = StyleSheet.create({
-  item: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  item: { paddingVertical: 12, borderBottomWidth: 0 },
   name: { fontWeight: "900", fontSize: 14 },
   body: { fontSize: 13, lineHeight: 19 },
   empty: { padding: 20 },

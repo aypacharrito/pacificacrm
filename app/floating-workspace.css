@@ -1,0 +1,83 @@
+/* One size preference, native-resolution text, and open surfaces. Never zoom the shell. */
+html[data-theme="dark"] {
+  --ps-bg:#101216;--ps-surface:#171b22;--ps-surface-2:#1c222c;--ps-surface-3:#252e3c;
+  --ps-text:#e4e9f2;--ps-text-strong:#f4f6fb;--ps-muted:#aab6ca;--ps-subtle:#9aa8be;
+  --ps-accent:#aac4ff;--ps-accent-hover:#c1d4ff;--ps-accent-soft:#243651;--ps-hover:#1b2534;
+  --ps-line:#293344;--ps-line-strong:#405371;--dialer-button-text:#101a2d;
+  --scroll-thumb:#3b4b66;--scroll-thumb-hover:#61799e;
+}
+html[data-theme="light"] {
+  --ps-bg:#f2f3f5;--ps-surface:#f8f9fb;--ps-surface-2:#e7ebf2;--ps-surface-3:#dce3ee;
+  --ps-text:#26344a;--ps-text-strong:#14223a;--ps-muted:#52627b;--ps-subtle:#526078;
+  --ps-accent:#305c9c;--ps-accent-hover:#23477e;--ps-accent-soft:#dce6f7;--ps-hover:#e6ebf3;
+  --ps-line:#d6dfeb;--ps-line-strong:#9eafc8;--dialer-button-text:#fff;
+  --scroll-thumb:#a6b4c9;--scroll-thumb-hover:#758da8;
+}
+html[data-theme] {--workspace-text-scale:.9;--workspace-space-scale:.9;--ui-accent:var(--ps-accent);--ui-accent-soft:var(--ps-accent-soft);--ui-border-strong:var(--ps-line-strong)}
+html[data-theme][data-display-size]{--p-xs:calc(10px * var(--workspace-text-scale));--p-sm:calc(12px * var(--workspace-text-scale));--p-md:calc(14px * var(--workspace-text-scale));--p-lg:calc(16px * var(--workspace-text-scale));--p-xl:calc(22px * var(--workspace-text-scale));--p-kpi:calc(28px * var(--workspace-text-scale));--p-control-h:max(32px,calc(40px * var(--workspace-space-scale)));--p-gap-1:calc(8px * var(--workspace-space-scale));--p-gap-2:calc(12px * var(--workspace-space-scale));--p-gap-3:calc(16px * var(--workspace-space-scale));--p-gap-4:calc(24px * var(--workspace-space-scale))}
+html[data-theme] .app-shell :is(h1,h2,h3){font-weight:650!important}
+html[data-theme] .app-shell :is(.settings-content,.settings-section,.settings-card,.workspace-profile-settings,.phone-config,.number-center,.table-card,.client-table,.template-vault,.workspace-display-setting,.workspace-appearance-setting,.workspace-appearance-controls,.dialer-scene-settings){background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+html[data-theme] .app-shell :is(.settings-nav,.sidebar,.topbar,.queue-row,.message-contact,.table-row,.config-section,.workspace-profile-settings>header){border-color:transparent!important;box-shadow:none!important}
+html[data-theme] .app-shell :is(.workspace-profile-fields,.field-grid){gap:calc(18px * var(--workspace-space-scale))!important}
+html[data-theme] .app-shell :is(.settings-card,.settings-section,.workspace-profile-settings){padding:calc(20px * var(--workspace-space-scale))!important}
+html[data-theme] .app-shell .sidebar nav button{min-height:36px!important;height:auto!important;padding:calc(9px * var(--workspace-space-scale)) 12px!important;border-radius:6px!important;font-weight:600!important}
+html[data-theme] .app-shell .sidebar .logo .brand-mark img{filter:brightness(0)!important}
+html[data-theme="dark"] .app-shell .sidebar .logo .brand-mark img{filter:brightness(0) invert(1)!important}
+html[data-theme] .app-shell .settings-nav button{min-height:36px!important;padding:9px 12px!important;border:0!important;box-shadow:none!important;border-radius:5px!important}
+html[data-theme] .app-shell .settings-nav button.active{background:var(--ps-hover)!important;border:0!important;box-shadow:none!important}
+html[data-theme] .app-shell .settings-nav button::before{display:none!important}
+html[data-theme] .app-shell :is(.module-bar,.dialer-toolbar) h1{font-size:calc(27px * var(--workspace-text-scale))!important}
+html[data-theme] .app-shell .workspace>.conversation-workspace{padding:calc(20px * var(--workspace-space-scale)) clamp(18px,2.5vw,36px)!important}
+html[data-theme] .app-shell .conversation-workspace .dialer-toolbar{padding-bottom:calc(14px * var(--workspace-space-scale))!important}
+html[data-theme] .app-shell .dialer-widget .call-grid{padding:calc(18px * var(--workspace-space-scale))!important;gap:calc(16px * var(--workspace-space-scale))!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card{min-height:0!important;gap:calc(15px * var(--workspace-space-scale))!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card h2{font-size:calc(25px * var(--workspace-text-scale))!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card :is(a,.contact-file-phone){font-size:calc(17px * var(--workspace-text-scale))!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card .avatar{border-radius:6px!important;width:42px!important;height:42px!important;min-width:42px!important}
+html[data-theme] .app-shell .conversation-workspace .dialer-widget .side-pad{width:min(100%,calc(238px * var(--workspace-space-scale)));max-width:100%;padding:calc(14px * var(--workspace-space-scale))!important;gap:calc(12px * var(--workspace-space-scale))!important}
+html[data-theme] .app-shell .conversation-workspace .side-pad .number-input-shell{border:0!important;min-height:38px!important;background:transparent!important}
+html[data-theme] .app-shell .conversation-workspace .side-pad .number-input-shell input,
+html[data-theme] .app-shell .conversation-workspace .side-pad .number-input-shell input::placeholder{font-size:calc(17px * var(--workspace-text-scale))!important;padding:6px 0!important;background:transparent!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid{width:min(100%,calc(216px * var(--workspace-space-scale)))!important;max-width:100%!important;justify-self:start;grid-template-rows:repeat(4,max(44px,calc(44px * var(--workspace-space-scale))))!important;gap:2px!important}
+html[data-theme] .app-shell .conversation-workspace .side-pad :is(.number-display,.phone-actions){width:min(100%,calc(216px * var(--workspace-space-scale)))!important;max-width:100%!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button{min-height:44px!important;height:max(44px,calc(44px * var(--workspace-space-scale)))!important;min-width:44px!important;border:0!important;border-radius:4px!important;background:transparent!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button b{font-size:calc(21px * var(--workspace-text-scale))!important;font-weight:650!important;line-height:1.15!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button small{font-size:calc(10px * var(--workspace-text-scale))!important;margin-top:2px!important;font-weight:600!important}
+html[data-theme] .app-shell :is(.call-controls,.phone-actions) button{font-size:calc(13px * var(--workspace-text-scale))!important;min-height:36px!important;border-radius:5px!important}
+html[data-theme] .app-shell .dialer-timeout-control{padding:calc(12px * var(--workspace-space-scale)) calc(18px * var(--workspace-space-scale))!important;gap:10px!important}
+html[data-theme] .app-shell .dialer-timeout-control button{border:0!important;box-shadow:none!important}
+html[data-theme] .app-shell :is(.queue-row,.focus-person,.message-contact){padding-block:calc(10px * var(--workspace-space-scale))!important}
+.workspace-appearance-controls{max-width:720px;min-width:0;padding:20px}
+html[data-theme] .workspace-appearance-controls .workspace-appearance-setting{padding:0!important;margin:0 0 24px!important}
+.workspace-scale-setting{min-width:0}
+.workspace-scale-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.workspace-scale-heading label{font-weight:650;color:var(--ps-text-strong)}
+.workspace-scale-heading output{margin-left:auto;font-size:14px;font-variant-numeric:tabular-nums;color:var(--ps-accent);font-weight:650}
+.workspace-scale-heading button{border:0!important;background:transparent!important;color:var(--ps-accent)!important;min-height:36px;padding:6px 10px!important}
+.workspace-scale-setting p{font-size:13px;color:var(--ps-muted);line-height:1.5;margin:8px 0 12px}
+html[data-theme] .app-shell .workspace-scale-setting input[type="range"]{display:block;width:100%;height:44px;min-height:44px;padding:0;cursor:pointer;accent-color:var(--ps-accent);background:transparent!important;touch-action:pan-y}
+.workspace-scale-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--ps-muted)}
+.workspace-scale-sample{display:grid;gap:5px;margin-top:24px;overflow-wrap:anywhere;color:var(--ps-text-strong);font-size:calc(15px * var(--workspace-text-scale))}
+.workspace-scale-sample span{font-size:calc(13px * var(--workspace-text-scale));color:var(--ps-muted)}
+@media(max-width:760px){
+  html[data-theme] .app-shell .workspace>.conversation-workspace{padding:12px 16px!important}
+  html[data-theme] .app-shell .conversation-workspace .dialer-widget .side-pad{width:min(100%,260px);margin-inline:auto!important}
+  html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid{grid-template-rows:repeat(4,max(48px,calc(44px * var(--workspace-space-scale))))!important}
+  html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button{height:max(48px,calc(44px * var(--workspace-space-scale)))!important;min-height:48px!important;min-width:48px!important}
+  html[data-theme] .app-shell .mobile-brand img{filter:brightness(0)!important}
+  html[data-theme="dark"] .app-shell .mobile-brand img{filter:brightness(0) invert(1)!important}
+  .workspace-appearance-controls{padding:12px 0}
+  html[data-theme] .app-shell .message-history article{border:0!important;border-radius:7px!important;padding:10px 12px!important}
+  html[data-theme] .app-shell .message-history article p{font-size:calc(15px * var(--workspace-text-scale))!important;line-height:1.5!important}
+  html[data-theme] .app-shell .message-contacts>button{border:0!important;border-radius:0!important;background:transparent!important}
+  html[data-theme] .app-shell .message-contacts>button.active{background:var(--ps-hover)!important}
+  html[data-theme] .app-shell .mobile-navigation{border:0!important;box-shadow:none!important;background:var(--ps-bg)!important}
+  html[data-phone-keyboard="true"] .app-shell .message-thread>footer{padding:8px 0!important}
+  html[data-phone-keyboard="true"] .app-shell .message-thread>footer textarea{height:52px!important;min-height:52px!important}
+  html[data-phone-keyboard="true"] .app-shell .message-thread>footer>.composer-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px!important}
+  html[data-phone-keyboard="true"] .app-shell .composer-actions :is(.voice-dictation,button){min-width:0!important;width:100%!important;max-width:100%!important}
+  html[data-phone-keyboard="true"] .app-shell .composer-actions>.sms-segment-preview{grid-column:1/-1;min-height:0!important;height:auto!important;width:auto!important;line-height:1.3!important;font-size:11px!important}
+  html[data-phone-keyboard="true"] .app-shell .composer-actions>.send-feedback.has-feedback{grid-column:1/-1}
+  html[data-phone-keyboard="true"] .app-shell .autocorrect-toolbar-inline{flex-wrap:nowrap!important;overflow-x:auto;align-items:center}
+  html[data-phone-keyboard="true"] .app-shell .autocorrect-toolbar-inline :is(button,select){min-height:32px!important;height:32px!important;flex:none;white-space:nowrap}
+}

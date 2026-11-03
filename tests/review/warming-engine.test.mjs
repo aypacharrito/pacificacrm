@@ -32,3 +32,23 @@ test('known budget holds defer a cold text and can resume without treating it as
  setup();warmingError=new SmsBudgetError('budget','Estimated SMS budget reached.');
  try{await runLeadWarming();assert.equal(warmingWorkspace.leads[0].nurture.phase,'waiting');assert.ok(warmingWorkspace.leads[0].nurture.smsRetryAt);assert.equal(Object.keys(warmingWorkspace.leads[0].nurture.actions).length,0);await runLeadWarming();assert.equal(warmingDeliveries.length,1);warmingError=null;clock+=4*86400000;await runLeadWarming();assert.equal(warmingDeliveries.length,2);}finally{globalThis.Date=OriginalDate}
 });
+
+test('explicit recovery revisits an older overdue task once and still honors owner pauses',async()=>{
+ setup({importedAt:'2026-07-01T18:00:00Z',followUp:'2026-10-18T18:00:00Z'});
+ warmingWorkspace.profile.leadWarming={...warmingWorkspace.profile.leadWarming,recoverMissedFollowUps:true};
+ try{await runLeadWarming();await runLeadWarming();assert.equal(warmingDeliveries.length,1);assert.match(warmingDeliveries[0].idempotencyKey,/^recovery:/);
+ setup({importedAt:'2026-07-01T18:00:00Z',followUp:'2026-10-18T18:00:00Z',automationEnabled:false});warmingWorkspace.profile.leadWarming={...warmingWorkspace.profile.leadWarming,recoverMissedFollowUps:true};await runLeadWarming();assert.equal(warmingDeliveries.length,0);
+ }finally{globalThis.Date=OriginalDate}
+});
+
+test('exhausted SMS funds skip drafting and submitting a recovered follow-up',async()=>{
+ setup({importedAt:'2026-07-01T18:00:00Z',followUp:'2026-10-18T18:00:00Z'});
+ warmingWorkspace.profile.leadWarming={...warmingWorkspace.profile.leadWarming,recoverMissedFollowUps:true,dailyBudgetCents:0};
+ try{await runLeadWarming();assert.equal(warmingDeliveries.length,0);assert.equal(warmingWorkspace.leads[0].nurture,undefined)}finally{globalThis.Date=OriginalDate}
+});
+
+test('a tight worker budget still reaches an overdue contact behind fresh leads',async()=>{
+ setup();warmingWorkspace.leads.push({...warmingWorkspace.leads[0],id:2,phone:'8185550200',email:'second@example.test',importedAt:'2026-07-01T18:00:00Z',followUp:'2026-10-18T18:00:00Z'});
+ warmingWorkspace.profile.leadWarming={...warmingWorkspace.profile.leadWarming,recoverMissedFollowUps:true};
+ try{await runLeadWarming({sendLimit:1});assert.equal(warmingDeliveries.length,1);assert.equal(warmingDeliveries[0].to,'8185550200');assert.match(warmingDeliveries[0].idempotencyKey,/^recovery:/)}finally{globalThis.Date=OriginalDate}
+});

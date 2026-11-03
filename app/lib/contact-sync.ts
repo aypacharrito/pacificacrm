@@ -22,7 +22,7 @@ export function mergeCloudContact<T extends SyncedContact>(local:T,remote:T):T{
     for(const key of ['automationEnabled','automationSequenceId','automationStep','automationNextAt','automationStatus','automationUpdatedAt'])if(values[key]!==undefined)patch[key]=values[key];
   }
   if(Date.parse(remote.workflowUpdatedAt||'')>(Date.parse(local.workflowUpdatedAt||'')||0)){
-    for(const key of ['stage','status','outcome','sourceDisposition','followUp','automationEnabled','automationNextAt','automationStatus','automationUpdatedAt','workflowUpdatedAt'])if(values[key]!==undefined)patch[key]=values[key];
+    for(const key of ['stage','status','outcome','sourceDisposition','followUp','backupReplyDisabled','automationEnabled','automationNextAt','automationStatus','automationUpdatedAt','workflowUpdatedAt'])if(values[key]!==undefined)patch[key]=values[key];
   }
   for(const channel of ['sms','email'] as const){const review=remote.replyReviews?.[channel];if(review&&Date.parse(review.at)>(Date.parse(local.replyReviews?.[channel]?.at||'')||0))patch.replyReviews={...(patch.replyReviews as ReplyReviews||local.replyReviews),[channel]:review};}
   if(Date.parse(remote.lastInboundAt||'')>(Date.parse(local.lastInboundAt||'')||0)){

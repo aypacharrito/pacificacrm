@@ -1,0 +1,78 @@
+/* Pacifica Daily. The existing charcoal / sage palette, with space as the separator. */
+html[data-theme] .app-shell{font-family:"Pacifica Inter",var(--font-pacifica)!important;font-size:calc(15px * var(--workspace-text-scale,1));line-height:1.6;letter-spacing:-.012em;-webkit-font-smoothing:antialiased}
+html[data-theme] .app-shell :is(button,input,textarea,select){font-family:inherit!important}
+html[data-theme] .app-shell :is(h1,h2,h3){font-family:"Pacifica Manrope","Pacifica Inter",sans-serif!important;letter-spacing:-.04em!important}
+html[data-theme] .app-shell>.sidebar{border:0!important;box-shadow:none!important;padding:30px 16px 18px!important}
+html[data-theme] .app-shell .sidebar .logo{margin-bottom:32px!important}
+html[data-theme] .app-shell .sidebar nav{display:grid;align-content:start;grid-auto-rows:min-content;gap:6px!important}
+html[data-theme] .app-shell .sidebar nav button{border:0!important;min-height:46px;padding:12px 14px!important;border-radius:12px!important;font-size:calc(14px * var(--workspace-text-scale,1))!important;font-weight:500!important;letter-spacing:-.015em!important;color:var(--ps-muted)!important;box-shadow:none!important}
+html[data-theme] .app-shell .sidebar nav button.active{background:var(--ps-accent-soft)!important;color:var(--ps-accent)!important}
+html[data-theme] .app-shell .sidebar nav button:hover{background:var(--ps-hover)!important;color:var(--ps-text-strong)!important}
+html[data-theme] .app-shell .sidebar nav button::before,html[data-theme] .app-shell .sidebar nav button::after{display:none!important}
+html[data-theme] .app-shell .workspace>.topbar{border:0!important;box-shadow:none!important;min-height:72px;padding:18px 36px!important}
+html[data-theme] .app-shell .topbar .lead-line-switch button{border:0!important;border-radius:9px!important;padding:9px 15px!important;min-height:38px!important;font-size:13px!important}
+html[data-theme] .app-shell .topbar .lead-line-switch button.active{background:var(--ps-accent-soft)!important;color:var(--ps-accent)!important}
+html[data-theme] .app-shell :is(.page-view,.today-workspace,.messages-center){padding-top:28px}
+html[data-theme] .app-shell .workspace>.conversation-workspace{padding:30px clamp(24px,3.2vw,56px)!important}
+html[data-theme] .app-shell :is(.module-bar,.dialer-toolbar) h1{font-size:calc(clamp(28px,2.6vw,38px) * var(--workspace-text-scale,1))!important;font-weight:600!important;line-height:1.18!important}
+html[data-theme] .app-shell .dialer-toolbar{align-items:center!important;padding-bottom:28px!important}
+html[data-theme] .app-shell :is(.dialer-queue-label,.module-bar .eyebrow){font-size:12px!important;line-height:1.7!important;letter-spacing:.02em!important;color:var(--ps-muted)!important}
+html[data-theme] .app-shell .dialer-toolbar-actions>button,html[data-theme] .app-shell .dialer-layout-menu>summary{border:0!important;background:transparent!important;padding:10px 13px!important;font-size:12px!important;color:var(--ps-muted)!important}
+html[data-theme] .app-shell .dialer-toolbar-actions>button:hover,html[data-theme] .app-shell .dialer-layout-menu>summary:hover{background:var(--ps-hover)!important;color:var(--ps-text-strong)!important}
+html[data-theme] .app-shell .dialer-widget,html[data-theme] .app-shell .dialer-widget:hover{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important}
+html[data-theme] .app-shell .dialer-widget .call-grid{padding:30px!important;gap:26px!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card{gap:22px!important;min-height:130px!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card h2{font-size:calc(clamp(28px,5cqw,42px) * var(--workspace-text-scale,1))!important;font-weight:600!important;line-height:1.2!important;margin:4px 0 12px!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card :is(a,.contact-file-phone){font-size:calc(21px * var(--workspace-text-scale,1))!important;font-weight:450!important;font-variant-numeric:tabular-nums;letter-spacing:.015em!important;color:var(--ps-text-strong)!important}
+html[data-theme] .app-shell .conversation-workspace .contact-card .avatar{width:58px!important;min-width:58px!important;height:58px!important;border:0!important;border-radius:20px!important;background:var(--ps-accent-soft)!important;color:var(--ps-accent)!important;font-weight:500!important}
+html[data-theme] .app-shell .call-status-line,html[data-theme] .app-shell .side-pad>header{font-size:11px!important;letter-spacing:.12em!important;color:var(--ps-muted)!important;font-weight:500!important}
+html[data-theme] .app-shell :is(.call-controls,.phone-actions) button{border:0!important;min-height:50px;border-radius:12px!important;font-size:14px!important;font-weight:550!important;box-shadow:none!important}
+html[data-theme] .app-shell .call-controls{gap:10px!important;margin-top:30px!important}
+html[data-theme] .app-shell :is(.start-call,.focus-call,.phone-call,.send-message){background:var(--ps-accent)!important;color:var(--dialer-button-text)!important;letter-spacing:-.02em!important}
+html[data-theme] .app-shell .dialer-timeout-control{border:0!important;background:transparent!important;padding:12px 30px 26px!important}
+html[data-theme] .app-shell .conversation-workspace .dialer-timeout-control button{border:0!important;border-radius:8px!important;background:transparent!important;color:var(--ps-muted)!important;padding:8px 12px!important;text-decoration:none!important}
+html[data-theme] .app-shell .conversation-workspace .dialer-timeout-control button.active{border:0!important;background:var(--ps-accent-soft)!important;color:var(--ps-accent)!important}
+html[data-theme] .app-shell .dialer-widget .side-pad{padding:24px!important;background:transparent!important;border:0!important}
+html[data-theme] .app-shell .side-pad .number-display{margin:24px 0 20px!important}
+html[data-theme] .app-shell .side-pad .number-display label{font-size:10px!important;letter-spacing:.1em!important;font-weight:500!important}
+html[data-theme] .app-shell .side-pad .number-input-shell,html[data-theme] .app-shell .side-pad .number-input-shell input{background:transparent!important;border:0!important;box-shadow:none!important}
+html[data-theme] .app-shell .side-pad .number-input-shell input{font-size:calc(23px * var(--workspace-text-scale,1))!important;letter-spacing:-.03em!important;padding:12px 0!important;min-width:0}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid{grid-template-rows:repeat(4,66px)!important;gap:4px 12px!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;transition:color 140ms ease!important}
+html[data-theme] .app-shell .dialer-widget[data-dialer-widget="keypad"] .key-grid button:hover{background:transparent!important;border:0!important;color:var(--ps-accent)!important}
+html[data-theme] .app-shell .key-grid button b{font-size:calc(28px * var(--workspace-text-scale,1))!important;font-weight:450!important;line-height:1.1!important;font-variant-numeric:tabular-nums}
+html[data-theme] .app-shell .key-grid button small{font-size:9px!important;letter-spacing:.14em!important;color:var(--ps-muted)!important;margin-top:5px}
+html[data-theme] .app-shell .dialer-widget .queue-row{border:0!important;padding:15px 0!important;gap:14px!important}
+html[data-theme] .app-shell .dialer-metric{border:0!important;background:var(--ps-hover)!important;border-radius:16px!important;padding:20px!important}
+html[data-theme] .app-shell .dialer-metric>span{font-size:11px!important;letter-spacing:.02em!important}
+html[data-theme] .app-shell .dialer-metric>b{font-size:30px!important;font-family:"Pacifica Manrope",sans-serif!important;font-weight:500!important;font-variant-numeric:tabular-nums}
+html[data-theme] .app-shell :is(.focus-list,.source-pulse,.table-card,.client-table,.settings-card,.folder-panel){border:0!important;box-shadow:none!important}
+html[data-theme] .app-shell :is(.table-head,.table-row,.focus-person,.focus-list>header,.source-pulse>header){border:0!important}
+/* Messaging has a quiet inbox surface and a spacious conversation, without rules. */
+html[data-theme] .app-shell .compact-channel-tabs{border:0!important;box-shadow:none!important;gap:6px!important;background:transparent!important}
+html[data-theme] .app-shell .compact-channel-tabs button{border:0!important;border-radius:9px!important;box-shadow:none!important;padding:10px 22px!important}
+html[data-theme] .app-shell .compact-channel-tabs button.active{background:var(--ps-accent-soft)!important;color:var(--ps-accent)!important;border:0!important}
+html[data-theme] .app-shell .messages-layout{gap:28px!important}
+html[data-theme] .app-shell :is(.message-contacts,.message-thread){border:0!important;border-radius:18px!important;box-shadow:none!important}
+html[data-theme] .app-shell .message-contacts{background:var(--ps-hover)!important;padding:10px!important}
+html[data-theme] .app-shell :is(.message-contacts>header,.message-thread>header,.message-thread>footer){border:0!important;padding:20px 24px!important}
+html[data-theme] .app-shell .message-contact-search{border:0!important;background:var(--ps-bg)!important;border-radius:12px!important;padding:12px 14px!important}
+html[data-theme] .app-shell .inbox-filters{border:0!important;background:transparent!important;gap:4px!important;padding:6px 0!important}
+html[data-theme] .app-shell .inbox-filters button{font-size:11px!important;border:0!important;min-height:34px!important}
+html[data-theme] .app-shell .inbox-filters button[aria-pressed="true"]{background:var(--ps-accent-soft)!important;color:var(--ps-accent)!important}
+html[data-theme] .app-shell .message-contacts>button{border:0!important;border-radius:12px!important;padding:16px!important;margin:4px 0!important;width:100%!important}
+html[data-theme] .app-shell .message-contacts>button.active{border:0!important;background:var(--ps-accent-soft)!important}
+html[data-theme] .app-shell .thread-contact b{font-family:"Pacifica Manrope",sans-serif!important;font-size:22px!important;font-weight:600!important;letter-spacing:-.03em!important}
+html[data-theme] .app-shell .thread-contact small{font-size:12px!important;margin-top:4px}
+html[data-theme] .app-shell .message-history{padding:24px 30px!important;gap:18px!important}
+html[data-theme] .app-shell .message-history>article{border:0!important;border-radius:16px!important;padding:15px 19px!important;max-width:76%!important;line-height:1.7!important}
+html[data-theme] .app-shell .message-history>article p{font-size:14px!important}
+html[data-theme] .app-shell .message-history>article small{font-size:10px!important;opacity:.75}
+html[data-theme] .app-shell .message-thread textarea{border:0!important;background:var(--ps-hover)!important;border-radius:15px!important;padding:18px!important;min-height:105px!important;line-height:1.7!important;font-size:15px!important;resize:vertical}
+html[data-theme] .app-shell .composer-actions{gap:12px!important;padding-top:12px!important}
+html[data-theme] .app-shell .composer-actions>button{border:0!important;border-radius:10px!important;padding:11px 18px!important;min-height:44px!important}
+html[data-theme] .app-shell :is(.crm-summary,.today-metrics,.report-metrics,.client-summary)>article{border:0!important;background:var(--ps-hover)!important;border-radius:15px!important;padding:20px!important}
+html[data-theme] .app-shell :is(button,input,textarea,select,a):focus-visible{outline:2px solid var(--ps-accent)!important;outline-offset:4px!important}
+html[data-theme] .app-shell .dialer-layout.is-editing .dialer-widget{outline:1px dashed var(--ps-muted)!important;outline-offset:3px!important}
+@media(max-width:820px){html[data-theme] .app-shell>.sidebar{padding:14px 8px!important}html[data-theme] .app-shell .workspace>.topbar{padding:12px 18px!important}html[data-theme] .app-shell .workspace>.conversation-workspace{padding:22px 18px!important}html[data-theme] .app-shell .messages-layout{gap:12px!important}html[data-theme] .app-shell .message-history{padding:16px!important}html[data-theme] .app-shell .message-history>article{max-width:90%!important}html[data-theme] .app-shell .dialer-widget .call-grid{padding:20px!important}}
+@media(prefers-reduced-motion:reduce){html[data-theme] .app-shell *{transition:none!important}}

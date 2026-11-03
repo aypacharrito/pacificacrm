@@ -1,5 +1,5 @@
 import {LanguageProvider} from "./components/LanguageProvider";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { isClerkConfigured } from "./lib/clerk-config";
 import { appearanceBootstrap } from "./lib/workspace-appearance";
@@ -25,17 +25,24 @@ import "./v49-experience.css";
 import "./v50-experience.css";
 import "./polished-workspace.css";
 import "./luxury-workspace.css";
+import "./daily-workspace.css";
+import "./phone-workspace.css";
+import "./floating-workspace.css";
+import "./palette-workspace.css";
+import "./branding.css";
+
+export const viewport:Viewport={width:"device-width",initialScale:1,viewportFit:"cover",interactiveWidget:"resizes-content",themeColor:[{media:"(prefers-color-scheme: dark)",color:"#0b0e0d"},{media:"(prefers-color-scheme: light)",color:"#f3f1eb"}]};
 
 export const metadata: Metadata = {
   title: "Pacifica CRM | Every Lead Worked",
   description: "A focused lead CRM with browser calling, messaging, AI-assisted follow-up, pipelines, and live reporting.",
   icons: {
     icon: [
-      { url: "/favicon-32.png?v=4", sizes: "32x32", type: "image/png" },
-      { url: "/pacifica-icon-192.png?v=4", sizes: "192x192", type: "image/png" },
+      { url: "/favicon-32.png?v=5", sizes: "32x32", type: "image/png" },
+      { url: "/pacifica-icon-192.png?v=5", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/favicon.ico?v=4",
-    apple: "/apple-touch-icon.png?v=4",
+    shortcut: "/favicon.ico?v=5",
+    apple: "/apple-touch-icon.png?v=5",
   },
   openGraph: {
     title: "Pacifica CRM | Every Lead Worked",

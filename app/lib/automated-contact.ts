@@ -3,12 +3,19 @@ import {cleanAiControl,matchesOutreach,inOutreachWindow} from "./ai-control";
 import {blocksAiText,blocksAutomatedText} from "./ai-sms-recipients";
 import {hasContactPermission} from "./contact-permission";
 import {readStoredWorkspace} from "./workspace-storage";
+import {backupReplyCandidate} from './backup-reply-policy';
 
-export async function assertAutomatedContact(workspaceId:string,address:string,channel:"sms"|"email",scheduled=false,replyId?:string){
+export async function assertAutomatedContact(workspaceId:string,address:string,channel:"sms"|"email",scheduled=false,replyId?:string,purpose?:'unanswered-reply'){
   const workspace=await readStoredWorkspace(workspaceId);
   const key=(value:unknown)=>channel==="sms"?String(value||"").replace(/\D/g,"").slice(-10):String(value||"").trim().toLowerCase();
   const contacts=workspace?.leads.filter(raw=>key((raw as Record<string,unknown>)[channel==="sms"?"phone":"email"])===key(address)) as Array<Record<string,unknown>>|undefined;
   if(!workspace||!contacts?.length)throw new Error("Save this contact before automated outreach.");
+  if(purpose==='unanswered-reply'){
+    const pending=channel==='sms'?backupReplyCandidate(contacts as WarmingLead[],workspace.profile):null;
+    if(!pending||!replyId||(pending.providerId||pending.id)!==replyId)throw Error('This conversation no longer needs a backup reply.');
+    if(!contacts.some(lead=>hasContactPermission(lead,workspace.profile,'sms')))throw Error('Document SMS permission before automated replies.');
+    return workspace;
+  }
   const conservative=scheduled||channel==="email";
   const latest=latestInbound(contacts as WarmingLead[]),replyAllowed=Boolean(replyId&&latest&&(latest.providerId||latest.id)===replyId);
   if(replyId&&!replyAllowed)throw new Error("A newer reply arrived. Reply to the latest message instead.");

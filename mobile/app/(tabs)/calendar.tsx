@@ -1,7 +1,8 @@
+import {ScaledText as Text} from "../../src/components/Primitives";
 import {router,useFocusEffect} from 'expo-router';
 import {useAuth} from '@clerk/expo';
 import React,{useCallback,useState} from 'react';
-import {Linking,Text,View} from 'react-native';
+import { Linking, View } from "react-native";
 import {Screen} from '../../src/components/Screen';
 import {Button,Card,Muted,Title,usePalette} from '../../src/components/Primitives';
 import {useWorkspace} from '../../src/state/WorkspaceProvider';

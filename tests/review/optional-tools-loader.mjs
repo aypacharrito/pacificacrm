@@ -1,0 +1,7 @@
+import {registerHooks} from 'node:module';
+const sources={
+ 'clerk-access':`export async function isPacificaPlatformOwnerApi(){return globalThis.testOwner===true} export async function getPacificaAccess(){return {allowed:globalThis.testSignedIn===true,role:globalThis.testRole||'owner',userId:'test',email:'owner@example.test'}} export async function getPacificaMinerOwnerAccess(){return null} export async function workspaceAutomationAccess(id,feature){return globalThis.testSignedIn===true&&feature==='crm'}`,
+ 'workspace-storage':`export function workspaceRedisConfig(){return {url:'test'}} export async function workspaceRedis(command){if(command[0]==='GET')return globalThis.testFeatures||null;if(command[0]==='SET'){globalThis.testFeatures=command[2];return 'OK'}} export async function listStoredWorkspaces(){return []} export async function readStoredWorkspace(){return globalThis.testWorkspace} export async function updateStoredWorkspace(id,fn){globalThis.testWorkspace=fn(globalThis.testWorkspace);return globalThis.testWorkspace}`,
+ 'ai-provider':`export function aiConfigured(){return false} export function aiClient(){throw Error('AI must not run in these tests')} export function aiModel(){return 'test'} export function aiReasoning(){return {}}`,
+};
+registerHooks({resolve(specifier,context,next){const name=specifier.split('/').at(-1)?.replace(/\.ts$/,'');if(sources[name])return {url:'data:text/javascript,'+encodeURIComponent(sources[name]),shortCircuit:true};return next(specifier,context)}});

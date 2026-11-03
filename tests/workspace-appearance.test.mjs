@@ -22,9 +22,9 @@ test("first paint restores both saved themes, text scale and collapsed sidebar w
     } finally {dom.window.close();}
   }
 });
-test("new workspaces default to dark, while an explicitly saved light preference survives", () => {
-  assert.equal(defaultWorkspaceProfile.appearance,"dark");
-  assert.equal(cleanWorkspaceProfile({}).appearance,"dark");
+test("new workspaces follow the device, while an explicitly saved light preference survives", () => {
+  assert.equal(defaultWorkspaceProfile.appearance,"system");
+  assert.equal(cleanWorkspaceProfile({}).appearance,"system");
   assert.equal(cleanWorkspaceProfile({appearance:"light"}).appearance,"light");
   const dom = boot(null);
   try {assert.equal(dom.window.document.documentElement.dataset.theme,"dark");} finally {dom.window.close();}
@@ -42,7 +42,7 @@ test("changing appearance writes a tiny cache for the next startup", () => {
   Object.assign(globalThis,{document:dom.window.document,localStorage:dom.window.localStorage});
   try {
     applyWorkspaceAppearance("light","comfortable");
-    assert.deepEqual(JSON.parse(localStorage.getItem(appearanceCacheKey)),{appearance:"light",displaySize:"comfortable"});
+    const saved=JSON.parse(localStorage.getItem(appearanceCacheKey));assert.equal(saved.appearance,"light");assert.equal(saved.displaySize,"comfortable");assert.equal(saved.displayScale,85);assert.equal(saved.colorPalette,"system");assert.ok(localStorage.getItem(appearanceCacheKey).length<1000);
     document.documentElement.dataset.theme="dark";
     dom.window.eval(appearanceBootstrap);
     assert.equal(document.documentElement.dataset.theme,"light");
