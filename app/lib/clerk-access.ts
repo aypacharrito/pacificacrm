@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { isClerkConfigured } from "./clerk-config";
 import { getStripe } from "./stripe";
 import {getPlatformFeatures} from "./platform-feature-store";
+import {cachedClerkUser,cachedPaidSubscription} from "./identity-cache";
 
 export const PACIFICA_ADMIN_EMAILS=new Set([
   "pacificalegalinsurance@gmail.com",
@@ -15,19 +16,20 @@ export const PACIFICA_PLATFORM_OWNER_EMAILS=new Set([
   ...(process.env.PACIFICA_PLATFORM_OWNER_EMAILS||"").split(",").map(email=>email.trim().toLowerCase()).filter(Boolean),
 ]);
 const paidStatuses=new Set(["active","trialing"]);
+const clerkUser=(userId:string)=>cachedClerkUser(userId,async()=>(await clerkClient()).users.getUser(userId));
 
 async function getClerkIdentity(){
   try{
     const {userId}=await auth();
     if(!userId)return null;
-    const user=await currentUser();
+    const user=await cachedClerkUser(userId,()=>currentUser());
     if(!user)return null;
     const email=(user.primaryEmailAddress?.emailAddress||user.emailAddresses[0]?.emailAddress||"").toLowerCase();
     const metadata=user.privateMetadata as {pacificaWorkspaceId?:unknown;pacificaRole?:unknown}&ManagedAccess;
     const workspaceId=String(metadata.pacificaWorkspaceId||userId).replace(/[^a-zA-Z0-9_-]/g,"").slice(0,160)||userId;
     const teamRole=metadata.pacificaRole==="manager"?"manager" as const:metadata.pacificaRole==="agent"?"agent" as const:null;
     const displayName=[user.firstName,user.lastName].filter(Boolean).join(" ")||email;
-    const workspaceMetadata=workspaceId!==userId?(await (await clerkClient()).users.getUser(workspaceId)).privateMetadata:metadata;
+    const workspaceMetadata=workspaceId!==userId?(await clerkUser(workspaceId)).privateMetadata:metadata;
     return email?{userId:workspaceId,accountUserId:userId,email,teamRole,displayName,accessMetadata:workspaceMetadata as ManagedAccess,memberMetadata:metadata}:null;
   }catch(error){
     console.error("[access] Clerk identity lookup failed",error instanceof Error?error.message:"unknown error");
@@ -36,6 +38,10 @@ async function getClerkIdentity(){
 }
 
 async function hasPaidSubscription(email:string){
+  return cachedPaidSubscription(email,()=>checkPaidSubscription(email));
+}
+
+async function checkPaidSubscription(email:string){
   try{
     const stripe=getStripe();
     const customers=await stripe.customers.list({email,limit:10});
@@ -57,7 +63,7 @@ export async function getPacificaAccess(){
   if(state==="paused"||managedAccessState(identity.memberMetadata)==="paused")return {allowed:false,role:"access-paused" as const,...identity};
   if(state==="trial"||state==="permanent")return {allowed:true,role:identity.teamRole||"owner" as const,...identity};
   if(state==="expired"){
-    const owner=identity.teamRole?await (await clerkClient()).users.getUser(identity.userId):null;
+    const owner=identity.teamRole?await clerkUser(identity.userId):null;
     const email=owner?.primaryEmailAddress?.emailAddress||identity.email;
     if(await hasPaidSubscription(email))return {allowed:true,role:identity.teamRole||"owner" as const,...identity};
     return {allowed:false,role:"trial-expired" as const,...identity};
@@ -105,7 +111,7 @@ export async function getPacificaMinerOwnerAccess(){
 export async function workspaceAutomationAccess(workspaceId:string,feature:"crm"|"miner"="crm"){
  if(feature==="miner"&&!(await getPlatformFeatures()).miner)return false;
  if(!isClerkConfigured())return !process.env.VERCEL;
- try{const owner=await (await clerkClient()).users.getUser(workspaceId);const email=owner.primaryEmailAddress?.emailAddress||owner.emailAddresses[0]?.emailAddress||"";
+ try{const owner=await clerkUser(workspaceId);const email=owner.primaryEmailAddress?.emailAddress||owner.emailAddresses[0]?.emailAddress||"";
   if(isPacificaPlatformOwnerEmail(email))return true;
   if(feature==="miner")return false;
   const scope=accessScope(owner.privateMetadata);

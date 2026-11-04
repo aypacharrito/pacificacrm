@@ -42,3 +42,21 @@ test('valid tenant reads keep conditional caching and missing records stay expli
  raw=null;const missing=await GET(request());assert.equal(missing.status,200);assert.equal((await missing.json()).found,false);
  raw='{broken';const invalid=await GET(request());assert.equal(invalid.status,500);assert.equal((await invalid.json()).code,'WORKSPACE_DATA_INVALID');
 });
+test('reads leave out server-only data, keep phone calendar items, and ignore server-only changes for caching',async t=>{
+ setup(t,{KV_REST_API_URL:'https://storage.example.test',KV_REST_API_TOKEN:'test'});
+ const base={leads:[{id:1,name:'Keep me'}],callLogs:[],profile:{},officeItems:[{id:'c1',leadId:0,kind:'appointment',title:'Renewal call',dueAt:'2026-11-10T17:00:00.000Z',amount:0,status:'open',reminderAt:'',reminderState:'off'}]};
+ let stored={...base,voicePilotHistory:[{id:'v1'}],minerState:{searches:[]},quoteIntake:{links:[],submissions:[]},
+  documentInsights:[{id:'d1'}],aiControl:{},conversationCalendar:{},noteReminders:[],smsLedger:{}};
+ t.mock.method(globalThis,'fetch',async()=>Response.json({result:JSON.stringify(stored)}));
+ const response=await GET(request()),data=await response.json(),etag=response.headers.get('etag');
+ assert.equal(data.leads[0].name,'Keep me');
+ assert.equal(data.officeItems[0].title,'Renewal call');
+ for(const key of ['voicePilotHistory','minerState','quoteIntake','documentInsights','aiControl','conversationCalendar','noteReminders','smsLedger'])
+  assert.equal(key in data,false,key);
+ // A background job changing server-only data does not force clients to download the workspace again.
+ stored={...stored,voicePilotHistory:[{id:'v1'},{id:'v2'}],quoteIntake:{links:[],submissions:[{id:'q1',details:{}}]}};
+ const again=await GET(new Request('https://example.test/api/crm/workspace',{headers:{'If-None-Match':etag}}));
+ assert.equal(again.status,304);
+ stored={...stored,leads:[{id:1,name:'Changed'}]};
+ assert.equal((await GET(new Request('https://example.test/api/crm/workspace',{headers:{'If-None-Match':etag}}))).status,200);
+});
