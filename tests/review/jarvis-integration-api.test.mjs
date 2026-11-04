@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GET as list} from '../../app/api/integrations/jarvis/quote-requests/route.ts';
+import {GET as list,POST as create} from '../../app/api/integrations/jarvis/quote-requests/route.ts';
+import {acceptQuoteSubmission} from '../../app/lib/opportunities.ts';
 import {GET as one,POST as record} from '../../app/api/integrations/jarvis/quote-requests/[id]/route.ts';
 import {PUT as save} from '../../app/api/crm/workspace/route.ts';
 import {defaultWorkspaceProfile} from '../../app/lib/workspace-profile.ts';
@@ -96,4 +97,92 @@ test('validation and not-found errors change nothing',async()=>{
   const huge=new Request('https://example.test/api',{method:'POST',headers:{Authorization:`Bearer ${TOKEN}`},body:'{"notes":"'+'x'.repeat(9000)+'"}'});
   assert.equal((await record(huge,params('req-older1'))).status,413);
   assert.equal(store.get(workspaceKey('a')),before);
+});
+
+const RID='5b0f8a52-3c1e-4d2a-9f6b-1a2b3c4d5e6f';
+const draft=(extra={})=>({customerName:'Ana Ruiz',product:'Auto',coverage:'full coverage auto',phone:'(818) 555-1234',email:'Ana@Example.test',
+  source:'doxa',requestId:RID,...extra});
+
+test('creates a pending, agent-entered request that the owner still reviews',async()=>{
+  setup();
+  const stale=workspace();
+  const response=await create(req(draft()));
+  assert.equal(response.status,201);
+  const body=await response.json();
+  assert.equal(body.created,true);
+  assert.equal(body.request.id,RID);
+  assert.equal(body.request.status,'pending');
+  assert.equal(body.request.source,'Doxa');
+  assert.equal(body.request.needsQuote,true);
+  assert.equal(body.request.requestNotes,'full coverage auto');
+  assert.deepEqual({name:body.request.details.name,phone:body.request.details.phone,email:body.request.details.email,product:body.request.details.product},
+    {name:'Ana Ruiz',phone:'8185551234',email:'ana@example.test',product:'Auto'});
+  const saved=workspace().quoteIntake.submissions.find(s=>s.id===RID);
+  assert.equal(saved.details.contactPermission,false);  // no customer consent is claimed
+  assert.match(saved.consentText,/Not submitted by the customer/);
+  assert.equal(workspace().leads.length,0);  // never writes leads
+  // A stale CRM autosave cannot erase it, and it shows up in Jarvis's own queue.
+  assert.equal((await save(new Request('https://example.test/api',{method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...stale,quoteIntake:{links:[],submissions:[]}})}))).status,200);
+  const queue=await (await list(req())).json();
+  assert.equal(queue.requests[0].id,RID);
+});
+
+test('a resend with the same requestId does not create a duplicate',async()=>{
+  setup();
+  assert.equal((await create(req(draft()))).status,201);
+  const again=await create(req(draft({coverage:'changed'})));
+  assert.equal(again.status,200);
+  const body=await again.json();
+  assert.equal(body.created,false);
+  assert.equal(body.request.requestNotes,'full coverage auto');
+  assert.equal(workspace().quoteIntake.submissions.filter(s=>s.id===RID).length,1);
+  // An id that belongs to a customer-submitted request cannot be reused or overwritten.
+  const taken='0a0a0a0a-0000-4000-8000-000000000000';
+  const ws=workspace();ws.quoteIntake.submissions.push(submission(taken,'2026-11-02T11:00:00.000Z'));store.set(workspaceKey('a'),JSON.stringify(ws));
+  assert.equal((await create(req(draft({requestId:taken})))).status,409);
+});
+
+test('create fails closed and validates every field',async()=>{
+  setup();
+  const before=store.get(workspaceKey('a'));
+  assert.equal((await create(req(draft(),{token:'wrong'}))).status,401);
+  assert.equal((await create(req(draft(),{token:null,url:`https://example.test/api?key=${TOKEN}`}))).status,401);
+  delete process.env.JARVIS_WORKSPACE_ID;assert.equal((await create(req(draft()))).status,503);process.env.JARVIS_WORKSPACE_ID='a';
+  for(const extra of [{customerName:''},{customerName:'x'},{customerName:'<script>'},{product:'Boat'},{phone:'555-1234'},
+    {email:'nope'},{requestId:'not-a-uuid'},{requestId:undefined}]){
+    assert.equal((await create(req(draft(extra)))).status,400,JSON.stringify(extra));
+  }
+  assert.equal((await create(req([draft()]))).status,400);
+  const bad=new Request('https://example.test/api',{method:'POST',headers:{Authorization:`Bearer ${TOKEN}`},body:'{nope'});
+  assert.equal((await create(bad)).status,400);
+  const huge=new Request('https://example.test/api',{method:'POST',headers:{Authorization:`Bearer ${TOKEN}`},body:JSON.stringify(draft({coverage:'x'.repeat(9000)}))});
+  assert.equal((await create(huge)).status,413);
+  assert.equal(store.get(workspaceKey('a')),before);
+  // Only the bound workspace is written.
+  assert.equal((await create(req(draft()))).status,201);
+  assert.ok(!JSON.stringify(workspace('b')).includes(RID));
+});
+
+test('daily create limit',async()=>{
+  setup();
+  const ws=workspace();
+  const now=Date.now();
+  for(let i=0;i<50;i++)ws.quoteIntake.submissions.push({...submission(`doxa-old-${i}`,new Date(now-i*60000).toISOString()),linkId:'doxa',source:'Doxa'});
+  store.set(workspaceKey('a'),JSON.stringify(ws));
+  assert.equal((await create(req(draft()))).status,429);
+});
+
+test('accepting an agent-entered request without phone or email creates a new lead, not a match on blanks',async()=>{
+  setup();
+  await create(req(draft({phone:'',email:''})));
+  const saved=workspace().quoteIntake.submissions.find(s=>s.id===RID);
+  const noPhone={id:7,name:'Someone Else',phone:'',email:''};
+  const result=acceptQuoteSubmission([noPhone],saved,new Date('2026-11-03T12:00:00Z'));
+  assert.equal(result.leads.length,2);
+  const lead=result.leads.find(l=>l.id===result.leadId);
+  assert.equal(lead.name,'Ana Ruiz');
+  assert.equal(lead.smsConsent,false);
+  assert.equal(lead.emailConsent,false);
+  assert.equal(lead.extraFields['Requested coverage'],'full coverage auto');
 });
