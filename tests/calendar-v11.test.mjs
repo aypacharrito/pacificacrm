@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {sealCalendar,openCalendar} from '../app/lib/calendar-vault.ts';
 import {googleOfficeEvent} from '../app/lib/google-calendar.ts';
 import {officeStaffReminderAt} from '../app/lib/office-schedule.ts';
-import {calendarNotificationPlan,reconcileCalendarNotifications} from '../mobile/src/lib/calendar-reminders.ts';
+import * as calendarReminders from '../mobile/src/lib/calendar-reminders.ts';
+// Expo is CommonJS; Node 22 exposes these TypeScript exports under default.
+const {calendarNotificationPlan,reconcileCalendarNotifications}=calendarReminders.default||calendarReminders;
 const item={id:'a1',leadId:1,title:'Consultation',kind:'appointment',dueAt:'2027-02-01T18:00:00Z',amount:0,status:'open',reminderState:'off',staffReminderMinutes:15,durationMinutes:45};
 test('calendar vault encrypts tokens and binds ciphertext to its workspace',()=>{
  const previous=process.env.GOOGLE_CALENDAR_ENCRYPTION_KEY;process.env.GOOGLE_CALENDAR_ENCRYPTION_KEY='ab'.repeat(32);

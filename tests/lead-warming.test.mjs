@@ -14,7 +14,7 @@ test('SMS estimates count GSM extensions, Unicode, and complete multipart length
 test('budget reservations stop before exceeding daily/monthly limits and reject repeated keys',()=>{
  let w=workspace({profile:{...defaultWorkspaceProfile,leadWarming:{...cleanWarming({}),dailyBudgetCents:6,monthlyBudgetCents:6}}});
  w=reserveBudget(w,{id:'one',key:'operation',to:'8185550100',body:'Hi'},now);w=reserveBudget(w,{id:'two',to:'8185550200',body:'Hi'},now);
- assert.deepEqual(budgetTotals(w.smsLedger,'2026-10-22'),{dayCents:6,monthCents:6});
+ assert.deepEqual(budgetTotals(w.smsLedger,'2026-10-22'),{dayCents:6,weekCents:6,monthCents:6});
  assert.throws(()=>reserveBudget(w,{id:'three',to:'8185550300',body:'Hi'},now),/budget/);assert.throws(()=>reserveBudget(w,{id:'four',key:'operation',to:'8185550100',body:'Hi'},now),/already/);
  assert.throws(()=>reserveBudget(w,{id:'five',to:'8185550300',body:'Hi'},new Date('2026-10-23T18:00:00Z')),/budget/);
 });
