@@ -1,6 +1,6 @@
-export type QuoteDetails={name:string;phone:string;email:string;product:string;address:string;city:string;state:string;zip:string;dateOfBirth:string;renewalDate:string;vin:string;currentCarrier:string;contactPermission:true};
+export type QuoteDetails={name:string;phone:string;email:string;product:string;address:string;city:string;state:string;zip:string;dateOfBirth:string;renewalDate:string;vin:string;currentCarrier:string;contactPermission:boolean};
 export type QuoteLink={id:string;leadId:number|null;source:string;createdAt:string;expiresAt:string;revoked?:boolean};
-export type QuoteSubmission={id:string;linkId:string;leadId:number|null;source:string;submittedAt:string;status:"pending"|"accepted"|"dismissed";details:QuoteDetails;consentText:string;reviewedAt?:string;acceptedLeadId?:number};
+export type QuoteSubmission={id:string;linkId:string;leadId:number|null;source:string;submittedAt:string;status:"pending"|"accepted"|"dismissed";details:QuoteDetails;consentText:string;reviewedAt?:string;acceptedLeadId?:number;requestNotes?:string};
 export type QuoteIntakeState={links:QuoteLink[];submissions:QuoteSubmission[]};
 export type QuoteRequestEvidence={id:string;requestedAt:string;source:string};
 export const emptyQuoteIntake=():QuoteIntakeState=>({links:[],submissions:[]});

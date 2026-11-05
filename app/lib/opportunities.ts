@@ -28,7 +28,8 @@ export function revenuePlan(goal:number,commission:number,closeRate:number){
 export function acceptQuoteSubmission(leads:Record<string,unknown>[],submission:QuoteSubmission,now=new Date()){
  const details=submission.details;
  const key=(phone:unknown)=>String(phone||'').replace(/\D/g,'').slice(-10);
- const matches=submission.leadId!==null?leads.filter(l=>l.id===submission.leadId):leads.filter(l=>key(l.phone)===key(details.phone)||Boolean(details.email&&String(l.email||'').toLowerCase()===details.email));
+ const phone=key(details.phone);  // an empty phone must not match every contact without one
+ const matches=submission.leadId!==null?leads.filter(l=>l.id===submission.leadId):leads.filter(l=>Boolean(phone&&key(l.phone)===phone)||Boolean(details.email&&String(l.email||'').toLowerCase()===details.email));
  if(matches.length>1)throw Error('Multiple contacts match this request. Resolve the duplicate contacts before accepting.');
  if(submission.leadId!==null&&!matches.length)throw Error('The original contact is no longer available.');
  const previous=matches[0];
@@ -39,6 +40,7 @@ export function acceptQuoteSubmission(leads:Record<string,unknown>[],submission:
  const lead:Record<string,unknown>=previous?{...previous}:{id,name:details.name,phone:details.phone,email:details.email,product:details.product,address:details.address,city:details.city,state:details.state,zip:details.zip,source:submission.source,leadCost:0,stage:'New lead',status:'Ready',outcome:'Interested',sourceDisposition:'Quote requested',line:/life/i.test(details.product)?'life':'home-auto',importedAt:date,received:submission.submittedAt,notes:'',followUp:'',lastContact:'Never',doNotCall:false,smsConsent:false,emailConsent:false};
  for(const field of ['name','phone','email','product','address','city','state','zip','dateOfBirth','renewalDate','vin'] as const)if(!String(lead[field]||'').trim()&&details[field])lead[field]=details[field];
  if(details.currentCarrier)lead.extraFields={...(lead.extraFields as Record<string,string>||{}),'Prospect-reported carrier':details.currentCarrier};
+ if(submission.requestNotes)lead.extraFields={...(lead.extraFields as Record<string,string>||{}),'Requested coverage':submission.requestNotes};
  lead.quoteDetailsUpdatedAt=date;
  lead.quoteRequests=[...(Array.isArray(lead.quoteRequests)?lead.quoteRequests:[]),{id:submission.id,requestedAt:submission.submittedAt,source:submission.source}].slice(-30);
  lead.automationEnabled=false;lead.automationNextAt='';lead.automationStatus='personal-follow-up';lead.automationUpdatedAt=date;
