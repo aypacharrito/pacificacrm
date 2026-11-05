@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import React,{act} from 'react';
 import {createRoot} from 'react-dom/client';
 import {JSDOM} from 'jsdom';
-import WorkspaceProfileSettings from '../../app/components/WorkspaceProfileSettings.tsx';
+import DialerBackgroundSettings from '../../app/components/DialerBackgroundSettings.tsx';
 import WorkspaceTour from '../../app/components/WorkspaceTour.tsx';
 import {defaultWorkspaceProfile} from '../../app/lib/workspace-profile.ts';
 
@@ -13,7 +13,7 @@ test('each default scene clears only its own saved custom background',async()=>{
  const root=createRoot(document.getElementById('root')),changes=[];
  const profile={...defaultWorkspaceProfile,dialerLightBackdropUrl:'https://example.test/light.gif',dialerDarkBackdropUrl:'https://example.test/dark.gif'};
  try{
-  await act(async()=>root.render(React.createElement(WorkspaceProfileSettings,{profile,onChange:value=>changes.push(value)})));
+  await act(async()=>root.render(React.createElement(DialerBackgroundSettings,{profile,onChange:value=>changes.push(value)})));
   const defaults=[...document.querySelectorAll('.dialer-scene-previews button')];
   await act(async()=>defaults[0].click());assert.equal(changes.at(-1).dialerLightBackdropUrl,'');assert.equal(changes.at(-1).dialerDarkBackdropUrl,profile.dialerDarkBackdropUrl);
   await act(async()=>defaults[1].click());assert.equal(changes.at(-1).dialerDarkBackdropUrl,'');assert.equal(changes.at(-1).dialerLightBackdropUrl,profile.dialerLightBackdropUrl);

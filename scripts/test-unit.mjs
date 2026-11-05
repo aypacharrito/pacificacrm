@@ -13,6 +13,6 @@ const files = readdirSync(new URL("../tests/", import.meta.url))
   .sort()
   .map(name => `tests/${name}`);
 if (!files.length) throw new Error("No unit tests found");
-const result = spawnSync(process.execPath, ["--import", "tsx", "--test", ...files], { stdio: "inherit" });
+const result = spawnSync(process.execPath, ["--import", "tsx", "--import", "./tests/unit-loader.mjs", "--test", ...files], { stdio: "inherit" });
 if (result.error) throw result.error;
 process.exitCode = result.status ?? 1;
