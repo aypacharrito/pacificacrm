@@ -38,14 +38,14 @@ export function NativeVoiceProvider({children}:{children:React.ReactNode}){
  }
  async function initialize(){
   if(voice.current)return voice.current;
-  const module=await import('@twilio/voice-react-native-sdk');sdk.current=module;const driver=new module.Voice();voice.current=driver;
-  driver.on(module.Voice.Event.Error,showError);
-  driver.addListener(module.Voice.Event.CallInvite,(pending:CallInvite)=>{
+  const twilioSdk=await import('@twilio/voice-react-native-sdk');sdk.current=twilioSdk;const driver=new twilioSdk.Voice();voice.current=driver;
+  driver.on(twilioSdk.Voice.Event.Error,showError);
+  driver.addListener(twilioSdk.Voice.Event.CallInvite,(pending:CallInvite)=>{
    if(!enabled.current||active.current){void pending.reject();return;}
    invite.current=pending;setRinging(true);setBusy(true);setPanel(true);setNumber(pending.getFrom());setNotice('Incoming Pacifica call');
-   pending.on(module.CallInvite.Event.Accepted,attachCall);
+   pending.on(twilioSdk.CallInvite.Event.Accepted,attachCall);
    const clear=()=>{if(invite.current!==pending)return;invite.current=null;setRinging(false);setBusy(false);setPanel(false);};
-   pending.on(module.CallInvite.Event.Cancelled,clear);pending.on(module.CallInvite.Event.Rejected,clear);
+   pending.on(twilioSdk.CallInvite.Event.Cancelled,clear);pending.on(twilioSdk.CallInvite.Event.Rejected,clear);
   });
   return driver;
  }

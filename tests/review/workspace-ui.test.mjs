@@ -6,6 +6,8 @@ import React,{act} from 'react';
 import CRM from '../../app/CRMClient.tsx';
 import {defaultWorkspaceProfile} from '../../app/lib/workspace-profile.ts';
 import {appearanceBootstrap,appearanceCacheKey} from '../../app/lib/workspace-appearance.ts';
+// Lazy (next/dynamic) panels can finish loading after act() resolves, especially on Node 22.
+async function waitForText(pattern,timeout=5000){const end=Date.now()+timeout;while(!pattern.test(document.body.textContent)&&Date.now()<end)await act(async()=>new Promise(resolve=>setTimeout(resolve,25)));return document.body.textContent}
 async function setup(fail,mode=defaultWorkspaceProfile.mode,preferences={}){
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test',pretendToBeVisual:true,runScripts:'outside-only'});
  Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,Node:dom.window.Node,localStorage:dom.window.localStorage,Element:dom.window.Element,requestAnimationFrame:dom.window.requestAnimationFrame.bind(dom.window),cancelAnimationFrame:dom.window.cancelAnimationFrame.bind(dom.window),IS_REACT_ACT_ENVIRONMENT:true});
@@ -99,7 +101,7 @@ test('video navigation merges quote preparation into Industry Tools and billing 
   const nav=label=>document.querySelector(`.sidebar nav button[aria-label="${label}"]`);
   assert.equal(nav('Quote desk'),null);assert.equal(nav('Plans & Billing'),null);
   assert.equal(nav('Miner'),null);assert.ok(nav('Pacifica AI').querySelector('svg'));
-  await act(async()=>nav('Industry Tools').click());assert.match(document.body.textContent,/Quote preparation/);assert.match(document.body.textContent,/Scan license or policy/);assert.doesNotMatch(document.querySelector('.industry-tools').textContent,/COMING SOON/);
+  await act(async()=>nav('Industry Tools').click());assert.match(await waitForText(/Quote preparation/),/Quote preparation/);assert.match(document.body.textContent,/Scan license or policy/);assert.doesNotMatch(document.querySelector('.industry-tools').textContent,/COMING SOON/);
   await act(async()=>nav('Contacts').click());assert.ok([...document.querySelectorAll('button')].find(b=>/Export CSV/.test(b.textContent)));
   const settings=[...document.querySelectorAll('.sidebar button')].find(b=>b.getAttribute('aria-label')==='Owner settings');await act(async()=>settings.click());
   const billing=[...document.querySelectorAll('.settings-nav button')].find(b=>/Plans & Billing/.test(b.textContent));assert.ok(billing);await act(async()=>billing.click());assert.ok(document.querySelector('.settings-content .pricing-grid'));

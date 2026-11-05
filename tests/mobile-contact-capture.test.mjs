@@ -5,7 +5,7 @@ import * as mobileModule from "../mobile/src/lib/contact-capture.ts";
 const {capturedContact,cleanContactDraft,matchingContact}=mobileModule.default||mobileModule;
 
 test("photo contact requires a reviewed way to reach the person",()=>{
- assert.throws(()=>capturedContact(cleanContactDraft({name:"Sam"}),1),/phone number or email/);
+ assert.throws(()=>capturedContact(cleanContactDraft({name:"Sam"}),1),/contact details or a name with readable ID\/address details/);
  assert.throws(()=>capturedContact(cleanContactDraft({phone:"123"}),1),/full phone/);
  const contact=capturedContact(cleanContactDraft({phone:"8185550100",line:"home-auto"}),22);
  assert.equal(contact.name,"8185550100");assert.equal(contact.id,22);
