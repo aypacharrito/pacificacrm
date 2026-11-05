@@ -3,6 +3,7 @@ import {isPacificaPlatformOwnerApi,isPacificaPlatformOwnerEmail} from '../../../
 import {accessScope,managedAccessState} from '../../../lib/account-access-policy';
 import {cleanWorkspaceProfile} from '../../../lib/workspace-profile';
 import {updateStoredWorkspace} from '../../../lib/workspace-storage';
+import {forgetClerkUser} from '../../../lib/identity-cache';
 export const runtime='nodejs';
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 export async function GET(request:Request){
@@ -37,7 +38,7 @@ export async function POST(request:Request){
    if(body.scope)metadata.pacificaAccessScope=body.scope;
    if(fresh)await updateStoredWorkspace(user.id,current=>({...current,profile:cleanWorkspaceProfile({...current.profile,industry:body.industry||'general',mode:body.industry==='insurance'?'insurance':'sales'})}),{create:true});
   }else metadata.pacificaAccessPaused=body.action==='pause';
-  await client.users.updateUserMetadata(user.id,{privateMetadata:metadata});
+  await client.users.updateUserMetadata(user.id,{privateMetadata:metadata});forgetClerkUser(user.id);
   return json({ok:true,state:managedAccessState(metadata),scope:accessScope(metadata),trialEndsAt:metadata.pacificaTrialEndsAt||''});
  }catch{return json({error:'The account change could not be saved. Refresh before trying again.'},503)}
 }

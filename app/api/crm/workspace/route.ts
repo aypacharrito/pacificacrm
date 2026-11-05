@@ -1,5 +1,6 @@
 import {createHash,randomUUID} from "node:crypto";
 import {WorkspaceLoadError} from "../../../lib/workspace-load";
+import {clientWorkspace} from "../../../lib/workspace-client-view";
 import { isClerkConfigured } from "../../../lib/clerk-config";
 import { getPacificaAccess } from "../../../lib/clerk-access";
 import type { WorkspaceProfile } from "../../../lib/workspace-profile";
@@ -73,7 +74,7 @@ export async function GET(request:Request) {
       return Response.json({ error: "Sign in required",code:"SIGN_IN_REQUIRED",requestId }, { status: 401,headers:{"Cache-Control":"no-store"} });
     const workspace = await readStoredWorkspace(owner.userId);
     if(workspace){
-      const body=JSON.stringify({found:true,...workspace});
+      const body=JSON.stringify({found:true,...clientWorkspace(workspace)});
       const etag='"'+createHash('sha256').update(owner.userId).update(body).digest('hex')+'"';
       const headers={"Cache-Control":"private, no-store","ETag":etag,"Vary":"Cookie, Authorization"};
       if(request?.headers.get('if-none-match')===etag)return new Response(null,{status:304,headers});

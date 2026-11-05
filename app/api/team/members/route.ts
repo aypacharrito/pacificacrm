@@ -6,6 +6,7 @@ import type Stripe from "stripe";
 import {isClerkConfigured} from "../../../lib/clerk-config";
 import {readStoredWorkspace,saveWorkspaceChanges} from "../../../lib/workspace-storage";
 import {defaultWorkspaceProfile,type WorkspaceTeamMember} from "../../../lib/workspace-profile";
+import {forgetClerkUser} from "../../../lib/identity-cache";
 
 export const runtime="nodejs";
 
@@ -92,18 +93,18 @@ export async function POST(request:Request){
       const replacing=roster.find(item=>item.userId===user.id||item.email===email);
       if(!replacing?.active){const full=await seatCapacityError(access.userId,roster);if(full)return full;}
       const role=body.role==="manager"?"manager" as const:"agent" as const;
-      await client.users.updateUserMetadata(user.id,{privateMetadata:{...user.privateMetadata,pacificaWorkspaceId:access.userId,pacificaRole:role,pacificaOwnerEmail:access.email}});
+      await client.users.updateUserMetadata(user.id,{privateMetadata:{...user.privateMetadata,pacificaWorkspaceId:access.userId,pacificaRole:role,pacificaOwnerEmail:access.email}});forgetClerkUser(user.id);
       const name=[user.firstName,user.lastName].filter(Boolean).join(" ")||email;const member:WorkspaceTeamMember={userId:user.id,email,name,role,active:true};
       roster=[...roster.filter(item=>item.userId!==user.id&&item.email!==email),member];
     }else{
       const member=roster.find(item=>item.userId===body.userId);if(!member)return Response.json({error:"Team member not found"},{status:404});
       const client=await clerkClient();const user=await client.users.getUser(member.userId);
       if(action==="remove"){
-        await client.users.updateUserMetadata(member.userId,{privateMetadata:{...user.privateMetadata,pacificaWorkspaceId:"",pacificaRole:"",pacificaOwnerEmail:""}});roster=roster.filter(item=>item.userId!==member.userId);
+        await client.users.updateUserMetadata(member.userId,{privateMetadata:{...user.privateMetadata,pacificaWorkspaceId:"",pacificaRole:"",pacificaOwnerEmail:""}});forgetClerkUser(member.userId);roster=roster.filter(item=>item.userId!==member.userId);
       }else{
         const role=body.role==="manager"?"manager" as const:"agent" as const;const active=body.active!==false;
         if(active&&!member.active){const full=await seatCapacityError(access.userId,roster);if(full)return full;}
-        await client.users.updateUserMetadata(member.userId,{privateMetadata:{...user.privateMetadata,pacificaWorkspaceId:active?access.userId:"",pacificaRole:active?role:"",pacificaOwnerEmail:active?access.email:""}});
+        await client.users.updateUserMetadata(member.userId,{privateMetadata:{...user.privateMetadata,pacificaWorkspaceId:active?access.userId:"",pacificaRole:active?role:"",pacificaOwnerEmail:active?access.email:""}});forgetClerkUser(member.userId);
         roster=roster.map(item=>item.userId===member.userId?{...item,role,active}:item);
       }
     }

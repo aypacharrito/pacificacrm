@@ -1,3 +1,5 @@
+// These tests swap the signed-in user between cases; turn off the 30-second identity cache.
+process.env.PACIFICA_IDENTITY_CACHE_MS='0';
 import {registerHooks} from 'node:module';
 registerHooks({resolve(specifier,context,next){let source;
  if(specifier==='@clerk/nextjs/server')source=`export async function auth(){return {userId:globalThis.identity?.id}} export async function currentUser(){return globalThis.identity} export async function clerkClient(){return {users:{getUser:async()=>globalThis.workspaceOwner}}}`;
