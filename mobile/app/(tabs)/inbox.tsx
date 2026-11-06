@@ -1,9 +1,10 @@
 import {ScaledText as Text} from "../../src/components/Primitives";
 import React, { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Screen } from "../../src/components/Screen";
-import { Card, Muted, Title, usePalette } from "../../src/components/Primitives";
+import { Avatar, Card, Icon, Muted, Title, usePalette } from "../../src/components/Primitives";
+import { shortTime } from "../../src/lib/format";
 import { useWorkspace } from "../../src/state/WorkspaceProvider";
 import type { Communication, Lead } from "../../src/lib/types";
 
@@ -30,36 +31,50 @@ export default function InboxScreen() {
     for(const item of collected.sort((a,b)=>b.time-a.time)){if(!item.lead.deletedAt&&!latest.has(item.lead.id))latest.set(item.lead.id,item)}
     return Array.from(latest.values());
   }, [workspace.leads]);
+  const now = Date.now();
 
   return (
     <Screen>
-      <Title eyebrow="COMMUNICATIONS">Inbox</Title>
-      <Muted>Recent SMS and email activity stored on your Pacifica leads.</Muted>
-      <Card style={{ paddingVertical: 2 }}>
+      <Title>Messages</Title>
+      <Muted>Texts and emails with your Pacifica contacts, newest first.</Muted>
+      <Card style={{ padding: 6, gap: 0 }}>
         {items.length ? items.map((item, index) => {
           const comm = item.communication;
           const body = String(comm.body || comm.text || comm.subject || "Message");
-          const direction = String(comm.direction || "").toLowerCase();
-          const inbound = direction.includes("in");
+          const inbound = String(comm.direction || "").toLowerCase().includes("in");
+          const email = comm.channel === "email";
           return (
-            <Text
+            <Pressable
               key={`${item.lead.id}-${String(comm.id || comm.providerId || index)}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.lead.name}: ${inbound ? "" : "You: "}${body}`}
               onPress={() => router.push(comm.channel==="sms"?`/conversation/${item.lead.id}`:`/lead/${item.lead.id}`)}
-              style={[styles.item, { borderBottomColor: p.border }]}
+              style={({ pressed }) => [styles.row, { backgroundColor: pressed ? p.cardHigh : "transparent" }]}
             >
-              <Text style={[styles.name, { color: p.text }]}>{inbound ? "● " : "↗ "}{item.lead.name}{"\n"}</Text>
-              <Text style={[styles.body, { color: p.muted }]} numberOfLines={2}>{body}</Text>
-            </Text>
+              <Avatar name={item.lead.name || "?"} size={48} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <View style={styles.top}>
+                  <Text numberOfLines={1} style={[styles.name, { color: p.text, fontWeight: inbound ? "700" : "500" }]}>{item.lead.name}</Text>
+                  <Text style={[styles.time, { color: inbound ? p.text : p.muted, fontWeight: inbound ? "700" : "400" }]}>{shortTime(item.time, now)}</Text>
+                </View>
+                <View style={styles.top}>
+                  {email ? <Icon name="email-outline" color={p.muted} size={15} /> : null}
+                  <Text style={[styles.body, { color: inbound ? p.text : p.muted }]} numberOfLines={2}>{inbound ? "" : "You: "}{body}</Text>
+                </View>
+              </View>
+            </Pressable>
           );
-        }) : <View style={styles.empty}><Muted>No stored communications yet. New replies will appear after they sync to the CRM workspace.</Muted></View>}
+        }) : <View style={styles.empty}><Muted>No messages yet. New replies appear here after they sync to your CRM.</Muted></View>}
       </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  item: { paddingVertical: 12, borderBottomWidth: 0 },
-  name: { fontWeight: "900", fontSize: 14 },
-  body: { fontSize: 13, lineHeight: 19 },
-  empty: { padding: 20 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 18 },
+  top: { flexDirection: "row", alignItems: "center", gap: 6 },
+  name: { flex: 1, fontSize: 16 },
+  time: { fontSize: 12 },
+  body: { flex: 1, fontSize: 14, lineHeight: 20 },
+  empty: { padding: 18 },
 });

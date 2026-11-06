@@ -1,11 +1,11 @@
 import {ScaledText as Text} from "../../src/components/Primitives";
 import React,{useCallback,useEffect,useMemo,useRef,useState} from "react";
-import { AppState, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
+import { ActivityIndicator, AppState, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 import {router,useLocalSearchParams,useFocusEffect} from "expo-router";
 import {useAuth} from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";
 import {Screen} from "../../src/components/Screen";
-import {Button,Field,Muted,Title,usePalette} from "../../src/components/Primitives";
+import {Avatar,Button,Field,Icon,IconButton,Muted,Title,usePalette} from "../../src/components/Primitives";
 import {useWorkspace} from "../../src/state/WorkspaceProvider";
 import {API_URL,crmRequest} from "../../src/lib/api";
 import type {Communication} from "../../src/lib/types";
@@ -36,17 +36,22 @@ function Conversation({id}:{id:number}){
  if(!lead)return <Screen><Title>Contact unavailable</Title><Button title="Back" onPress={()=>router.back()}/></Screen>;
  const blocked=lead.smsOptOut||lead.doNotCall;
  return <Screen scroll={false}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==="ios"?"padding":undefined}>
-  <View style={{padding:16,gap:6}}><Pressable accessibilityRole="button" onPress={()=>router.back()}><Text style={{color:p.green}}>‹ Messages</Text></Pressable><Title>{lead.name}</Title><Muted>From your Pacifica business number</Muted></View>
+  <View style={{flexDirection:"row",alignItems:"center",gap:10,paddingHorizontal:8,paddingVertical:8}}>
+   <IconButton icon="arrow-left" label="Back to messages" onPress={()=>router.back()}/>
+   <Avatar name={lead.name||"?"} size={40}/>
+   <View style={{flex:1,gap:1}}><Text numberOfLines={1} style={{color:p.text,fontSize:18,fontWeight:"700"}}>{lead.name}</Text><Text numberOfLines={1} style={{color:p.muted,fontSize:12}}>From your Pacifica business number</Text></View>
+   <IconButton icon="account-outline" label="Open contact" onPress={()=>router.push(`/lead/${lead.id}`)}/>
+  </View>
   <FlatList data={[...thread].reverse()} inverted keyExtractor={(m,index)=>String(m.providerId||m.id||index)} initialNumToRender={25} maxToRenderPerBatch={15} contentContainerStyle={{padding:16,gap:10}} refreshing={loading} onRefresh={()=>void load()} ListFooterComponent={cursor.before||cursor.providerCursor?<Button title="Older messages" kind="secondary" loading={loading} onPress={()=>void load(cursor)}/>:null} renderItem={({item})=>{
    const incoming=String(item.direction).includes("inbound"),key=String(item.providerId||item.id);
-   return <View style={{alignSelf:incoming?"flex-start":"flex-end",maxWidth:"90%",padding:13,borderRadius:16,backgroundColor:incoming?p.card:p.greenSoft,gap:8}}>
+   return <View style={{alignSelf:incoming?"flex-start":"flex-end",maxWidth:"85%",paddingVertical:10,paddingHorizontal:14,borderRadius:20,borderBottomLeftRadius:incoming?6:20,borderBottomRightRadius:incoming?20:6,backgroundColor:incoming?p.card:p.greenSoft,gap:8}}>
     {Boolean(item.body)&&<Text selectable style={{color:p.text,fontSize:15,lineHeight:22}}>{item.body}</Text>}
-    {item.attachments?.map(file=>{const uri=file.url.startsWith("/")?API_URL+file.url:file.url;return file.type?.startsWith("image/")?<Image key={uri} accessibilityLabel={file.name||"Attachment"} source={{uri,headers:uri.startsWith(API_URL+"/")?{Authorization:`Bearer ${token}`}:{}}} style={{width:220,height:180,resizeMode:"contain",borderRadius:8}}/>:<Pressable key={uri} onPress={()=>void WebBrowser.openBrowserAsync(uri)}><Text style={{color:p.green}}>📎 {file.name||"Open file"}</Text></Pressable>})}
+    {item.attachments?.map(file=>{const uri=file.url.startsWith("/")?API_URL+file.url:file.url;return file.type?.startsWith("image/")?<Image key={uri} accessibilityLabel={file.name||"Attachment"} source={{uri,headers:uri.startsWith(API_URL+"/")?{Authorization:`Bearer ${token}`}:{}}} style={{width:220,height:180,resizeMode:"contain",borderRadius:8}}/>:<Pressable key={uri} onPress={()=>void WebBrowser.openBrowserAsync(uri)} style={{flexDirection:"row",alignItems:"center",gap:6}}><Icon name="paperclip" color={p.green} size={18}/><Text style={{color:p.green}}>{file.name||"Open file"}</Text></Pressable>})}
     <Text style={{color:p.muted,fontSize:11}}>{new Date(item.sentAt||item.createdAt||"").toLocaleString()} · {item.status}</Text>
-    {incoming&&!blocked&&<Pressable accessibilityRole="button" disabled={sending} onPress={()=>setReacting(reacting===key?"":key)}><Text style={{color:p.muted}}>React</Text></Pressable>}
+    {incoming&&!blocked&&<Pressable accessibilityRole="button" accessibilityLabel="React" disabled={sending} onPress={()=>setReacting(reacting===key?"":key)} style={{flexDirection:"row",alignItems:"center",gap:4,alignSelf:"flex-start"}}><Icon name="emoticon-happy-outline" color={p.muted} size={16}/><Text style={{color:p.muted,fontSize:12}}>React</Text></Pressable>}
     {reacting===key&&<><View style={{flexDirection:"row",flexWrap:"wrap"}}>{["👍","❤️","😂","🎉","🙏","😮"].map(emoji=><Pressable key={emoji} accessibilityLabel={`Send ${emoji} reaction as text`} disabled={sending} onPress={()=>void send(`${emoji} to ${item.body?`“${Array.from(item.body.replace(/\s+/g," ")).slice(0,100).join("")}”`:"your attachment"}`,true)} style={{padding:10}}><Text style={{fontSize:23}}>{emoji}</Text></Pressable>)}</View><Muted>Sent as a text reply</Muted></>}
    </View>;
   }}/>
-  <View style={{padding:14,gap:8,backgroundColor:p.bg}}>{error?<Text accessibilityRole="alert" style={{color:p.danger}}>{error}</Text>:null}{blocked?<Muted>Texting is blocked for this contact.</Muted>:null}<Field accessibilityLabel="Message" placeholder="Write a text…" value={draft} onChangeText={setDraft} editable={!sending&&!blocked} multiline maxLength={1400} style={{maxHeight:120,paddingVertical:12}}/><Button title="Send text" disabled={blocked||!draft.trim()} loading={sending} onPress={()=>void send()}/></View>
+  <View style={{padding:14,gap:8,backgroundColor:p.bg}}>{error?<Text accessibilityRole="alert" style={{color:p.danger}}>{error}</Text>:null}{blocked?<Muted>Texting is blocked for this contact.</Muted>:null}<View style={{flexDirection:"row",alignItems:"flex-end",gap:8}}><Field accessibilityLabel="Message" placeholder="Text message" value={draft} onChangeText={setDraft} editable={!sending&&!blocked} multiline maxLength={1400} style={{flex:1,maxHeight:120,paddingVertical:12,borderRadius:26,paddingHorizontal:18}}/>{sending?<View style={{width:50,height:50,alignItems:"center",justifyContent:"center"}}><ActivityIndicator color={p.green}/></View>:<IconButton icon="send" label="Send text" size={50} color={p.onGreen} background={p.green} disabled={blocked||!draft.trim()} onPress={()=>void send()}/>}</View></View>
  </KeyboardAvoidingView></Screen>;
 }

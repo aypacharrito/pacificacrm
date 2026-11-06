@@ -18,10 +18,9 @@ export default function DisplaySizeSlider(){
     catch{Alert.alert("Size could not save","Please try again. Your previous size is still available.")}
     finally{previewDisplayScale(null);setDraft(null)}
   }
-  return <View style={{gap:8}}>
-    <View style={{flexDirection:"row",alignItems:"center",gap:10}}><Text style={{color:p.text,fontWeight:"700",flex:1}}>Text & spacing</Text><Text style={{color:p.green,fontWeight:"700"}}>{draft??saved}%</Text><Button title="Reset" kind="secondary" onPress={()=>void save(90)}/></View>
-    <Muted>Resize text, spacing and the keypad together.</Muted>
-    <NativeSlider accessibilityLabel="Text and spacing" accessibilityValue={{min:80,max:125,now:draft??saved,text:`${draft??saved} percent`}} minimumValue={80} maximumValue={125} step={5} value={draft??saved} onValueChange={preview} onSlidingComplete={value=>void save(value)} minimumTrackTintColor={p.green} maximumTrackTintColor={p.border} thumbTintColor={p.green} style={{height:48,width:"100%"}}/>
-    <View style={{flexDirection:"row",justifyContent:"space-between"}}><Muted>Compact</Muted><Muted>Roomy</Muted></View>
+  return <View style={{gap:6}}>
+    <View style={{flexDirection:"row",alignItems:"center",gap:10}}><Text style={{color:p.muted,fontWeight:"600",fontSize:13,flex:1}}>Text size · {draft??saved}%</Text><Button title="Reset" kind="text" compact onPress={()=>void save(90)}/></View>
+    <NativeSlider accessibilityLabel="Text and spacing" accessibilityValue={{min:80,max:125,now:draft??saved,text:`${draft??saved} percent`}} minimumValue={80} maximumValue={125} step={5} value={draft??saved} onValueChange={preview} onSlidingComplete={value=>void save(value)} minimumTrackTintColor={p.green} maximumTrackTintColor={p.border} thumbTintColor={p.green} style={{height:44,width:"100%"}}/>
+    <View style={{flexDirection:"row",justifyContent:"space-between"}}><Muted>Smaller</Muted><Muted>Larger</Muted></View>
   </View>;
 }
