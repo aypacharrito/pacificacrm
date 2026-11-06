@@ -1,5 +1,6 @@
 import React from "react";
-import { Platform, ScrollView, StyleSheet, View, type ScrollViewProps } from "react-native";
+import { Platform, StyleSheet, View, type ScrollViewProps } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {usePalette,useDisplayScale} from "./Primitives";
 
@@ -11,13 +12,15 @@ export function Screen({ children, scroll = true, contentContainerStyle, ...prop
   }
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={[styles.safe, { backgroundColor }]}>
-      <ScrollView
+      {/* Scrolls the focused field above the keyboard (notes, Pacifica AI, sign-in) on edge-to-edge Android. */}
+      <KeyboardAwareScrollView
         {...props}
+        bottomOffset={24}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, {padding:16*scale,gap:12*scale}, contentContainerStyle]}
       >
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

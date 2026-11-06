@@ -4,8 +4,14 @@ import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import { Image, StyleSheet, View } from "react-native";
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
+import * as SplashScreen from "expo-splash-screen";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+
+void SplashScreen.preventAutoHideAsync().catch(() => {});
+import { AppText as Text } from "../src/components/AppText";
 import { WorkspaceProvider } from "../src/state/WorkspaceProvider";
 import { colors } from "../src/lib/theme";
 
@@ -22,26 +28,38 @@ function MissingConfiguration() {
 }
 
 function ThemedStatusBar(){const p=usePalette();return <StatusBar style={p.dark?"light":"dark"}/>}
+function ThemedStack() {
+  const p = usePalette();
+  // Screens slide in from the right like Messages/Contacts; the themed background avoids a white flash between them.
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right", contentStyle: { backgroundColor: p.bg } }}>
+      <Stack.Screen name="index" options={{ animation: "fade" }} />
+      <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+      <Stack.Screen name="lead/[id]" options={{ presentation: "card" }} />
+      <Stack.Screen name="drive/index" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+    </Stack>
+  );
+}
 function AppStack() {
   return (
     <WorkspaceProvider><NativeVoiceProvider>
       <ThemedStatusBar/>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="lead/[id]" options={{ presentation: "card" }} />
-        <Stack.Screen name="drive/index" options={{ presentation: "fullScreenModal" }} />
-      </Stack>
+      <ThemedStack/>
     </NativeVoiceProvider></WorkspaceProvider>
   );
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  useEffect(() => { if (fontsLoaded || fontError) void SplashScreen.hideAsync(); }, [fontsLoaded, fontError]);
+  if (!fontsLoaded && !fontError) return null;  // the splash screen stays up for the split second fonts take
   if (!publishableKey) return <MissingConfiguration />;
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <AppStack />
-    </ClerkProvider>
+    <KeyboardProvider>
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <AppStack />
+      </ClerkProvider>
+    </KeyboardProvider>
   );
 }
 

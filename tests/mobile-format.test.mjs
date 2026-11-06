@@ -22,3 +22,19 @@ test("message times read like a phone's inbox", () => {
   assert.equal(shortTime(0, now), "");
   assert.equal(shortTime(Number.NaN, now), "");
 });
+
+test("conversation details: day separators, times and delivery marks", () => {
+  const { dayLabel, dayKey, statusIcon, clockTime } = formatModule.default || formatModule;
+  const now = new Date(2026, 10, 6, 15, 0).getTime();
+  assert.equal(dayLabel(new Date(2026, 10, 6, 9).getTime(), now), "Today");
+  assert.equal(dayLabel(new Date(2026, 10, 5, 23).getTime(), now), "Yesterday");
+  assert.equal(dayKey(new Date(2026, 10, 6, 1).getTime()), dayKey(new Date(2026, 10, 6, 23).getTime()));
+  assert.notEqual(dayKey(new Date(2026, 10, 6).getTime()), dayKey(new Date(2026, 10, 5).getTime()));
+  assert.equal(statusIcon("delivered").icon, "check-all");
+  assert.equal(statusIcon("sent").icon, "check");
+  assert.equal(statusIcon("queued").icon, "clock-outline");
+  assert.deepEqual(statusIcon("undelivered"), { icon: "alert-circle-outline", bad: true });
+  assert.equal(statusIcon("received"), null);
+  assert.match(clockTime(new Date(2026, 10, 6, 16, 31).getTime()), /4:31/);
+  assert.equal(clockTime(0), "");
+});

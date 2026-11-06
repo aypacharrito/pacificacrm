@@ -1,22 +1,6 @@
 import React, {useSyncExternalStore} from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Platform,
-  PlatformColor,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  useColorScheme,
-  View,
-  type ColorValue,
-  type PressableProps,
-  type StyleProp,
-  type TextInputProps,
-  type TextProps,
-  type ViewStyle,
-} from "react-native";
+import { ActivityIndicator, Image, Platform, PlatformColor, Pressable, StyleSheet, useColorScheme, View, type ColorValue, type PressableProps, type StyleProp, type TextInputProps, type TextProps, type ViewStyle } from "react-native";
+import { AppText as Text, AppTextInput as TextInput } from "./AppText";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import { colors } from "../lib/theme";
@@ -24,6 +8,13 @@ import { avatarColor, initial } from "../lib/format";
 import { useWorkspace } from "../state/WorkspaceProvider";
 
 export type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+/** Android's own touch ripple (like Google's apps); iOS keeps a light fade. */
+export function useRipple(borderless = false, radius?: number) {
+  const { dark } = usePalette();
+  return { color: dark ? "rgba(255,255,255,0.14)" : "rgba(20,34,58,0.10)", borderless, radius };
+}
+const pressedOpacity = (pressed: boolean) => (Platform.OS === "ios" && pressed ? 0.75 : 1);
 
 let previewScale:number|null=null;
 const scaleListeners=new Set<()=>void>();
@@ -120,9 +111,11 @@ export function Button({
   // secondary = tonal: a soft filled pill. "text" is for low-emphasis actions (Tomorrow, Reset).
   const backgroundColor = kind === "primary" ? p.green : kind === "danger" ? "transparent" : kind === "text" ? "transparent" : p.greenSoft;
   const textColor = kind === "primary" ? p.onGreen : kind === "danger" ? p.danger : p.green;
+  const ripple = useRipple();
   return (
     <Pressable
       accessibilityRole="button"
+      android_ripple={ripple}
       {...props}
       onPress={event => {
         void Haptics.selectionAsync();
@@ -131,7 +124,7 @@ export function Button({
       disabled={props.disabled || loading}
       style={state => [
         styles.button,
-        { backgroundColor, minHeight:(compact?40:48)*Math.max(.9,scale), paddingHorizontal:(kind==="text"?12:18)*scale, opacity: props.disabled ? .45 : state.pressed ? .8 : 1,
+        { backgroundColor, minHeight:(compact?40:48)*Math.max(.9,scale), paddingHorizontal:(kind==="text"?12:18)*scale, opacity: props.disabled ? .45 : pressedOpacity(state.pressed),
           borderWidth: kind === "danger" ? 1 : 0, borderColor: p.danger },
         typeof props.style === "function" ? props.style(state) : props.style,
       ]}
@@ -146,9 +139,10 @@ export function Button({
 
 export function IconButton({ icon, label, color, background, size = 44, ...props }: PressableProps & { icon: IconName; label: string; color?: ColorValue; background?: ColorValue; size?: number }) {
   const p = usePalette();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={6} {...props}
+  const ripple = useRipple(true, size / 2);
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={6} android_ripple={ripple} {...props}
     style={state => [{ width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center",
-      backgroundColor: state.pressed ? p.cardHigh : background || "transparent", opacity: props.disabled ? .45 : 1 },
+      backgroundColor: Platform.OS === "ios" && state.pressed ? p.cardHigh : background || "transparent", opacity: props.disabled ? .45 : 1 },
       typeof props.style === "function" ? props.style(state) : props.style]}>
     <Icon name={icon} color={color || p.text} size={Math.round(size * .5)} />
   </Pressable>;
@@ -188,9 +182,10 @@ export function Pill({ children, active = false }: { children: React.ReactNode; 
 export function Chip({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: IconName }) {
   const p = usePalette();
   const scale = useDisplayScale();
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={() => { void Haptics.selectionAsync(); onPress(); }}
+  const ripple = useRipple();
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} android_ripple={ripple} onPress={() => { void Haptics.selectionAsync(); onPress(); }}
     style={({ pressed }) => [styles.chip, { minHeight: 38 * Math.max(.9, scale), paddingHorizontal: 14 * scale,
-      backgroundColor: selected ? p.greenSoft : "transparent", borderColor: selected ? p.greenSoft : p.border, opacity: pressed ? .8 : 1 }]}>
+      backgroundColor: selected ? p.greenSoft : "transparent", borderColor: selected ? p.greenSoft : p.border, opacity: pressedOpacity(pressed) }]}>
     {selected ? <Icon name="check" color={p.green} size={16} /> : icon ? <Icon name={icon} color={p.muted} size={16} /> : null}
     <Text style={{ color: selected ? p.green : p.text, fontWeight: "600", fontSize: 14 * scale }}>{label}</Text>
   </Pressable>;
@@ -209,8 +204,9 @@ export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
 export function ListItem({ icon, title, subtitle, onPress, right, danger }: { icon: IconName; title: string; subtitle?: string; onPress?: () => void; right?: React.ReactNode; danger?: boolean }) {
   const p = usePalette();
   const scale = useDisplayScale();
-  return <Pressable accessibilityRole={onPress ? "button" : undefined} disabled={!onPress} onPress={onPress}
-    style={({ pressed }) => [styles.listItem, { paddingVertical: 12 * scale, backgroundColor: pressed ? p.cardHigh : "transparent" }]}>
+  const ripple = useRipple();
+  return <Pressable accessibilityRole={onPress ? "button" : undefined} disabled={!onPress} onPress={onPress} android_ripple={onPress ? ripple : undefined}
+    style={({ pressed }) => [styles.listItem, { paddingVertical: 12 * scale, backgroundColor: Platform.OS === "ios" && pressed ? p.cardHigh : "transparent" }]}>
     <View style={[styles.listIcon, { backgroundColor: danger ? "transparent" : p.greenSoft }]}><Icon name={icon} color={danger ? p.danger : p.green} size={20} /></View>
     <View style={{ flex: 1, gap: 2 }}>
       <Text style={{ color: danger ? p.danger : p.text, fontSize: 16 * scale, fontWeight: "600" }}>{title}</Text>
@@ -221,16 +217,16 @@ export function ListItem({ icon, title, subtitle, onPress, right, danger }: { ic
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 28, lineHeight: 34, fontWeight: "700", letterSpacing: -0.4, fontFamily: Platform.select({ ios: "Avenir Next", android: "sans-serif" }) },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: "700", letterSpacing: -0.6 },
   muted: { fontSize: 14, lineHeight: 20 },
   card: { borderRadius: 24, padding: 16, overflow: "hidden" },
-  button: { minHeight: 48, paddingHorizontal: 18, borderRadius: 999, alignItems: "center", justifyContent: "center" },
+  button: { minHeight: 48, paddingHorizontal: 18, borderRadius: 999, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   buttonInner: { flexDirection: "row", alignItems: "center", gap: 8 },
-  buttonText: { fontSize: 15, fontWeight: "700", fontFamily: Platform.select({ ios: "Avenir Next", android: "sans-serif-medium" }) },
+  buttonText: { fontSize: 15, fontWeight: "600" },
   field: { minHeight: 50, borderWidth: 0, borderRadius: 16, paddingHorizontal: 16, fontSize: 15 },
   search: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 999, paddingLeft: 18, paddingRight: 8 },
   pill: { borderRadius: 999, paddingVertical: 5, paddingHorizontal: 10 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 12, borderWidth: 1 },
-  listItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  listItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, overflow: "hidden" },
   listIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 });

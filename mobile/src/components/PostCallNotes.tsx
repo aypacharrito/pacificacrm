@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
-import {Modal,ScrollView,Text,View,Pressable} from 'react-native';
+import { Modal, ScrollView, View, Pressable } from "react-native";
+import { AppText as Text } from "./AppText";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@clerk/expo';
 import {useWorkspace} from '../state/WorkspaceProvider';

@@ -1,5 +1,6 @@
 import React,{useCallback,useMemo,useRef,useState} from "react";
-import {AppState,Pressable,Text,View} from "react-native";
+import { AppState, Pressable, View } from "react-native";
+import { AppText as Text } from "./AppText";
 import {useFocusEffect,router} from "expo-router";
 import {useAuth} from "@clerk/expo";
 import {crmRequest} from "../lib/api";

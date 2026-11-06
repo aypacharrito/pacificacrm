@@ -1,9 +1,9 @@
 import {ScaledText as Text} from "../../src/components/Primitives";
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Screen } from "../../src/components/Screen";
-import { Avatar, Card, Icon, Muted, Title, usePalette } from "../../src/components/Primitives";
+import { Avatar, Card, Icon, Muted, Title, usePalette, useRipple } from "../../src/components/Primitives";
 import { shortTime } from "../../src/lib/format";
 import { useWorkspace } from "../../src/state/WorkspaceProvider";
 import type { Communication, Lead } from "../../src/lib/types";
@@ -18,6 +18,7 @@ function commTime(item: Communication) {
 
 export default function InboxScreen() {
   const p = usePalette();
+  const ripple = useRipple();
   const { workspace, markMessagesRead } = useWorkspace();
   useFocusEffect(React.useCallback(() => { void markMessagesRead(); }, [markMessagesRead]));
   const items = useMemo(() => {
@@ -49,7 +50,8 @@ export default function InboxScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${item.lead.name}: ${inbound ? "" : "You: "}${body}`}
               onPress={() => router.push(comm.channel==="sms"?`/conversation/${item.lead.id}`:`/lead/${item.lead.id}`)}
-              style={({ pressed }) => [styles.row, { backgroundColor: pressed ? p.cardHigh : "transparent" }]}
+              android_ripple={ripple}
+              style={({ pressed }) => [styles.row, { backgroundColor: pressed && Platform.OS === "ios" ? p.cardHigh : "transparent" }]}
             >
               <Avatar name={item.lead.name || "?"} size={48} />
               <View style={{ flex: 1, gap: 2 }}>
@@ -71,7 +73,7 @@ export default function InboxScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 18 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 18, overflow: "hidden" },
   top: { flexDirection: "row", alignItems: "center", gap: 6 },
   name: { flex: 1, fontSize: 16 },
   time: { fontSize: 12 },

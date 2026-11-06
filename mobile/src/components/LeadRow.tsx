@@ -1,23 +1,26 @@
 import { router } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { AppText as Text } from "./AppText";
 import type { Lead } from "../lib/types";
 import { displayStage, formatPhone, isHotLead, leadSubtitle } from "../lib/lead";
-import { Avatar, Icon, Pill, useDisplayScale, usePalette } from "./Primitives";
+import { Avatar, Icon, Pill, useDisplayScale, usePalette, useRipple } from "./Primitives";
 
 /** One contact. `tile` = its own rounded block (Contacts list); otherwise a plain row inside a Card. */
 export function LeadRow({ lead, tile = false }: { lead: Lead; tile?: boolean }) {
   const p = usePalette();
   const scale = useDisplayScale();
+  const ripple = useRipple();
   const meta = [lead.lastCallResult ? `Last call: ${lead.lastCallResult}` : "", leadSubtitle(lead) || displayStage(lead)].filter(Boolean).join(" · ");
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${lead.name || "Unnamed lead"}, ${formatPhone(lead.phone)}`}
       onPress={() => router.push(`/lead/${lead.id}`)}
+      android_ripple={ripple}
       style={({ pressed }) => [styles.row, tile && styles.tile, {
         paddingVertical: 12 * scale,
-        backgroundColor: pressed ? p.cardHigh : tile ? p.card : "transparent",
+        backgroundColor: pressed && Platform.OS === "ios" ? p.cardHigh : tile ? p.card : "transparent",
       }]}
     >
       <Avatar name={lead.name || "?"} />
@@ -35,7 +38,7 @@ export function LeadRow({ lead, tile = false }: { lead: Lead; tile?: boolean }) 
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 12, borderRadius: 18 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 12, borderRadius: 18, overflow: "hidden" },
   tile: { marginBottom: 4, paddingHorizontal: 16, borderRadius: 20 },
   copy: { flex: 1, gap: 2 },
   topline: { flexDirection: "row", alignItems: "center", gap: 8 },

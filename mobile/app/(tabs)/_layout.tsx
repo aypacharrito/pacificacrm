@@ -25,6 +25,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: "shift",  // tabs slide and fade like Android's own apps
+        sceneStyle: { backgroundColor: p.bg },
         tabBarActiveTintColor: p.text,
         tabBarInactiveTintColor: p.muted,
         tabBarStyle: {
