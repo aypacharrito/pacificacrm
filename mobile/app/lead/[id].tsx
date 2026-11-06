@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Screen } from "../../src/components/Screen";
-import { Button, Card, Field, Muted, Pill, Title, usePalette } from "../../src/components/Primitives";
+import { Avatar, Button, Card, Field, IconButton, Muted, Pill, Title, usePalette } from "../../src/components/Primitives";
 import { displayStage, formatPhone } from "../../src/lib/lead";
 import { openDeviceAction, phoneCallUrl } from "../../src/lib/device-actions";
 import { useWorkspace } from "../../src/state/WorkspaceProvider";
@@ -42,16 +42,18 @@ export default function LeadDetailScreen() {
 
   return (
     <Screen>
-      <Pressable onPress={() => router.back()}><Text style={{ color: p.green, fontWeight: "800" }}>‹ Back</Text></Pressable>
-      <View style={{ gap: 5 }}>
-        <Title eyebrow={lead.line === "home-auto" ? "HOME & AUTO" : "LIFE / LEAD"}>{lead.name}</Title>
+      <View style={{ marginLeft: -8 }}><IconButton icon="arrow-left" label="Back" onPress={() => router.back()} /></View>
+      <View style={styles.hero}>
+        <Avatar name={lead.name || "?"} size={88} />
+        <Text style={[styles.heroName, { color: p.text }]}>{lead.name}</Text>
         <Muted>{formatPhone(lead.phone)}{lead.email ? ` · ${lead.email}` : ""}</Muted>
+        <Pill>{lead.line === "home-auto" ? "Home & Auto" : "Life / Lead"}</Pill>
       </View>
 
       <View style={styles.actions}>
-        <Button title="Call" onPress={() => void openUrl(phoneCallUrl(lead.phone))} disabled={!lead.phone || lead.doNotCall} style={styles.action} />
-        <Button title="Text" kind="secondary" onPress={() => router.push(`/conversation/${lead.id}`)} disabled={!lead.phone || lead.smsOptOut || lead.doNotCall} style={styles.action} />
-        <Button title="Email" kind="secondary" onPress={() => void openUrl(`mailto:${lead.email}`)} disabled={!lead.email || lead.emailOptOut} style={styles.action} />
+        <Button title="Call" icon="phone" onPress={() => void openUrl(phoneCallUrl(lead.phone))} disabled={!lead.phone || lead.doNotCall} style={styles.action} />
+        <Button title="Text" icon="message-text-outline" kind="tonal" onPress={() => router.push(`/conversation/${lead.id}`)} disabled={!lead.phone || lead.smsOptOut || lead.doNotCall} style={styles.action} />
+        <Button title="Email" icon="email-outline" kind="tonal" onPress={() => void openUrl(`mailto:${lead.email}`)} disabled={!lead.email || lead.emailOptOut} style={styles.action} />
       </View>
 
       {lead.doNotCall ? <Card><Text style={{ color: p.danger, fontWeight: "900" }}>Do Not Call is enabled for this contact.</Text></Card> : null}
@@ -105,6 +107,8 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  hero: { alignItems: "center", gap: 8, paddingBottom: 4 },
+  heroName: { fontSize: 26, fontWeight: "700", textAlign: "center" },
   actions: { flexDirection: "row", gap: 8 },
   action: { flex: 1, minWidth: 0 },
   details: { paddingVertical: 4 },

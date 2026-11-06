@@ -1,5 +1,6 @@
 import React,{createContext,useCallback,useContext,useEffect,useRef,useState} from 'react';
-import {AppState,Modal,PermissionsAndroid,Platform,Pressable,Text,View} from 'react-native';
+import { AppState, Modal, PermissionsAndroid, Platform, Pressable, View } from "react-native";
+import { AppText as Text } from "../components/AppText";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth} from '@clerk/expo';
 import type {Voice,Call,CallInvite} from '@twilio/voice-react-native-sdk';

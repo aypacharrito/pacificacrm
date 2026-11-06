@@ -2,82 +2,64 @@ import {ScaledText as Text} from "../../src/components/Primitives";
 import { useClerk, useUser } from "@clerk/expo";
 import { router } from "expo-router";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { Screen } from "../../src/components/Screen";
-import { Button, Card, Muted, Pill, Title, usePalette } from "../../src/components/Primitives";
+import { Avatar, Card, Chip, ListItem, Muted, Pill, SectionTitle, Title, usePalette } from "../../src/components/Primitives";
 import * as Application from "expo-application";
 import { API_URL } from "../../src/lib/api";
 import { useWorkspace } from "../../src/state/WorkspaceProvider";
 import DisplaySizeSlider from "../../src/components/DisplaySizeSlider";
+
+const PALETTES: Array<[string, string]> = [["system","Follow device"],["blue","Blue"],["teal","Teal"],["violet","Violet"],["rose","Rose"],["amber","Amber"],["slate","Graphite"]];
 
 export default function MoreScreen() {
   const p = usePalette();
   const { user } = useUser();
   const { signOut } = useClerk();
   const { workspace, syncing, offline, refresh, updateProfile } = useWorkspace();
+  const name = user?.fullName || user?.primaryEmailAddress?.emailAddress || "Pacifica user";
 
   return (
     <Screen>
-      <Title eyebrow="ACCOUNT">More</Title>
+      <Title>More</Title>
       <Card style={styles.profile}>
-        <View style={[styles.avatar, { backgroundColor: p.greenSoft }]}>
-          <Text style={{ color: p.green, fontSize: 22, fontWeight: "900" }}>{(user?.firstName || user?.primaryEmailAddress?.emailAddress || "P").slice(0,1).toUpperCase()}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.name, { color: p.text }]}>{user?.fullName || user?.primaryEmailAddress?.emailAddress || "Pacifica user"}</Text>
-          <Muted>{user?.primaryEmailAddress?.emailAddress || ""}</Muted>
+        <Avatar name={name} size={52} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text numberOfLines={1} style={[styles.name, { color: p.text }]}>{name}</Text>
+          <Muted numberOfLines={1}>{user?.primaryEmailAddress?.emailAddress || ""}</Muted>
         </View>
         <Pill active={offline}>{syncing ? "Syncing" : offline ? "Offline" : "Synced"}</Pill>
       </Card>
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Appearance</Text><View style={[styles.sizeRow,{flexWrap:'wrap'}]}>{["system","light","dark"].map(appearance=><Button key={appearance} title={appearance==='system'?'Follow device':appearance==="light"?"Light":"Dark"} kind={(workspace.profile.appearance||'system')===appearance?"primary":"secondary"} onPress={()=>void updateProfile({appearance})} style={{paddingHorizontal:10}}/>)}</View>
-        <Text style={[styles.sectionTitle,{color:p.text}]}>Color palette</Text><View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>{['system','blue','teal','violet','rose','amber','slate'].map(colorPalette=><Button key={colorPalette} title={colorPalette==='system'?'Follow device':colorPalette==='slate'?'Graphite':colorPalette.charAt(0).toUpperCase()+colorPalette.slice(1)} kind={(workspace.profile.colorPalette||'system')===colorPalette?'primary':'secondary'} onPress={()=>void updateProfile({colorPalette})} style={{paddingHorizontal:10}}/>)}</View>
+      <Card style={{ padding: 0, paddingVertical: 6, gap: 0 }}>
+        <ListItem icon="creation" title="Pacifica AI" subtitle="Photo to contact, and questions about your CRM" onPress={() => router.push("/ai")} />
+        <ListItem icon="calendar-month-outline" title="Calendar" subtitle="Appointments, payments and phone reminders" onPress={() => router.push("/calendar")} />
+        <ListItem icon="car-outline" title="Drive Mode" subtitle="A simple prioritized calling queue" onPress={() => router.push("/drive")} />
+        <ListItem icon="sync" title="Sync now" subtitle={`Connected to ${API_URL.replace(/^https?:\/\//, "")}`} onPress={() => void refresh()} right={<View />} />
+      </Card>
+
+      <SectionTitle>Appearance</SectionTitle>
+      <Card style={{ gap: 14 }}>
+        <View style={styles.chips}>{([["system","Follow device"],["light","Light"],["dark","Dark"]] as const).map(([appearance,label])=><Chip key={appearance} label={label} selected={(workspace.profile.appearance||"system")===appearance} onPress={()=>void updateProfile({appearance})}/>)}</View>
+        <Text style={[styles.label, { color: p.muted }]}>Accent color</Text>
+        <View style={styles.chips}>{PALETTES.map(([colorPalette,label])=><Chip key={colorPalette} label={label} selected={(workspace.profile.colorPalette||"system")===colorPalette} onPress={()=>void updateProfile({colorPalette})}/>)}</View>
         <DisplaySizeSlider/>
       </Card>
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Pacifica AI</Text>
-        <Muted>Your assistant for this workspace.</Muted>
-        <Button title="Open Pacifica AI" kind="secondary" onPress={() => router.push("/ai")} />
+      <Card style={{ padding: 0, paddingVertical: 6, gap: 0 }}>
+        <ListItem icon="logout" title="Sign out" danger
+          subtitle="Data saved on this phone stays until the app is removed or another account signs in."
+          onPress={() => Alert.alert("Sign out of Pacifica?", "You can sign back in with the same account.", [{ text: "Cancel", style: "cancel" }, { text: "Sign out", style: "destructive", onPress: () => void signOut() }])}
+          right={<View />} />
       </Card>
-
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Calendar</Text>
-        <Muted>Appointments, payments, and phone reminders.</Muted>
-        <Button title="Open Calendar" kind="secondary" onPress={() => router.push("/calendar")} />
-      </Card>
-
-
-
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Drive Mode</Text>
-        <Muted>Open a simple prioritized calling queue.</Muted>
-        <Button title="Open Drive Mode" kind="secondary" onPress={() => router.push("/drive")} />
-      </Card>
-
-      <Card style={styles.section}>
-        <Text accessibilityLabel="Pacifica app version" style={{color:p.muted,fontSize:12}}>Pacifica {Application.nativeApplicationVersion||"1.1.0"} · Build {Application.nativeBuildVersion||"preview"}</Text>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Connection</Text>
-        <Muted>Backend: {API_URL}</Muted>
-        <Button title="Sync now" kind="secondary" onPress={() => void refresh()} />
-      </Card>
-
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Account</Text>
-        <Muted>Signing out removes the active Clerk session. Cached CRM data remains on the device until the app is removed or overwritten by another signed-in workspace.</Muted>
-        <Button title="Sign out" kind="danger" onPress={() => void signOut()} />
-      </Card>
+      <Text accessibilityLabel="Pacifica app version" style={{color:p.muted,fontSize:12,textAlign:"center"}}>Pacifica {Application.nativeApplicationVersion||"1.1.0"} · Build {Application.nativeBuildVersion||"preview"}</Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  profile: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  name: { fontWeight: "900", fontSize: 16 },
-  section: { gap: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: "900" },
-  sizeRow: { flexDirection: "row", gap: 8 },
-  sizeButton: { flex: 1, paddingHorizontal: 6 },
+  profile: { flexDirection: "row", alignItems: "center", gap: 14 },
+  name: { fontWeight: "700", fontSize: 17 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  label: { fontSize: 13, fontWeight: "600" },
 });
