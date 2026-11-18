@@ -19,6 +19,10 @@ import {
 } from "./workspace-profile";
 import { applyWorkspaceChanges } from "./workspace-changes";
 import {WorkspaceLoadError} from "./workspace-load";
+import { archiveWorkspaceConversations } from "./conversation-history";
+import { workspaceRedis, workspaceRedisConfig } from "./workspace-redis";
+
+export { workspaceRedis, workspaceRedisConfig };
 
 export type StoredWorkspace = {
   smsLedger?:SmsLedger;
@@ -311,40 +315,6 @@ export function mergeStoredWorkspace(
   });
 }
 
-export function workspaceRedisConfig() {
-  // A URL and token must belong to the same connection; do not mix providers.
-  const kvUrl=process.env.KV_REST_API_URL?.trim()||"",kvToken=process.env.KV_REST_API_TOKEN?.trim()||"";
-  return kvUrl||kvToken ? {url:kvUrl,token:kvToken} : {
-    url:process.env.UPSTASH_REDIS_REST_URL?.trim()||"",
-    token:process.env.UPSTASH_REDIS_REST_TOKEN?.trim()||"",
-  };
-}
-
-export async function workspaceRedis(command: Array<string | number>) {
-  const { url, token } = workspaceRedisConfig();
-  if (!url && !token) return null;
-  if (!url || !token) throw new WorkspaceLoadError("STORAGE_NOT_CONFIGURED",503);
-  let response:Response;
-  try { response = await fetch(url, {
-    method: "POST",
-    signal:AbortSignal.timeout(8000),
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command),
-    cache: "no-store",
-  }); } catch { throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true); }
-  let data:{result?:unknown;error?:string};
-  try { data=await response.json(); } catch { throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true); }
-  if (!data || typeof data !== "object") throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true);
-  if (!response.ok || data.error)
-    throw new WorkspaceLoadError(response.status===401||response.status===403||/unauth|wrongpass|invalid.*token/i.test(data.error||"")
-      ?"STORAGE_AUTH_FAILED":response.status===429||/quota|limit exceeded|too many requests/i.test(data.error||"")?"STORAGE_LIMIT":"STORAGE_UNAVAILABLE",503,"",response.status>=500);
-  if (!Object.hasOwn(data,"result")) throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true);
-  return data.result;
-}
-
 export async function acquireAutomationLease(key:string,token:string,seconds=90){
   const config=workspaceRedisConfig();
   if(config.url){if(!config.token)throw Error('Cloud storage credentials are incomplete.');return (await workspaceRedis(['SET',key,token,'NX','EX',seconds]))==='OK';}
@@ -441,7 +411,6 @@ export async function writeStoredWorkspace(
   userId: string,
   workspace: StoredWorkspace,
 ) {
-  const {archiveWorkspaceConversations}=await import("./conversation-history");
   const serialized = JSON.stringify(await archiveWorkspaceConversations(userId,cleanWorkspacePayload(workspace)));
   const saved = await workspaceRedis(["SET", workspaceKey(userId), serialized]);
   if (saved !== null) return;
@@ -535,7 +504,6 @@ export async function updateStoredWorkspace(
       );
       const updated = update(current);
       if (updated === current) return current;
-      const {archiveWorkspaceConversations}=await import("./conversation-history");
       const next = await archiveWorkspaceConversations(userId,cleanWorkspacePayload(updated),current);
       const saved = await workspaceRedis([
         "EVAL",
@@ -559,7 +527,6 @@ export async function updateStoredWorkspace(
       const current = cleanWorkspacePayload(row ? JSON.parse(row.value) : {});
       const updated = update(current);
       if (updated === current) return current;
-      const {archiveWorkspaceConversations}=await import("./conversation-history");
       const next = await archiveWorkspaceConversations(userId,cleanWorkspacePayload(updated),current);
       const result = row
         ? await db
