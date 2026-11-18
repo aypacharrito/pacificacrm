@@ -8,7 +8,7 @@ import {
   cleanWorkspacePayload,
   mergeStoredWorkspace,
   migrateLegacyStoredWorkspace,
-  readStoredWorkspace,
+  readStoredWorkspaceUnlessUnchanged,
   workspaceKey,
   workspaceRedis,
   workspaceRedisConfig,
@@ -72,12 +72,19 @@ export async function GET(request:Request) {
     const owner = await identity();
     if (!owner)
       return Response.json({ error: "Sign in required",code:"SIGN_IN_REQUIRED",requestId }, { status: 401,headers:{"Cache-Control":"no-store"} });
-    const workspace = await readStoredWorkspace(owner.userId);
+    // ETag = "<hash of what the client sees>.<hash of the stored record>". The second part lets the database
+    // answer "unchanged" itself; the first keeps server-only changes from forcing a download.
+    const known=request?.headers.get('if-none-match')||'';
+    const [,knownView='',knownSha='']=/^"([0-9a-f]{64})(?:\.([0-9a-f]{40}))?"$/.exec(known)||[];
+    const read=await readStoredWorkspaceUnlessUnchanged(owner.userId,knownSha);
+    const cacheHeaders={"Cache-Control":"private, no-store","Vary":"Cookie, Authorization"};
+    if(read.unchanged)return new Response(null,{status:304,headers:{...cacheHeaders,"ETag":known}});
+    const workspace=read.workspace;
     if(workspace){
       const body=JSON.stringify({found:true,...clientWorkspace(workspace)});
-      const etag='"'+createHash('sha256').update(owner.userId).update(body).digest('hex')+'"';
-      const headers={"Cache-Control":"private, no-store","ETag":etag,"Vary":"Cookie, Authorization"};
-      if(request?.headers.get('if-none-match')===etag)return new Response(null,{status:304,headers});
+      const view=createHash('sha256').update(owner.userId).update(body).digest('hex');
+      const headers={...cacheHeaders,"ETag":'"'+view+(read.sha?'.'+read.sha:'')+'"'};
+      if(knownView===view)return new Response(null,{status:304,headers});
       return new Response(body,{headers:{...headers,"Content-Type":"application/json"}});
     }
     if (workspaceRedisConfig().url) {
