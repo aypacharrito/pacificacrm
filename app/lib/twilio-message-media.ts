@@ -1,10 +1,11 @@
+import { isHostedRuntime } from "./hosted-runtime";
 import {getPacificaAccess} from './clerk-access';
 import {isClerkConfigured} from './clerk-config';
 import {phoneAssignmentForWorkspace} from './phone-assignments';
 import {twilioAccountConfig,twilioApiRequest} from './twilio-rest';
 export async function authorizedMessage(sid:string){
  if(!/^SM[a-f0-9]{32}$/i.test(sid)&&!/^MM[a-f0-9]{32}$/i.test(sid))return null;
- const access=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:'local',email:'local'};
+ const access=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:'local',email:'local'};
  if(!access.allowed)return null;
  const assignment=await phoneAssignmentForWorkspace(access.userId,access.email);
  if(!assignment?.phoneNumber||assignment.provider!=='twilio')return null;

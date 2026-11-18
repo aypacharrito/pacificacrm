@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {clerkClient} from "@clerk/nextjs/server";
 import {getPacificaAccess,isPacificaPlatformOwnerEmail} from "../../../lib/clerk-access";
 import {getStripe,stripePlanPrices} from "../../../lib/stripe";
@@ -11,7 +12,7 @@ import {forgetClerkUser} from "../../../lib/identity-cache";
 export const runtime="nodejs";
 
 async function manager(){
-  if(!isClerkConfigured())return process.env.VERCEL?null:{allowed:true,role:"owner" as const,userId:"local",accountUserId:"local",email:"local"};
+  if(!isClerkConfigured())return isHostedRuntime()?null:{allowed:true,role:"owner" as const,userId:"local",accountUserId:"local",email:"local"};
   const access=await getPacificaAccess();return access.allowed&&(access.role==="owner"||access.role==="manager")?access:null;
 }
 

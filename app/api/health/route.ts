@@ -1,3 +1,4 @@
+import { isHostedRuntime, deployInfo } from "../../lib/hosted-runtime";
 import { isClerkConfigured } from "../../lib/clerk-config";
 import { workspaceRedis, workspaceRedisConfig } from "../../lib/workspace-storage";
 
@@ -22,7 +23,7 @@ export async function GET(){
   const checks={
     app:true,
     clerk:isClerkConfigured(),
-    storage:storageReachable||!process.env.VERCEL,
+    storage:storageReachable||!isHostedRuntime(),
     twilioVoice:Boolean(process.env.TWILIO_ACCOUNT_SID&&(process.env.TWILIO_API_KEY_SECRET||process.env.TWILIO_AUTH_TOKEN)&&process.env.TWILIO_TWIML_APP_SID),
     automation:Boolean(process.env.CRON_SECRET),
     a2pApproved:process.env.TWILIO_A2P_APPROVED==="true",
@@ -30,7 +31,7 @@ export async function GET(){
     billing:Boolean(process.env.STRIPE_SECRET_KEY),
   };
   const ready=checks.app&&checks.clerk&&checks.storage;
-  const release=process.env.VERCEL_GIT_COMMIT_SHA?.slice(0,8)||"local";
+  const {release,...deployment}=deployInfo();
   return Response.json({
     status:ready?"ready":"degraded",
     ready,
@@ -38,10 +39,6 @@ export async function GET(){
     time:new Date().toISOString(),
     release,
     background:{intervalMinutes:5,lastRunAt,lastRunHealthy},
-    deployment:{
-      branch:process.env.VERCEL_GIT_COMMIT_REF||"local",
-      environment:process.env.VERCEL_ENV||"local",
-      url:process.env.VERCEL_PROJECT_PRODUCTION_URL||process.env.VERCEL_URL||"local",
-    },
+    deployment,
   },{headers:{"Cache-Control":"no-store","X-Pacifica-Release":release}});
 }

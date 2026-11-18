@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {archiveMessageFiles} from "../../../lib/message-media-archive";
 import {isMessageAudio} from '../../../lib/message-audio';
 import {smsFailureMessage} from "../../../lib/sms-delivery";
@@ -38,7 +39,7 @@ type TwilioError = TwilioApiError;
 async function workspaceAccess() {
   const access = isClerkConfigured()
     ? await getPacificaAccess()
-    : { allowed: !process.env.VERCEL, userId: "local", email: "local" };
+    : { allowed: !isHostedRuntime(), userId: "local", email: "local" };
   if (!access.allowed)
     throw new Error("An active Pacifica subscription is required.");
   return access;

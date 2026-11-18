@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import { currentUser } from "@clerk/nextjs/server";
 import { getStripe } from "../../../lib/stripe";
 import { isClerkConfigured } from "../../../lib/clerk-config";
@@ -7,7 +8,7 @@ export const runtime="nodejs";
 export async function POST(request:Request){
   try{
     if(!isClerkConfigured())return Response.json({error:"Secure login must be configured before membership management is available."},{status:503});
-    if(!process.env.VERCEL)return Response.json({error:"Membership management is available on the production domain."},{status:503});
+    if(!isHostedRuntime())return Response.json({error:"Membership management is available on the production domain."},{status:503});
     const user=await currentUser();
     if(!user)return Response.json({error:"Sign in to manage this membership."},{status:401});
     const email=user?.primaryEmailAddress?.emailAddress||user?.emailAddresses[0]?.emailAddress;

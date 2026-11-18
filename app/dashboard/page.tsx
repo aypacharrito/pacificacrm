@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../lib/hosted-runtime";
 import {accessScope} from "../lib/account-access-policy";
 import CRMClient from "../CRMClient";
 import DashboardFixes from "../components/DashboardFixes";
@@ -28,7 +29,7 @@ export default async function DashboardPage(){
       {(access.role==="owner"||access.role==="manager")&&<DashboardFixes workspaceId={access.userId}/>}
     </>;
   }
-  if(process.env.VERCEL)redirect("/login?error=auth_not_configured");
+  if(isHostedRuntime())redirect("/login?error=auth_not_configured");
   await requireChatGPTUser("/dashboard");
   return <CRMClient/>;
 }

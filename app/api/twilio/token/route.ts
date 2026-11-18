@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import { getPacificaAccess } from "../../../lib/clerk-access";
 import { isClerkConfigured } from "../../../lib/clerk-config";
 import { phoneAssignmentForWorkspace } from "../../../lib/phone-assignments";
@@ -8,7 +9,7 @@ import {createVoiceAccessToken} from "../../../lib/voice-access-token";
 export const runtime = "nodejs";
 
 export async function GET(request:Request) {
-  const access=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:"local",email:"local"};
+  const access=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:"local",email:"local"};
   if(!access.allowed||!access.userId)return Response.json({error:"An active Pacifica subscription is required."},{status:403});
   const accountSid = (process.env.TWILIO_ACCOUNT_SID || "").trim();
   const apiKeySid = (process.env.TWILIO_API_KEY_SID || "").trim();

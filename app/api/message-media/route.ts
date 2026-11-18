@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../lib/hosted-runtime";
 import {getPacificaAccess} from "../../lib/clerk-access";
 import {isClerkConfigured} from "../../lib/clerk-config";
 import {workspaceRedis,workspaceRedisConfig} from "../../lib/workspace-storage";
@@ -9,7 +10,7 @@ const smsTypes=new Set(["image/jpeg","image/jpg","image/png","image/gif","image/
 const smsLargeMediaTypes=new Set(["image/jpeg","image/jpg","image/png","image/gif"]);
 
 async function access(){
-  const result=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:"local",email:"local"};
+  const result=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:"local",email:"local"};
   if(!result.allowed)throw new Error("An active Pacifica subscription is required.");
   return result;
 }

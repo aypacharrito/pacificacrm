@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {createHash,randomUUID} from "node:crypto";
 import {WorkspaceLoadError} from "../../../lib/workspace-load";
 import {clientWorkspace} from "../../../lib/workspace-client-view";
@@ -31,7 +32,7 @@ type Identity = {
 
 async function identity(): Promise<Identity | null> {
   if (!isClerkConfigured())
-    return process.env.VERCEL
+    return isHostedRuntime()
       ? null
       : { userId: "local", email: "local", role: "owner" };
   const access = await getPacificaAccess();

@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {randomUUID} from 'node:crypto';
 import {getPacificaAccess} from '../../../lib/clerk-access';
 import {isClerkConfigured} from '../../../lib/clerk-config';
@@ -8,7 +9,7 @@ import {acceptQuoteSubmission,rankOpportunities,type OpportunityLead} from '../.
 import {aiClient,aiConfigured,aiModel,aiReasoning} from '../../../lib/ai-provider';
 export const runtime='nodejs';
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
-async function identity(){if(!isClerkConfigured())return process.env.VERCEL?null:{userId:'local',role:'owner'};const access=await getPacificaAccess();return access.allowed?access:null}
+async function identity(){if(!isClerkConfigured())return isHostedRuntime()?null:{userId:'local',role:'owner'};const access=await getPacificaAccess();return access.allowed?access:null}
 export async function GET(){
  const owner=await identity();if(!owner)return json({error:'Sign in required'},401);
  try{

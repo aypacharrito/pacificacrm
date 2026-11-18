@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "./hosted-runtime";
 import {cleanSmsLedger,type SmsLedger} from "./sms-budget";
 import {cleanVoicePilot,cleanVoiceHistory,type VoicePilotRun,type VoiceCallHistory} from "./voice-pilot";
 import {cleanDocumentInsights,type DocumentInsight} from "./review-context";
@@ -358,7 +359,7 @@ export async function releaseAutomationLease(key:string,token:string){
 }
 
 async function workspaceD1() {
-  if(process.env.VERCEL)throw new WorkspaceLoadError("STORAGE_NOT_CONFIGURED",503);
+  if(isHostedRuntime())throw new WorkspaceLoadError("STORAGE_NOT_CONFIGURED",503);
   const { getD1 } = await import("../../db/index");
   const db = getD1();
   await db

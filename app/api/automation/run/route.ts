@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {runScheduledAutomation} from "../../../lib/scheduled-automation";
 import {getPacificaAccess} from "../../../lib/clerk-access";
 import {isClerkConfigured} from "../../../lib/clerk-config";
@@ -8,7 +9,7 @@ export const runtime="nodejs";
 export const maxDuration=60;
 
 async function access(){
-  const result=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:"local",role:"owner" as const};
+  const result=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:"local",role:"owner" as const};
   return result.allowed?result:null;
 }
 

@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../lib/hosted-runtime";
 import Link from "next/link";
 import Image from "next/image";
 import { chatGPTSignInPath, getChatGPTUser } from "../chatgpt-auth";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage(){
   if(isClerkConfigured())return <ClerkLogin/>;
-  if(process.env.VERCEL)return <main className={styles.page}>
+  if(isHostedRuntime())return <main className={styles.page}>
     <Link href="/" className={styles.brand}><span><Image src="/pacifica-mark.png" width={32} height={32} alt="" priority/></span><b>Pacifica</b></Link>
     <section className={styles.card}>
       <p className={styles.kicker}>SECURE WORKSPACE ACCESS</p>

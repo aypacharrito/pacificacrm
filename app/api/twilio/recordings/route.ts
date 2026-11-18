@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {recordingPlaybackPath} from "../../../lib/recording-playback";
 import {getPacificaAccess} from "../../../lib/clerk-access";
 import {isClerkConfigured} from "../../../lib/clerk-config";
@@ -11,7 +12,7 @@ export const runtime="nodejs";
 type TwilioCall=TwilioApiError&{sid?:string;from?:string;to?:string;status?:string};
 type TwilioRecording=TwilioApiError&{sid?:string;status?:string};
 
-async function access(){const result=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:"local",email:"local"};return result.allowed?result:null}
+async function access(){const result=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:"local",email:"local"};return result.allowed?result:null}
 function callSid(value:string){return /^CA[a-f0-9]{32}$/i.test(value)?value:""}
 function recordingSid(value:string){return /^RE[a-f0-9]{32}$/i.test(value)?value:""}
 function callbackUrl(workspaceId:string,leadId:number){const base=(process.env.TWILIO_WEBHOOK_BASE_URL||"https://pacificacrm.com").trim().replace(/\/$/,"");return `${base}/api/twilio/recordings/status?workspace=${encodeURIComponent(workspaceId)}&lead=${leadId}`}
