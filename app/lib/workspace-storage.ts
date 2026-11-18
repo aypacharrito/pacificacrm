@@ -387,6 +387,31 @@ export async function readStoredWorkspace(userId: string) {
     : null;
 }
 
+// Polling clients ask "has it changed?" far more often than it changes. With the content hash the client already
+// holds, Redis compares inside the database and returns the workspace only when it differs, so an unchanged
+// workspace never leaves the database.
+const UNLESS_UNCHANGED="local v=redis.call('GET',KEYS[1]); if not v then return false end; local h=redis.sha1hex(v); if h==ARGV[1] then return {h} end; return {h,v}";
+export async function readStoredWorkspaceUnlessUnchanged(userId:string,knownSha:string):Promise<{workspace:StoredWorkspace|null;sha:string;unchanged:boolean}> {
+  if(!workspaceRedisConfig().url)return {workspace:await readStoredWorkspace(userId),sha:"",unchanged:false};
+  if(/^[0-9a-f]{40}$/.test(knownSha)){
+    let result:unknown;
+    try{result=await workspaceRedis(["EVAL",UNLESS_UNCHANGED,1,workspaceKey(userId),knownSha]);}
+    catch(error){if(error instanceof WorkspaceLoadError&&error.code!=="STORAGE_UNAVAILABLE")throw error;result=undefined;} // scripts unsupported: plain read below
+    if(result===null)return {workspace:null,sha:"",unchanged:false};
+    if(Array.isArray(result)&&typeof result[0]==="string"){
+      if(result.length===1)return {workspace:null,sha:result[0],unchanged:true};
+      if(typeof result[1]==="string")return {workspace:parseStoredWorkspace(result[1]),sha:result[0],unchanged:false};
+    }
+  }
+  const stored=await workspaceRedis(["GET",workspaceKey(userId)]);
+  if(typeof stored==="string"){
+    const {createHash}=await import("node:crypto");
+    return {workspace:parseStoredWorkspace(stored),sha:createHash("sha1").update(stored).digest("hex"),unchanged:false};
+  }
+  if(stored!==null)throw new WorkspaceLoadError("WORKSPACE_DATA_INVALID",500);
+  return {workspace:null,sha:"",unchanged:false};
+}
+
 function parseStoredWorkspace(raw:string):StoredWorkspace {
   try {
     const value=JSON.parse(raw);
