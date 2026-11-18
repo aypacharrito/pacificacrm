@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import { applyCallDetection } from "../../../lib/call-detection";
 import { reconcileVoiceStatus } from "../../../lib/voice-call-results";
 import {
@@ -17,7 +18,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const access = isClerkConfigured()
     ? await getPacificaAccess()
-    : { allowed: !process.env.VERCEL, userId: "local", email: "local" };
+    : { allowed: !isHostedRuntime(), userId: "local", email: "local" };
   if (!access.allowed)
     return Response.json(
       {

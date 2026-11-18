@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "./app/lib/hosted-runtime";
 import {accessScope,isSessionApi,scopeAllows} from "./app/lib/account-access-policy";
 import { clerkMiddleware, clerkClient, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
@@ -42,7 +43,7 @@ function missingClerkHandler(request:NextRequest){
   if(!isProtectedRoute(request)&&!isSessionApi(request.nextUrl.pathname,request.method))return NextResponse.next();
   // ChatGPT Sites supplies its own authenticated-user headers. Let the page
   // validate those when Clerk is intentionally unavailable in that runtime.
-  if(["/dashboard","/miner-workspace"].some(path=>request.nextUrl.pathname.startsWith(path))&&!process.env.VERCEL)return NextResponse.next();
+  if(["/dashboard","/miner-workspace"].some(path=>request.nextUrl.pathname.startsWith(path))&&!isHostedRuntime())return NextResponse.next();
   if(request.nextUrl.pathname.startsWith("/api/")){
     return NextResponse.json({error:"Secure login is not configured."},{status:503});
   }

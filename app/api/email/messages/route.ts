@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {archiveMessageFiles} from "../../../lib/message-media-archive";
 import {emailWithComplianceFooter} from "../../../lib/message-footer";
 import {assertAutomatedContact} from "../../../lib/automated-contact";
@@ -11,7 +12,7 @@ import {readStoredWorkspace,saveWorkspaceChanges} from "../../../lib/workspace-s
 export const runtime="nodejs";
 
 async function access(){
-  const result=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:"local",email:"local"};
+  const result=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:"local",email:"local"};
   if(!result.allowed)throw new Error("An active Pacifica subscription is required.");
   return result;
 }

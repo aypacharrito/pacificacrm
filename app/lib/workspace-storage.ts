@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "./hosted-runtime";
 import {cleanSmsLedger,type SmsLedger} from "./sms-budget";
 import {cleanVoicePilot,cleanVoiceHistory,type VoicePilotRun,type VoiceCallHistory} from "./voice-pilot";
 import {cleanDocumentInsights,type DocumentInsight} from "./review-context";
@@ -18,6 +19,10 @@ import {
 } from "./workspace-profile";
 import { applyWorkspaceChanges } from "./workspace-changes";
 import {WorkspaceLoadError} from "./workspace-load";
+import { archiveWorkspaceConversations } from "./conversation-history";
+import { workspaceRedis, workspaceRedisConfig } from "./workspace-redis";
+
+export { workspaceRedis, workspaceRedisConfig };
 
 export type StoredWorkspace = {
   smsLedger?:SmsLedger;
@@ -310,40 +315,6 @@ export function mergeStoredWorkspace(
   });
 }
 
-export function workspaceRedisConfig() {
-  // A URL and token must belong to the same connection; do not mix providers.
-  const kvUrl=process.env.KV_REST_API_URL?.trim()||"",kvToken=process.env.KV_REST_API_TOKEN?.trim()||"";
-  return kvUrl||kvToken ? {url:kvUrl,token:kvToken} : {
-    url:process.env.UPSTASH_REDIS_REST_URL?.trim()||"",
-    token:process.env.UPSTASH_REDIS_REST_TOKEN?.trim()||"",
-  };
-}
-
-export async function workspaceRedis(command: Array<string | number>) {
-  const { url, token } = workspaceRedisConfig();
-  if (!url && !token) return null;
-  if (!url || !token) throw new WorkspaceLoadError("STORAGE_NOT_CONFIGURED",503);
-  let response:Response;
-  try { response = await fetch(url, {
-    method: "POST",
-    signal:AbortSignal.timeout(8000),
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command),
-    cache: "no-store",
-  }); } catch { throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true); }
-  let data:{result?:unknown;error?:string};
-  try { data=await response.json(); } catch { throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true); }
-  if (!data || typeof data !== "object") throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true);
-  if (!response.ok || data.error)
-    throw new WorkspaceLoadError(response.status===401||response.status===403||/unauth|wrongpass|invalid.*token/i.test(data.error||"")
-      ?"STORAGE_AUTH_FAILED":response.status===429||/quota|limit exceeded|too many requests/i.test(data.error||"")?"STORAGE_LIMIT":"STORAGE_UNAVAILABLE",503,"",response.status>=500);
-  if (!Object.hasOwn(data,"result")) throw new WorkspaceLoadError("STORAGE_UNAVAILABLE",503,"",true);
-  return data.result;
-}
-
 export async function acquireAutomationLease(key:string,token:string,seconds=90){
   const config=workspaceRedisConfig();
   if(config.url){if(!config.token)throw Error('Cloud storage credentials are incomplete.');return (await workspaceRedis(['SET',key,token,'NX','EX',seconds]))==='OK';}
@@ -358,7 +329,7 @@ export async function releaseAutomationLease(key:string,token:string){
 }
 
 async function workspaceD1() {
-  if(process.env.VERCEL)throw new WorkspaceLoadError("STORAGE_NOT_CONFIGURED",503);
+  if(isHostedRuntime())throw new WorkspaceLoadError("STORAGE_NOT_CONFIGURED",503);
   const { getD1 } = await import("../../db/index");
   const db = getD1();
   await db
@@ -385,6 +356,31 @@ export async function readStoredWorkspace(userId: string) {
   return result?.workspaceJson
     ? parseStoredWorkspace(result.workspaceJson)
     : null;
+}
+
+// Polling clients ask "has it changed?" far more often than it changes. With the content hash the client already
+// holds, Redis compares inside the database and returns the workspace only when it differs, so an unchanged
+// workspace never leaves the database.
+const UNLESS_UNCHANGED="local v=redis.call('GET',KEYS[1]); if not v then return false end; local h=redis.sha1hex(v); if h==ARGV[1] then return {h} end; return {h,v}";
+export async function readStoredWorkspaceUnlessUnchanged(userId:string,knownSha:string):Promise<{workspace:StoredWorkspace|null;sha:string;unchanged:boolean}> {
+  if(!workspaceRedisConfig().url)return {workspace:await readStoredWorkspace(userId),sha:"",unchanged:false};
+  if(/^[0-9a-f]{40}$/.test(knownSha)){
+    let result:unknown;
+    try{result=await workspaceRedis(["EVAL",UNLESS_UNCHANGED,1,workspaceKey(userId),knownSha]);}
+    catch(error){if(error instanceof WorkspaceLoadError&&error.code!=="STORAGE_UNAVAILABLE")throw error;result=undefined;} // scripts unsupported: plain read below
+    if(result===null)return {workspace:null,sha:"",unchanged:false};
+    if(Array.isArray(result)&&typeof result[0]==="string"){
+      if(result.length===1)return {workspace:null,sha:result[0],unchanged:true};
+      if(typeof result[1]==="string")return {workspace:parseStoredWorkspace(result[1]),sha:result[0],unchanged:false};
+    }
+  }
+  const stored=await workspaceRedis(["GET",workspaceKey(userId)]);
+  if(typeof stored==="string"){
+    const {createHash}=await import("node:crypto");
+    return {workspace:parseStoredWorkspace(stored),sha:createHash("sha1").update(stored).digest("hex"),unchanged:false};
+  }
+  if(stored!==null)throw new WorkspaceLoadError("WORKSPACE_DATA_INVALID",500);
+  return {workspace:null,sha:"",unchanged:false};
 }
 
 function parseStoredWorkspace(raw:string):StoredWorkspace {
@@ -415,7 +411,6 @@ export async function writeStoredWorkspace(
   userId: string,
   workspace: StoredWorkspace,
 ) {
-  const {archiveWorkspaceConversations}=await import("./conversation-history");
   const serialized = JSON.stringify(await archiveWorkspaceConversations(userId,cleanWorkspacePayload(workspace)));
   const saved = await workspaceRedis(["SET", workspaceKey(userId), serialized]);
   if (saved !== null) return;
@@ -509,7 +504,6 @@ export async function updateStoredWorkspace(
       );
       const updated = update(current);
       if (updated === current) return current;
-      const {archiveWorkspaceConversations}=await import("./conversation-history");
       const next = await archiveWorkspaceConversations(userId,cleanWorkspacePayload(updated),current);
       const saved = await workspaceRedis([
         "EVAL",
@@ -533,7 +527,6 @@ export async function updateStoredWorkspace(
       const current = cleanWorkspacePayload(row ? JSON.parse(row.value) : {});
       const updated = update(current);
       if (updated === current) return current;
-      const {archiveWorkspaceConversations}=await import("./conversation-history");
       const next = await archiveWorkspaceConversations(userId,cleanWorkspacePayload(updated),current);
       const result = row
         ? await db

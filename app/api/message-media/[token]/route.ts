@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {getPacificaAccess} from "../../../lib/clerk-access";
 import {isClerkConfigured} from "../../../lib/clerk-config";
 import {workspaceRedis,workspaceRedisConfig} from "../../../lib/workspace-storage";
@@ -11,7 +12,7 @@ async function record(token:string,history=false){
   if(!/^[a-f0-9]{64}$/i.test(token)||!workspaceRedisConfig().url)return null;
   let key=`pacifica:message-media:v1:${token}`;
   if(history){
-    const access=isClerkConfigured()?await getPacificaAccess():{allowed:!process.env.VERCEL,userId:"local"};
+    const access=isClerkConfigured()?await getPacificaAccess():{allowed:!isHostedRuntime(),userId:"local"};
     if(!access.allowed)return null;
     key=`pacifica:message-archive:v1:${access.userId}:${token}`;
   }

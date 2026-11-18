@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../lib/hosted-runtime";
 import Link from "next/link";
 import Image from "next/image";
 import { chatGPTSignInPath, getChatGPTUser } from "../chatgpt-auth";
@@ -9,12 +10,12 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage(){
   if(isClerkConfigured())return <ClerkLogin/>;
-  if(process.env.VERCEL)return <main className={styles.page}>
+  if(isHostedRuntime())return <main className={styles.page}>
     <Link href="/" className={styles.brand}><span><Image src="/pacifica-mark.png" width={32} height={32} alt="" priority/></span><b>Pacifica</b></Link>
     <section className={styles.card}>
       <p className={styles.kicker}>SECURE WORKSPACE ACCESS</p>
       <h1>Secure login needs configuration.</h1>
-      <p className={styles.copy}>The website is online, but Clerk is not connected to this Vercel deployment. Add the website publishable and secret keys, then redeploy.</p>
+      <p className={styles.copy}>The website is online, but Clerk is not connected to this deployment. Add the website publishable and secret keys, then redeploy.</p>
       <div className={styles.configKeys}><code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code><code>CLERK_SECRET_KEY</code></div>
       <Link className={styles.primary} href="/">Return to Pacifica</Link>
     </section>

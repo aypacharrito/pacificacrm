@@ -128,7 +128,7 @@ function AccountWorkspaceProvider({ children, userId }: { children: React.ReactN
   useEffect(() => {
     alive.current = true;
     const initial = setTimeout(() => void refresh(), 0);
-    const timer = setInterval(() => { if (AppState.currentState === "active") void refresh(); }, 5000);
+    const timer = setInterval(() => { if (AppState.currentState === "active") void refresh(); }, 30000);
     const subscription = AppState.addEventListener("change", state => { if (state === "active") void refresh(); });
     return () => { alive.current = false; clearTimeout(initial); clearInterval(timer); subscription.remove(); };
   }, [refresh]);

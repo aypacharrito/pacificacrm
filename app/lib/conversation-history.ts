@@ -1,5 +1,6 @@
 import {createHash} from "node:crypto";
-import {workspaceRedis,workspaceRedisConfig,type StoredWorkspace} from "./workspace-storage";
+import type { StoredWorkspace } from "./workspace-storage";
+import { workspaceRedis, workspaceRedisConfig } from "./workspace-redis";
 import {cleanCommunications,communicationKey,mergeCommunication,type StoredCommunication,type CommunicationChannel} from "./communications";
 export function conversationAddress(value:unknown,channel:CommunicationChannel){return channel==="sms"?String(value||"").replace(/\D/g,"").slice(-10):String(value||"").trim().toLowerCase()}
 function threadKey(workspaceId:string,address:string,channel:CommunicationChannel){return `pacifica:history:v1:${workspaceId}:${channel}:${createHash("sha256").update(conversationAddress(address,channel)).digest("hex")}`}

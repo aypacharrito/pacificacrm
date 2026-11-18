@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "./hosted-runtime";
 import {accessScope,managedAccessState,type ManagedAccess} from "./account-access-policy";
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -82,12 +83,12 @@ export async function requirePacificaWorkspacePage(){
 }
 
 export async function hasPacificaWorkspaceApiAccess(){
-  if(!isClerkConfigured())return !process.env.VERCEL;
+  if(!isClerkConfigured())return !isHostedRuntime();
   return (await getPacificaAccess()).allowed;
 }
 
 export async function isPacificaOwnerApi(){
-  if(!isClerkConfigured())return !process.env.VERCEL;
+  if(!isClerkConfigured())return !isHostedRuntime();
   const access=await getPacificaAccess();
   return access.allowed&&(access.role==="owner"||access.role==="manager");
 }
@@ -95,7 +96,7 @@ export async function isPacificaOwnerApi(){
 export function isPacificaPlatformOwnerEmail(email:string){return PACIFICA_PLATFORM_OWNER_EMAILS.has(email.trim().toLowerCase())}
 
 export async function isPacificaPlatformOwnerApi(){
-  if(!isClerkConfigured())return !process.env.VERCEL;
+  if(!isClerkConfigured())return !isHostedRuntime();
   const access=await getPacificaAccess();
   return access.allowed&&isPacificaPlatformOwnerEmail(access.email);
 }
@@ -110,7 +111,7 @@ export async function getPacificaMinerOwnerAccess(){
 /** Cron jobs have no signed-in session; check the workspace owner before dispatch. */
 export async function workspaceAutomationAccess(workspaceId:string,feature:"crm"|"miner"="crm"){
  if(feature==="miner"&&!(await getPlatformFeatures()).miner)return false;
- if(!isClerkConfigured())return !process.env.VERCEL;
+ if(!isClerkConfigured())return !isHostedRuntime();
  try{const owner=await clerkUser(workspaceId);const email=owner.primaryEmailAddress?.emailAddress||owner.emailAddresses[0]?.emailAddress||"";
   if(isPacificaPlatformOwnerEmail(email))return true;
   if(feature==="miner")return false;

@@ -1,3 +1,4 @@
+import { isHostedRuntime } from "../../../lib/hosted-runtime";
 import {getPacificaAccess} from "../../../lib/clerk-access";
 import { isClerkConfigured } from "../../../lib/clerk-config";
 
@@ -27,7 +28,7 @@ type DispositionRequest={
 };
 
 async function identity(){
-  if(!isClerkConfigured())return process.env.VERCEL?null:"local";
+  if(!isClerkConfigured())return isHostedRuntime()?null:"local";
   const access=await getPacificaAccess();return access.allowed?access.userId:null;
 }
 

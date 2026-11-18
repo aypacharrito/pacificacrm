@@ -4,8 +4,8 @@ import handler from "vinext/server/app-router-entry";
 
 interface Env {
   ASSETS: Fetcher;
-  DB: D1Database;
-  IMAGES: {
+  DB?: D1Database;
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
@@ -30,11 +30,18 @@ const worker = {
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
+      if (!env.IMAGES) {
+        // No Cloudflare Images binding on this host: serve the original file, and only from this site.
+        const src = url.searchParams.get("url") || "";
+        if (!src.startsWith("/") || src.startsWith("//") || src.startsWith("/\\")) return new Response("Bad image address", { status: 400 });
+        return env.ASSETS.fetch(new Request(new URL(src, request.url)));
+      }
+      const images = env.IMAGES;
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
         transformImage: async (body, { width, format, quality }) => {
-          const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+          const result = await images.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
       }, allowedWidths);

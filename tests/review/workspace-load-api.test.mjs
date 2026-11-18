@@ -1,5 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+// Fake Upstash: plain GET, and the "unless unchanged" script (returns [sha] when the caller's hash still matches).
+function redisReply(body,raw,calls){const command=JSON.parse(body);calls?.push(command[0]);if(command[0]==='GET')return Response.json({result:raw});
+ assert.equal(command[0],'EVAL');if(raw===null)return Response.json({result:null});const sha=createHash('sha1').update(raw).digest('hex');
+ return Response.json({result:command[4]===sha?[sha]:[sha,raw]});}
 import {GET,PUT} from '../../app/api/crm/workspace/route.ts';
 
 function setup(t,values={}){
@@ -35,10 +40,11 @@ test('unexpected identity exceptions are handled without returning or logging pr
 test('valid tenant reads keep conditional caching and missing records stay explicitly empty',async t=>{
  setup(t,{KV_REST_API_URL:'https://storage.example.test',KV_REST_API_TOKEN:'test'});
  let raw=JSON.stringify({leads:[{id:1,name:'Keep me'}],callLogs:[],profile:{}});
- t.mock.method(globalThis,'fetch',async(_url,options)=>{assert.deepEqual(JSON.parse(options.body),['GET','pacifica:v2:workspace:tenant']);return Response.json({result:raw})});
+ const calls=[];t.mock.method(globalThis,'fetch',async(_url,options)=>{assert.equal(JSON.parse(options.body).includes('pacifica:v2:workspace:tenant'),true);return redisReply(options.body,raw,calls)});
  const response=await GET(request()),etag=response.headers.get('etag');assert.ok(etag);
  assert.equal((await response.json()).leads[0].name,'Keep me');
  const unchanged=await GET(new Request(request(),{headers:{'If-None-Match':etag}}));assert.equal(unchanged.status,304);assert.equal(await unchanged.text(),'');
+ assert.deepEqual(calls,['GET','EVAL']);assert.equal(unchanged.headers.get('etag'),etag); // the unchanged poll never pulled the workspace out of storage
  raw=null;const missing=await GET(request());assert.equal(missing.status,200);assert.equal((await missing.json()).found,false);
  raw='{broken';const invalid=await GET(request());assert.equal(invalid.status,500);assert.equal((await invalid.json()).code,'WORKSPACE_DATA_INVALID');
 });
@@ -47,7 +53,7 @@ test('reads leave out server-only data, keep phone calendar items, and ignore se
  const base={leads:[{id:1,name:'Keep me'}],callLogs:[],profile:{},officeItems:[{id:'c1',leadId:0,kind:'appointment',title:'Renewal call',dueAt:'2026-11-10T17:00:00.000Z',amount:0,status:'open',reminderAt:'',reminderState:'off'}]};
  let stored={...base,voicePilotHistory:[{id:'v1'}],minerState:{searches:[]},quoteIntake:{links:[],submissions:[]},
   documentInsights:[{id:'d1'}],aiControl:{},conversationCalendar:{},noteReminders:[],smsLedger:{}};
- t.mock.method(globalThis,'fetch',async()=>Response.json({result:JSON.stringify(stored)}));
+ t.mock.method(globalThis,'fetch',async(_url,options)=>redisReply(options.body,JSON.stringify(stored)));
  const response=await GET(request()),data=await response.json(),etag=response.headers.get('etag');
  assert.equal(data.leads[0].name,'Keep me');
  assert.equal(data.officeItems[0].title,'Renewal call');
@@ -57,6 +63,16 @@ test('reads leave out server-only data, keep phone calendar items, and ignore se
  stored={...stored,voicePilotHistory:[{id:'v1'},{id:'v2'}],quoteIntake:{links:[],submissions:[{id:'q1',details:{}}]}};
  const again=await GET(new Request('https://example.test/api/crm/workspace',{headers:{'If-None-Match':etag}}));
  assert.equal(again.status,304);
+ // That 304 carries a fresh ETag, so the next poll is answered inside storage again.
+ const fresh=again.headers.get('etag');assert.notEqual(fresh,etag);
+ assert.equal((await GET(new Request('https://example.test/api/crm/workspace',{headers:{'If-None-Match':fresh}}))).status,304);
  stored={...stored,leads:[{id:1,name:'Changed'}]};
  assert.equal((await GET(new Request('https://example.test/api/crm/workspace',{headers:{'If-None-Match':etag}}))).status,200);
+});
+test('a storage that cannot run scripts falls back to a plain read instead of failing the load',async t=>{
+ setup(t,{KV_REST_API_URL:'https://storage.example.test',KV_REST_API_TOKEN:'test'});
+ const raw=JSON.stringify({leads:[{id:1,name:'Keep me'}],callLogs:[],profile:{}});
+ t.mock.method(globalThis,'fetch',async(_url,options)=>JSON.parse(options.body)[0]==='EVAL'?Response.json({error:'ERR unknown command'},{status:400}):Response.json({result:raw}));
+ const etag=(await GET(request())).headers.get('etag');
+ assert.equal((await GET(new Request(request(),{headers:{'If-None-Match':etag}}))).status,304);
 });
