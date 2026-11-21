@@ -35,7 +35,7 @@ config.name = deployment.name;
 config.workers_dev = deployment.workers_dev;
 config.preview_urls = false;
 config.keep_vars = true;
-config.triggers = { crons: [] };
+config.triggers = { crons: process.env.PACIFICA_GMAIL_CRON_ENABLED === "true" ? ["*/5 * * * *"] : [] };
 config.vars = {
   ...config.vars,
   ONYX_ENV: environment,
