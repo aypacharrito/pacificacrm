@@ -1,12 +1,27 @@
-export type TimedEntry = {id: string; dueAt: string; durationMinutes?: number; allDay?: boolean; allDayDate?: string};
+export type TimedEntry = {id: string; dueAt: string; durationMinutes?: number; allDay?: boolean; allDayDate?: string; allDayEnd?: string; endAt?: string};
+export function calendarDayOverlap(entry: TimedEntry, day: Date) {
+  const key = (value: Date) => [value.getFullYear(), String(value.getMonth()+1).padStart(2,"0"), String(value.getDate()).padStart(2,"0")].join("-");
+  if(entry.allDay || entry.allDayDate) {
+    const start = entry.allDayDate || key(new Date(entry.dueAt));
+    const date = key(day);
+    return entry.allDayEnd ? date >= start && date < entry.allDayEnd : date === start;
+  }
+  const first = new Date(day.getFullYear(),day.getMonth(),day.getDate()).getTime();
+  const next = new Date(day.getFullYear(),day.getMonth(),day.getDate()+1).getTime();
+  const start = Date.parse(entry.dueAt);
+  return start < next && (entry.endAt ? Date.parse(entry.endAt) > first : start >= first);
+}
 export function timedEventPositions<T extends TimedEntry>(entries: T[], day: Date) {
-  const rows = entries.filter(item => !item.allDay && !item.allDayDate).map(item => {
+  const first = new Date(day.getFullYear(),day.getMonth(),day.getDate()).getTime();
+  const next = new Date(day.getFullYear(),day.getMonth(),day.getDate()+1).getTime();
+  const rows = entries.filter(item => !item.allDay && !item.allDayDate && calendarDayOverlap(item,day)).map(item => {
     const date = new Date(item.dueAt);
-    const sameDay = date.getFullYear() === day.getFullYear() && date.getMonth() === day.getMonth() && date.getDate() === day.getDate();
-    const start = date.getHours() * 60 + date.getMinutes();
+    const start = date.getTime() < first ? 0 : date.getHours() * 60 + date.getMinutes();
     const duration = Number.isFinite(item.durationMinutes) ? Math.max(15, item.durationMinutes!) : 30;
-    return {item, start, end: Math.min(1440, start + duration), collisionEnd: Math.min(1440, start + Math.max(27, duration)), sameDay, column: 0};
-  }).filter(row => row.sameDay && Number.isFinite(row.start)).sort((a,b) => a.start-b.start || a.end-b.end || a.item.id.localeCompare(b.item.id));
+    const endDate = item.endAt ? new Date(item.endAt) : null;
+    const end = endDate ? endDate.getTime() >= next ? 1440 : Math.max(start+15,endDate.getHours()*60+endDate.getMinutes()) : start+duration;
+    return {item, start, end: Math.min(1440,end), collisionEnd: Math.min(1440,Math.max(start+27,end)), column: 0};
+  }).sort((a,b) => a.start-b.start || a.end-b.end || a.item.id.localeCompare(b.item.id));
   const result: {item: T; top: number; height: number; left: string; width: string}[] = [];
   let group: typeof rows = [], end = -1;
   const flush = () => {

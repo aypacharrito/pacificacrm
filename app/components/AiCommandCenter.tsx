@@ -5,6 +5,8 @@ import {quoteLinkIntent} from "../lib/quote-link-intent";
 import {folderScanIntent} from "../lib/folder-ai";
 import ProfileAvatar from "./ProfileAvatar";
 import AiControlPanel from "./AiControlPanel";
+import type {AssistantActivity} from './connected/AssistantLauncher';
+import type {ConnectedSource} from '../lib/connected/assistant';
 import type {ControlCommand} from "../lib/ai-control";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -29,7 +31,7 @@ type RecentCall={name:string;startedAt:string;duration:number;outcome:string;sta
 
 type AiAction={leadId:number;leadName:string;title:string;reason:string;patch:{stage:string|null;outcome:string|null;followUp:string|null;notesToAppend:string|null}};
 export type AiCreateLead=ContactIntakeDetails&{name:string;phone:string;email:string;city:string;state:string;product:string;line:"life"|"home-auto";source:string;notes:string;otherFields:Array<{label:string;value:string}>};
-type AiResult={controlCommands?:ControlCommand[];controlRevision?:number;controlChanges?:string[];controlError?:string;summary:string;priorities:Array<{leadId:number;leadName:string;score:number;reason:string;nextStep:string}>;actions:AiAction[];draft:string;subject?:string;channel?:"sms"|"email";recipientIds?:number[];createLead?:AiCreateLead|null;mode?:"ai"|"smart-fallback";notice?:string};
+type AiResult={controlCommands?:ControlCommand[];controlRevision?:number;controlChanges?:string[];controlError?:string;summary:string;priorities:Array<{leadId:number;leadName:string;score:number;reason:string;nextStep:string}>;actions:AiAction[];draft:string;subject?:string;channel?:"sms"|"email";recipientIds?:number[];createLead?:AiCreateLead|null;mode?:"ai"|"smart-fallback";notice?:string;sources?:ConnectedSource[]};
 type AiImage={id:string;name:string;dataUrl:string};
 const isPdf=(file:AiImage)=>file.dataUrl.startsWith("data:application/pdf;");
 async function attachmentForAi(file:File){
@@ -67,13 +69,45 @@ async function imageForAi(file:File){
   }finally{bitmap.close()}
 }
 
-export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,onApply,onCreateLead,onOpen,onCall,workspaceId,profile,onActivity,onQuoteRequests,onNavigate,callBusy=false,onAutopilot,onScanFolder,children,visible=false}:{clerkEnabled?:boolean;callBusy?:boolean;onAutopilot?:()=>void;onScanFolder?:(goal?:string)=>void;children?:ReactNode;onQuoteRequests?:()=>void;onNavigate?:(view:"messages"|"office"|"settings")=>void;visible?:boolean;onActivity:(state:"idle"|"working"|"sending"|"ready")=>void;workspaceId:string;activeLine:"life"|"home-auto";profile:WorkspaceProfile;leads:Lead[];recentCalls:RecentCall[];onApply:(action:AiAction)=>void;onCreateLead:(lead:AiCreateLead)=>void;onOpen:(leadId:number)=>void;onCall:(leadId:number)=>void}){
+export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,onApply,onCreateLead,onOpen,onCall,workspaceId,profile,onActivity,onQuoteRequests,onNavigate,callBusy=false,onAutopilot,onScanFolder,children,visible=false,onSource,soundOwner=""}:{soundOwner?:string;onSource?:(href:string)=>void;clerkEnabled?:boolean;callBusy?:boolean;onAutopilot?:()=>void;onScanFolder?:(goal?:string)=>void;children?:ReactNode;onQuoteRequests?:()=>void;onNavigate?:(view:"messages"|"office"|"settings")=>void;visible?:boolean;onActivity:(state:AssistantActivity)=>void;workspaceId:string;activeLine:"life"|"home-auto";profile:WorkspaceProfile;leads:Lead[];recentCalls:RecentCall[];onApply:(action:AiAction)=>void;onCreateLead:(lead:AiCreateLead)=>void;onOpen:(leadId:number)=>void;onCall:(leadId:number)=>void}){
   const {t,writingLanguage}=useLanguage();
   const [pagesOpen,setPagesOpen]=useState(false),[pageContexts,setPageContexts]=useState<PageContext[]>([]);
   const closePages=useCallback(()=>{setPagesOpen(false);document.getElementById("ai-pages-toggle")?.focus()},[]);
   const [toolsOpen,setToolsOpen]=useState(false),[showRules,setShowRules]=useState(false),[quoteLink,setQuoteLink]=useState("");
   const toolsRef=useRef<HTMLDivElement>(null);
   const [dictating,setDictating]=useState(false);
+  const [voice,setVoice]=useState<"idle"|"listening"|"error">("idle");
+  const [speaking,setSpeaking]=useState(false);
+  const [muted,setMuted]=useState(false);
+  const [spokenError,setSpokenError]=useState("");
+  const [earlier,setEarlier]=useState<Array<{question:string;answer:string;sources?:ConnectedSource[]}>>([]);
+  const voiceKey="pacifica:assistant:sound:"+workspaceId+":"+soundOwner;
+  const utterance=useRef<SpeechSynthesisUtterance|null>(null);
+  const stopPlayback=useCallback(()=>{
+    if(utterance.current&&typeof speechSynthesis!=="undefined"){utterance.current=null;speechSynthesis.cancel()}
+    setSpeaking(false);
+  },[]);
+  useEffect(()=>{try{setMuted(localStorage.getItem(voiceKey)==="mute")}catch{}},[voiceKey]);
+  useEffect(()=>{
+    if(!visible){stopPlayback();setVoice("idle")}
+    const finish=()=>{if(document.hidden)stopPlayback()};
+    window.addEventListener("pagehide",stopPlayback);document.addEventListener("visibilitychange",finish);
+    return()=>{window.removeEventListener("pagehide",stopPlayback);document.removeEventListener("visibilitychange",finish);stopPlayback()};
+  },[visible,stopPlayback]);
+  function play(text:string){
+    if(muted)return;
+    if(typeof speechSynthesis==="undefined"||typeof SpeechSynthesisUtterance==="undefined"){setSpokenError("Spoken playback is unavailable in this browser.");return}
+    setSpokenError("");stopPlayback();
+    const audio=new SpeechSynthesisUtterance(text.slice(0,3000));audio.lang=writingLanguage;
+    utterance.current=audio;setSpeaking(true);
+    audio.onend=()=>{if(utterance.current===audio){utterance.current=null;setSpeaking(false)}};
+    audio.onerror=()=>{if(utterance.current===audio){utterance.current=null;setSpeaking(false);setSpokenError("Spoken playback stopped. Your reply is still available.")}};
+    speechSynthesis.speak(audio);
+  }
+  function toggleSound(){
+    const next=!muted;setMuted(next);if(next)stopPlayback();
+    try{localStorage.setItem(voiceKey,next?"mute":"on")}catch{}
+  }
   const [prompt,setPrompt]=useState("");const [submittedPrompt,setSubmittedPrompt]=useState("");const [submittedImages,setSubmittedImages]=useState<AiImage[]>([]);const [includeNotes,setIncludeNotes]=useState(true);const [loading,setLoading]=useState(false);const [result,setResult]=useState<AiResult|null>(null);const [error,setError]=useState("");const [applied,setApplied]=useState<number[]>([]);const [service,setService]=useState("Checking AI connection…");
   const [images,setImages]=useState<AiImage[]>([]);const [dragging,setDragging]=useState(false);const [created,setCreated]=useState(false);const imageInputRef=useRef<HTMLInputElement>(null);const [cameraOpen,setCameraOpen]=useState(false);
   const [sending,setSending]=useState(false);const [sendReport,setSendReport]=useState("");const submittedSms=useRef(new Set<string>());
@@ -100,7 +134,7 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
   useEffect(()=>{void fetch("/api/ai/crm",{cache:"no-store",credentials:"same-origin"}).then(async response=>{const data=await response.json().catch(()=>({})) as {providerConfigured?:boolean;error?:string};if(!response.ok)throw new Error(data.error||"AI service check failed");setService(data.providerConfigured?"AI enabled":"Local suggestions")}).catch(error=>setService(error instanceof Error?error.message:"AI connection unavailable"))},[]);
 
   useEffect(()=>{if(!toolsOpen)return;const close=(e:PointerEvent)=>{if(e.target instanceof Node&&!toolsRef.current?.contains(e.target))setToolsOpen(false)};const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setToolsOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',key);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',key)}},[toolsOpen]);
-  useEffect(()=>{if(!visible)queueMicrotask(()=>{setQuoteLink('');setToolsOpen(false)})},[visible]);
+  useEffect(()=>{if(!visible)queueMicrotask(()=>{setQuoteLink('');setToolsOpen(false);setCameraOpen(false)})},[visible]);
   async function addFiles(files:FileList|File[]){
     const incoming=Array.from(files);if(!incoming.length)return;
     if(incoming.length+images.length>4){setError("Attach up to four files at a time.");return}
@@ -111,26 +145,34 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
 
   }
 
+  function remember(){
+    if(result&&submittedPrompt)setEarlier(list=>[...list,{question:submittedPrompt,answer:result.summary,sources:result.sources}].slice(-12));
+  }
+  function links(sources:ConnectedSource[]|undefined){
+    return sources?.length?<ul className="ai-source-list">{sources.map(source=><li key={source.href}><a href={source.href} onClick={event=>{
+      if(onSource&&event.button===0&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onSource(source.href)}
+    }}>{source.label}</a><small>{source.detail}</small></li>)}</ul>:null;
+  }
   async function run(nextPrompt=prompt){
     const typed=nextPrompt.trim();const question=typed||images.length||pageContexts.length?typed||"Read the attached files and page context and summarize their contents. Do not create a contact unless I ask.":"";if(!question||loading||sending||dictating)return;
-    setQuoteLink("");setToolsOpen(false);
+    setQuoteLink("");setToolsOpen(false);stopPlayback();
     if(onScanFolder&&!images.length&&folderScanIntent(question)){
       const summary='Choose your folder, then select Scan with AI. I’ll extract contacts and check duplicates in the scan panel.';
-      setSubmittedPrompt(question);setSubmittedImages([]);setPrompt('');setError('');setResult({summary,priorities:[],actions:[],draft:''});setRequestId(crypto.randomUUID());
+      remember();setSubmittedPrompt(question);setSubmittedImages([]);setPrompt('');setError('');setResult({summary,priorities:[],actions:[],draft:''});setRequestId(crypto.randomUUID());
       setHistory(items=>[...items,{role:'user' as const,content:question},{role:'assistant' as const,content:summary}].slice(-6));onScanFolder(question);return;
     }
     const previousReview=result?.draft?{channel:draftChannel,audience:audienceMode,recipientIds:selectedRecipients,text:result.draft,subject:result.subject}:undefined;
     const requestImages=[...images];setPrompt(typed);setLoading(true);setError("");setApplied([]);setCreated(false);setSendReport("");submittedSms.current.clear();setRequestId(crypto.randomUUID());const channel=messageChannel(question,result?draftChannel:"sms");
     const quote=images.length?null:quoteLinkIntent(question,leads);
     try{
-      if(quote){if('error' in quote)throw Error(quote.error);const response=await fetch('/api/crm/opportunities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create-link',leadId:quote.leadId,source:'Pacifica AI quote request'})});const data=await response.json();if(!response.ok)throw Error(data.error||'Quote link could not be created.');if(typeof data.path!=='string'||!data.path.startsWith('/quote-request#'))throw Error('Quote link could not be created.');setQuoteLink(new URL(data.path,window.location.origin).href);setSubmittedPrompt(question);setSubmittedImages([]);setResult({summary:'Your new quote link is ready. Copy it to share. It expires in 7 days; this screen clears it after copying or leaving Pacifica AI.',priorities:[],actions:[],draft:''});setPrompt('');return;}
+      if(quote){if('error' in quote)throw Error(quote.error);const response=await fetch('/api/crm/opportunities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create-link',leadId:quote.leadId,source:'Pacifica AI quote request'})});const data=await response.json();if(!response.ok)throw Error(data.error||'Quote link could not be created.');if(typeof data.path!=='string'||!data.path.startsWith('/quote-request#'))throw Error('Quote link could not be created.');setQuoteLink(new URL(data.path,window.location.origin).href);remember();setSubmittedPrompt(question);setSubmittedImages([]);setResult({summary:'Your new quote link is ready. Copy it to share. It expires in 7 days; this screen clears it after copying or leaving Pacifica AI.',priorities:[],actions:[],draft:''});setPrompt('');return;}
       const response=await fetch("/api/ai/crm",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:question,includeNotes,language:writingLanguage,draftReview:previousReview,pageContexts,images:images.filter(image=>!isPdf(image)).map(image=>image.dataUrl),documents:images.filter(isPdf).map(({name,dataUrl})=>({name,dataUrl})),leads:eligible.slice(0,100),recentCalls:recentCalls.slice(0,100),history:history.slice(-6)})});
-      const data=await response.json().catch(()=>({})) as AiResult&{error?:string};if(!response.ok)throw new Error(data.error||"Pacifica could not complete that request");if(data.mode==="smart-fallback"&&previousReview){setError(`${data.notice||"AI is temporarily unavailable."} Your draft and recipients are preserved.`);return}setDraftChannel(channel);setSubmittedPrompt(question);setSubmittedImages(requestImages);setResult({...data,draft:channel==="sms"?cleanSmsDraft(data.draft||""):data.draft||""});setPrompt("");setImages([]);
+      const data=await response.json().catch(()=>({})) as AiResult&{error?:string};if(!response.ok)throw new Error(data.error||"Pacifica could not complete that request");if(data.mode==="smart-fallback"&&previousReview){setError(`${data.notice||"AI is temporarily unavailable."} Your draft and recipients are preserved.`);return}remember();setDraftChannel(channel);setSubmittedPrompt(question);setSubmittedImages(requestImages);setResult({...data,draft:channel==="sms"?cleanSmsDraft(data.draft||""):data.draft||""});setPrompt("");setImages([]);
       const review=resolveDraftReview(question,leads,profile,previousReview);
       const proposed=review.resolved?review.selected:review.available.filter(lead=>data.recipientIds?.includes(lead.id));
       setSelectedRecipients(proposed.map(lead=>lead.id));setAudienceMode(review.audience);setRequestLeadIds(review.scope.map(lead=>lead.id));
       if(data.draft&&review.resolved)setResult(previous=>previous?{...previous,summary:proposed.length?`Draft ready for ${proposed.length} ${review.audience==="follow-ups"?"follow-up contacts":"contacts"}. Review the message and recipients before sending.`:"Choose an audience below to select eligible recipients."}:previous);
-      setHistory(items=>[...items,{role:"user" as const,content:question},{role:"assistant" as const,content:data.summary+(data.draft?`\nDraft: ${data.draft}`:"")}].slice(-6));
+      if(!data.sources)setHistory(items=>[...items,{role:"user" as const,content:question},{role:"assistant" as const,content:data.summary+(data.draft?`\nDraft: ${data.draft}`:"")}].slice(-6));
 
     }catch(err){const message=err instanceof Error?err.message:"Pacifica could not complete that request";setError(message);if(!quote&&eligible.length&&!result?.draft){setSubmittedPrompt(question);setSubmittedImages(requestImages);setResult(browserAnalysis(eligible.slice(0,100),"Pacifica used local suggestions because the AI service did not answer."))}}
     finally{setLoading(false)}
@@ -165,12 +207,12 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
     }finally{sendLock.current=false;setSending(false)}
   }
 
-  function reset(){setQuoteLink("");setSubmittedPrompt("");setSubmittedImages([]);setResult(null);setPrompt("");setError("");setImages([]);setCreated(false);setHistory([]);setSelectedRecipients([]);setAudienceMode("custom");setRequestLeadIds([]);setPageContexts([])}
+  function reset(){stopPlayback();setEarlier([]);setQuoteLink("");setSubmittedPrompt("");setSubmittedImages([]);setResult(null);setPrompt("");setError("");setImages([]);setCreated(false);setHistory([]);setSelectedRecipients([]);setAudienceMode("custom");setRequestLeadIds([]);setPageContexts([])}
   const seenResult=useRef<AiResult|null>(null);
   useEffect(()=>{
     if(visible)seenResult.current=result;
-    onActivity(loading?"working":sending?"sending":result&&seenResult.current!==result?"ready":"idle");
-  },[loading,sending,result,visible,onActivity]);
+    onActivity(voice==="listening"?"listening":speaking?"speaking":loading?"working":sending?"sending":error||spokenError||voice==="error"?"error":result&&seenResult.current!==result?"ready":"idle");
+  },[loading,sending,result,visible,onActivity,voice,speaking,error,spokenError]);
   const displayPrompt=submittedPrompt;
   const hasDetails=Boolean(result&&(result.controlCommands?.length||result.controlError||result.createLead||result.priorities.length||result.actions.length||result.draft));
   return <div className={`ai-workspace ${pagesOpen?"has-pages":""} ${hasDetails?"has-details":""}`} onDragEnter={event=>{if(Array.from(event.dataTransfer.types).includes("Files")){event.preventDefault();setDragging(true)}}} onDragOver={event=>{if(Array.from(event.dataTransfer.types).includes("Files")){event.preventDefault();event.dataTransfer.dropEffect="copy"}}} onDragLeave={event=>{if(event.currentTarget===event.target)setDragging(false)}} onDrop={event=>{event.preventDefault();event.stopPropagation();setDragging(false);void addFiles(event.dataTransfer.files)}}>
@@ -178,14 +220,21 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
     <header className="ai-shell-header"><div className="ai-shell-brand"><ProfileAvatar enabled={clerkEnabled}/><span><b>Pacifica AI</b><small role="status">{loading?"Thinking…":sending?"Sending…":service}</small></span></div><div className="ai-header-tools">{onScanFolder&&<button type="button" disabled={loading||sending} onClick={()=>onScanFolder()}>Scan folder</button>}{profile.mode==="insurance"&&onAutopilot&&<button type="button" disabled={callBusy} onClick={onAutopilot}>Ava dialer</button>}<button id="ai-pages-toggle" type="button" aria-expanded={pagesOpen} onClick={()=>setPagesOpen(value=>!value)}>Pages & connections</button><label className="ai-notes-control"><input type="checkbox" checked={includeNotes} onChange={event=>setIncludeNotes(event.target.checked)}/><span><b>{t("Use CRM context")}</b></span></label></div></header>
     <div className="ai-content-layout">
     <main className={result?"ai-chat answered":"ai-chat"}>
-      {!result?<section className="ai-welcome"><h1>{t("How can I help?")}</h1><p>Talk it through, review your day, or bring a document.</p></section>:<section className="ai-conversation" aria-live="polite"><div className="ai-user-message"><span>You</span><p>{displayPrompt}</p>{submittedImages.length>0&&<div className="ai-message-images">{submittedImages.map(image=>isPdf(image)?<span key={image.id} className="ai-pdf-file">PDF · {image.name}</span>:<img key={image.id} src={image.dataUrl} alt={image.name}/>)}</div>}</div><div className="ai-assistant-message"><ProfileAvatar enabled={clerkEnabled}/><div><header><b>Pacifica</b><em className={result.mode==="smart-fallback"?"fallback":""}>{result.mode==="smart-fallback"?"Local suggestions":""}</em></header><p>{result.summary}</p>{result.notice&&<small>{result.notice}</small>}</div></div></section>}
+      {earlier.length>0&&<section className="ai-compact-transcript" aria-label="Earlier messages">{earlier.map((turn,index)=>
+        <article key={index}><b>You</b><p>{turn.question}</p><b>Pacifica</b><p>{turn.answer}</p>{links(turn.sources)}</article>
+      )}</section>}
+      {!result?<section className="ai-welcome"><h1>{t("How can I help?")}</h1><p>Talk it through, review your day, or bring a document.</p></section>:<section className="ai-conversation" aria-live="polite"><div className="ai-user-message"><span>You</span><p>{displayPrompt}</p>{submittedImages.length>0&&<div className="ai-message-images">{submittedImages.map(image=>isPdf(image)?<span key={image.id} className="ai-pdf-file">PDF · {image.name}</span>:<img key={image.id} src={image.dataUrl} alt={image.name}/>)}</div>}</div><div className="ai-assistant-message"><ProfileAvatar enabled={clerkEnabled}/><div><header><b>Pacifica</b><em className={result.mode==="smart-fallback"?"fallback":""}>{result.mode==="smart-fallback"?"Local suggestions":""}</em></header><p>{result.summary}</p>{result.notice&&<small>{result.notice}</small>}{links(result.sources)}
+        <div className="ai-speech-controls"><button type="button" disabled={muted} onClick={()=>speaking?stopPlayback():play([result.summary,...(result.sources||[]).map(item=>item.label+". "+item.detail)].join(". "))}>{speaking?"Stop playback":"Read aloud"}</button>
+        <button type="button" aria-pressed={muted} onClick={toggleSound}>{muted?"Unmute replies":"Mute replies"}</button></div>{spokenError&&<small role="alert">{spokenError}</small>}</div></div></section>}
 
-      {!result&&<section className="ai-starters">{quickPrompts.map(item=><button key={item.title} onClick={()=>void run(item.prompt)} disabled={!eligible.length||loading||sending||dictating}><b>{item.title}</b><span>{item.detail}</span><em>→</em></button>)}</section>}
+      {!result&&<section className="ai-starters">{clerkEnabled&&[
+        ["Today’s calendar","What is on my calendar today?"],["Starred mail","Which starred emails need a response?"],["Carrier follow-ups","Show carrier follow-ups from these accounts"],
+      ].map(([label,question])=><button type="button" key={label} onClick={()=>void run(question)} disabled={loading||sending||dictating}><b>{label}</b></button>)}{quickPrompts.map(item=><button key={item.title} onClick={()=>void run(item.prompt)} disabled={!eligible.length||loading||sending||dictating}><b>{item.title}</b><span>{item.detail}</span><em>→</em></button>)}</section>}
 
       {cameraOpen&&<AiCamera onClose={()=>setCameraOpen(false)} onCapture={file=>void addFiles([file])}/>}
       <section aria-label="Message composer" className={`ai-chat-composer ${images.length?"has-images":""}`} onPaste={event=>{const files=Array.from(event.clipboardData.files).filter(file=>file.type.startsWith("image/"));if(files.length)void addFiles(files)}}>
         {pageContexts.length>0&&<div className="ai-page-contexts">{pageContexts.map((page,index)=><span key={`${page.url}:${index}`}><b>{page.title}</b><button type="button" aria-label={`Remove page ${page.title}`} onClick={()=>setPageContexts(items=>items.filter((_,i)=>i!==index))}>×</button></span>)}</div>}{images.length>0&&<div className="ai-attachments">{images.map(image=><figure key={image.id}>{isPdf(image)?<span className="ai-pdf-file">PDF</span>:<img src={image.dataUrl} alt={image.name}/>}<button type="button" aria-label={`Remove ${image.name}`} onClick={()=>setImages(current=>current.filter(item=>item.id!==image.id))}>×</button><figcaption>{image.name}</figcaption></figure>)}{images.length<4&&<button type="button" className="ai-add-image" onClick={()=>imageInputRef.current?.click()}>＋ Add file</button>}</div>}
-        <div className="ai-composer-row"><div className="ai-tools" ref={toolsRef}><button type="button" className="ai-attach-button" title="Add to your request" aria-label="Open AI tools" aria-expanded={toolsOpen} onClick={()=>setToolsOpen(open=>!open)}>+</button>{toolsOpen&&<div className="ai-tools-menu" aria-label="AI tools"><button type="button" disabled={loading||images.length>=4} onClick={()=>{setToolsOpen(false);setCameraOpen(true)}}>Use camera</button><button type="button" disabled={loading||images.length>=4} onClick={()=>{setToolsOpen(false);imageInputRef.current?.click()}}>Attach photo or PDF</button><button type="button" onClick={()=>{setShowRules(show=>!show);setToolsOpen(false)}}>Saved outreach rules</button>{onQuoteRequests&&<button type="button" onClick={()=>{onQuoteRequests();setToolsOpen(false)}}>Quote requests</button>}</div>}</div><textarea ref={composerRef} aria-label="Message Pacifica AI" value={prompt} onChange={event=>setPrompt(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();void run()}}} disabled={loading||sending} lang={writingLanguage} spellCheck autoCorrect="on" placeholder={t("Message Pacifica…")} rows={1}/>{visible&&<VoiceDictation compact disabled={loading||sending} onActiveChange={setDictating} onText={text=>{setPrompt(current=>current?`${current} ${text}`:text);composerRef.current?.focus()}}/>}<button className="ai-submit" onClick={()=>void run()} disabled={loading||sending||dictating||(!prompt.trim()&&!images.length&&!pageContexts.length)} aria-label="Send to Pacifica AI">{loading?<span className="ai-thinking"/>:"↑"}</button></div>
+        <div className="ai-composer-row"><div className="ai-tools" ref={toolsRef}><button type="button" className="ai-attach-button" title="Add to your request" aria-label="Open AI tools" aria-expanded={toolsOpen} onClick={()=>setToolsOpen(open=>!open)}>+</button>{toolsOpen&&<div className="ai-tools-menu" aria-label="AI tools"><button type="button" disabled={loading||images.length>=4} onClick={()=>{setToolsOpen(false);setCameraOpen(true)}}>Use camera</button><button type="button" disabled={loading||images.length>=4} onClick={()=>{setToolsOpen(false);imageInputRef.current?.click()}}>Attach photo or PDF</button><button type="button" onClick={()=>{setShowRules(show=>!show);setToolsOpen(false)}}>Saved outreach rules</button>{onQuoteRequests&&<button type="button" onClick={()=>{onQuoteRequests();setToolsOpen(false)}}>Quote requests</button>}</div>}</div><textarea ref={composerRef} aria-label="Message Pacifica AI" value={prompt} onChange={event=>setPrompt(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.nativeEvent.isComposing){event.preventDefault();void run()}}} disabled={loading||sending} lang={writingLanguage} spellCheck autoCorrect="on" placeholder={t("Message Pacifica…")} rows={1}/>{visible&&<VoiceDictation compact disabled={loading||sending} onActiveChange={setDictating} onStatus={setVoice} onText={text=>{setPrompt(current=>current?`${current} ${text}`:text);composerRef.current?.focus()}}/>}<button className="ai-submit" onClick={()=>void run()} disabled={loading||sending||dictating||(!prompt.trim()&&!images.length&&!pageContexts.length)} aria-label="Send to Pacifica AI">{loading?<span className="ai-thinking"/>:"↑"}</button></div>
         <input ref={imageInputRef} hidden type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" multiple onChange={event=>{if(event.currentTarget.files)void addFiles(event.currentTarget.files);event.currentTarget.value=""}}/>
 
       </section>

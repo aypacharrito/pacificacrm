@@ -106,7 +106,7 @@ export type GmailClient = ReturnType<typeof gmailClient>;
 
 let googleKeys: { keys: Array<JsonWebKey & { kid?: string }>; until: number } | undefined;
 
-export async function authenticateGmailPush(authorization: string | null, config = gmailConfig()) {
+export async function authenticateGmailPush(authorization: string | null, config: Pick<ReturnType<typeof gmailConfig>, "pushReady" | "pushAudience" | "pushServiceAccount"> = gmailConfig()) {
   if (!config.pushReady || !authorization?.startsWith("Bearer ") || authorization.length > 8192) return false;
   const pieces = authorization.slice(7).split(".");
   if (pieces.length !== 3 || pieces.some(piece => !/^[\w-]+$/.test(piece))) return false;

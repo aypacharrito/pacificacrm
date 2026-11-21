@@ -9,6 +9,8 @@ import {cleanDraftReview,resolveDraftReview} from "../../../lib/ai-draft-review"
 import {cleanLanguage,languages} from "../../../lib/languages";
 import {readStoredWorkspace} from "../../../lib/workspace-storage";
 import {contactIntakeDetails} from '../../../lib/contact-intake';
+import {accountAllows} from '../../../lib/account-access-policy';
+import {answerConnected,connectedIntent} from '../../../lib/connected/assistant';
 
 export const runtime="nodejs";
 export const maxDuration=60;
@@ -54,6 +56,16 @@ export async function POST(request:Request){
     if(images.some(image=>!acceptedImage.test(image)))return Response.json({error:"Pacifica AI accepts JPG, PNG, or WebP images."},{status:400});
     if(images.some(image=>image.length>2_600_000)||images.reduce((sum,image)=>sum+image.length,0)+documents.reduce((sum,file)=>sum+file.dataUrl.length,0)>3_800_000)return Response.json({error:"Those images are too large. Crop closer to the useful information and try again."},{status:413});
     if(!prompt&&!images.length&&!documents.length)return Response.json({error:"Enter a request or attach an image first."},{status:400});
+    const intent=!images.length&&!documents.length&&!body.pageContexts?.length?connectedIntent(prompt):undefined;
+    if(intent){
+      if(!accountAllows(access,intent==="today"?"/api/connected/calendars":"/api/connected/mail","GET")||
+         (access.userId!==access.accountUserId&&!('teamRole' in access&&access.teamRole)))
+        return Response.json({error:"Connected accounts are outside your Pacifica access."},{status:403});
+      const origin=request.headers.get("origin");
+      if(origin&&origin!==new URL(request.url).origin)return Response.json({error:"Invalid request origin."},{status:403});
+      const result=await answerConnected({workspace:access.userId,member:access.accountUserId},intent);
+      return Response.json({...result,priorities:[],actions:[],draft:"",createLead:null},{headers:{"Cache-Control":"no-store"}});
+    }
 
     const stored=await readStoredWorkspace(access.userId).catch(()=>null);
     const incoming=selectAiRecords((stored?.leads||body.leads||[]) as Array<Record<string,unknown>>,prompt);
