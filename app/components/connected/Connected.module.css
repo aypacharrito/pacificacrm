@@ -1,0 +1,91 @@
+.accounts,.mail,.health{--connected-panel:var(--panel,var(--paper,#131c28));--connected-border:var(--border,#344457);--connected-text:var(--ink,#edf4ff);--connected-muted:var(--muted,#8899ad);--connected-blue:#33b9ef;color:var(--connected-text)}
+.accounts,.mail{width:100%;min-width:0;display:grid;gap:14px;padding:clamp(12px,2.4vw,28px)}
+.accounts{padding-inline:0}
+.moduleHeader,.account header,.health header,.detailHeader>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.moduleHeader h1,.moduleHeader h2,.account h3,.detailHeader h2,.health h3{margin:0;color:var(--connected-text)}
+.moduleHeader h1{font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.04em}
+.moduleHeader p,.account p,.health p,.detailHeader p{margin:4px 0;color:var(--connected-muted);font-size:.83rem}
+.accounts button,.mail button,.health button,.accounts select,.mail select,.mail input:not([type=checkbox]),.accounts input:not([type=checkbox]){border:1px solid var(--connected-border);border-radius:8px;background:var(--connected-panel);color:inherit;padding:8px 11px;font:inherit}
+.accounts button,.mail button,.health button{cursor:pointer}
+.accounts button:disabled,.mail button:disabled{opacity:.5;cursor:default}
+.accounts button:hover:not(:disabled),.mail button:hover:not(:disabled),.health button:hover{border-color:var(--connected-blue)}
+.accounts .primary{background:#027ca8;border-color:#027ca8;color:white;font-weight:700}
+.accounts a,.mail a{color:var(--connected-blue);text-underline-offset:3px}
+.accounts :focus-visible,.mail :focus-visible,.health :focus-visible{outline:2px solid var(--connected-blue);outline-offset:2px}
+.menu{position:relative;min-width:max-content}
+.menu summary{cursor:pointer;list-style:none;border:1px solid var(--connected-border);border-radius:8px;background:var(--connected-panel);padding:8px 11px}
+.menu summary::after{content:'▾';margin-inline-start:8px;color:var(--connected-muted)}
+.menu summary::-webkit-details-marker{display:none}
+.menu>div{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;background:var(--connected-panel);border:1px solid var(--connected-border);border-radius:10px;padding:6px;box-shadow:0 12px 28px #0005;z-index:4;display:grid;gap:4px;max-height:320px;overflow:auto}
+.accounts .menu>div{left:auto;right:0}
+.menu button,.menu label{min-width:180px;width:100%;text-align:left;display:flex;align-items:center;gap:8px;border-color:transparent;padding:7px 9px}
+.menu label{cursor:pointer}
+.menu small{display:block;color:var(--connected-muted);font-size:.72rem}
+.providerBadge{display:grid;place-items:center;flex:none;width:31px;height:31px;border:1px solid var(--connected-border);border-radius:9px;font-weight:800;background:color-mix(in srgb,var(--connected-blue) 9%,var(--connected-panel));color:var(--connected-blue)}
+.providerBadge[data-provider=google]{color:#e4963c}
+.providerBadge[data-provider=icloud]{color:#6ab5ff}
+.accountList{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:12px}
+.account,.connectForm,.health,.legacy{padding:15px;border:1px solid var(--connected-border);border-radius:12px;background:var(--connected-panel)}
+.account{display:grid;gap:9px;align-content:start;min-width:0}
+.account header{justify-content:flex-start}
+.account header div{min-width:0;flex:1}
+.account h3,.account p{overflow-wrap:anywhere}
+.account small,.health small,.coverage small{color:var(--connected-muted);font-size:.77rem}
+.statusPill{font-size:.72rem;line-height:1.2;border:1px solid var(--connected-border);border-radius:99px;padding:5px 7px;color:var(--connected-muted);text-align:center;max-width:110px}
+.statusPill[data-state=connected]{color:#28b98f}
+.statusPill[data-state=reconnect],.statusPill[data-state=limited]{color:#d69042}
+.buttons,.checks,.appleCredentials{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.buttons button,.options select{font-size:.8rem}
+.options,.mapping,.connectForm fieldset,.search details{font-size:.83rem}
+.options summary,.search details summary,.coverage summary{cursor:pointer}
+.options .checks,.mapping{margin-top:10px}
+.mapping,.appleCredentials label,.advanced label{display:grid;gap:5px}
+.mapping select{width:100%}
+.connectForm{display:grid;gap:12px}
+.connectForm h3{margin:0}
+.connectForm fieldset{display:flex;flex-wrap:wrap;gap:12px;margin:0;border:1px solid var(--connected-border);border-radius:8px;padding:9px 12px}
+.connectForm fieldset label{display:flex;align-items:center;gap:4px}
+.appleCredentials a{align-self:end;padding-bottom:5px}
+.health{margin-top:15px}
+.health ul,.coverage ul{padding:0;margin:9px 0 0;list-style:none;display:grid;gap:6px}
+.health li{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.health li span{margin-left:auto;color:var(--connected-muted);font-size:.85rem}
+.notice,.error,.empty{margin:0;padding:10px 12px;border:1px solid var(--connected-border);border-radius:8px;font-size:.85rem;color:var(--connected-muted)}
+.error{border-color:#ca554e;color:#df7369}
+.empty{border:0}
+.mailToolbar,.mailModes,.mailScope,.search>div,.advanced{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mailModes{gap:2px;background:var(--connected-panel);border:1px solid var(--connected-border);border-radius:10px;padding:3px}
+.mail .mailModes button{border-color:transparent;background:transparent;padding:6px 12px;white-space:nowrap}
+.mail .mailModes button[aria-pressed=true]{background:color-mix(in srgb,var(--connected-blue) 17%,var(--connected-panel));border-color:color-mix(in srgb,var(--connected-blue) 42%,var(--connected-border));font-weight:700}
+.search{display:grid;gap:7px}
+.search>div>input{flex:1;min-width:120px}
+.advanced{align-items:end;padding:8px 0;gap:12px}
+.advanced label:has(input[type=checkbox]){display:flex;align-items:center}
+.mailScope,.coverage{font-size:.82rem}
+.mailScope span,.mailScope small,.coverage li small{color:var(--connected-muted)}
+.coverage li small{display:block}
+.mailGrid{display:grid;grid-template-columns:minmax(225px,.9fr) minmax(0,1.65fr);height:clamp(420px,62dvh,820px);min-width:0;border:1px solid var(--connected-border);border-radius:12px;overflow:hidden;background:var(--connected-panel)}
+.messageList,.reader{min-width:0;overflow:auto}
+.messageList{border-right:1px solid var(--connected-border)}
+.mail .message{width:100%;display:grid;gap:4px;text-align:left;border-width:0 0 1px;border-radius:0;padding:12px 13px}
+.mail .message[aria-pressed=true]{background:color-mix(in srgb,var(--connected-blue) 12%,var(--connected-panel));box-shadow:inset 3px 0 var(--connected-blue)}
+.message div{display:flex;justify-content:space-between;gap:8px}
+.message div b,.message strong,.message p,.message small{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+.message[data-unread=false] strong{font-weight:550}
+.message p,.message time,.message small,.detailHeader time{margin:0;color:var(--connected-muted);font-size:.76rem}
+.message time{flex:none}
+.star{color:#e6a341}
+.mail .moreButton{margin:10px;width:calc(100% - 20px)}
+.reader{padding:clamp(12px,2.2vw,24px)}
+.reader h3{font-size:.88rem;margin:14px 0 6px}
+.detailHeader{display:grid;gap:8px;margin-bottom:14px}
+.detailHeader h2{overflow-wrap:anywhere}
+.detailHeader>div{flex-wrap:wrap;justify-content:flex-start}
+.body{line-height:1.55;font-size:.91rem;white-space:pre-wrap;overflow-wrap:anywhere;margin:18px 0}
+.attachments{list-style:none;padding:0;margin:0;display:grid;justify-items:start;gap:7px}
+.mail .back{display:none;margin-bottom:12px}
+.inboxNav{display:flex;gap:8px;align-items:center;padding:10px clamp(12px,2.4vw,28px);border-bottom:1px solid var(--ps-line,#344457)}
+.inboxNav button{font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:7px;padding:7px 12px;cursor:pointer}
+.inboxNav button[aria-current=page]{background:var(--ps-hover,#193244);border-color:var(--ps-line-strong,#405566)}
+.inboxNav button:focus-visible{outline:2px solid #33b9ef;outline-offset:2px}
+@media(max-width:720px){.mailGrid{display:block;height:auto;min-height:280px;max-height:none}.mailGrid[data-reading=true] .messageList,.mailGrid[data-reading=false] .reader{display:none}.mail .back{display:inline-block}.messageList{border-right:0}.moduleHeader{align-items:flex-start}.mailToolbar>select{max-width:100%}.menu>div{max-width:min(85vw,320px)}.advanced{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.advanced input{width:100%}.advanced input[type=checkbox]{width:auto}}

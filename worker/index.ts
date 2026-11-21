@@ -7,6 +7,8 @@ interface Env {
   DB?: D1Database;
   ONYX_URL?: string;
   CRON_SECRET?: string;
+  PACIFICA_GMAIL_CRON_ENABLED?: string;
+  PACIFICA_CONNECTED_SYNC_ENABLED?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -30,12 +32,16 @@ interface ExecutionContext {
 const worker = {
   async scheduled(_event: unknown, env: Env, ctx: ExecutionContext) {
     if (!env.ONYX_URL || !env.CRON_SECRET) return;
-    const request = new Request(new URL("/api/cron/gmail-triage", env.ONYX_URL), {
-      headers: { Authorization: `Bearer ${env.CRON_SECRET.trim()}` },
-    });
-    ctx.waitUntil(worker.fetch(request, env, ctx).then(response => {
-      if (!response.ok) throw new Error(`Gmail schedule failed (${response.status})`);
-    }));
+    const paths = [
+      ...(env.PACIFICA_GMAIL_CRON_ENABLED !== "false" ? ["/api/cron/gmail-triage"] : []),
+      ...(env.PACIFICA_CONNECTED_SYNC_ENABLED === "true" ? ["/api/cron/connected-accounts"] : []),
+    ];
+    for (const path of paths) {
+      const request = new Request(new URL(path, env.ONYX_URL), {headers: {Authorization: "Bearer " + env.CRON_SECRET.trim()}});
+      ctx.waitUntil(worker.fetch(request, env, ctx).then(response => {
+        if (!response.ok) throw new Error("Pacifica scheduled request failed (" + response.status + ")");
+      }));
+    }
   },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);

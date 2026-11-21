@@ -19,11 +19,11 @@ export const PACIFICA_PLATFORM_OWNER_EMAILS=new Set([
 const paidStatuses=new Set(["active","trialing"]);
 const clerkUser=(userId:string)=>cachedClerkUser(userId,async()=>(await clerkClient()).users.getUser(userId));
 
-async function getClerkIdentity(){
+async function getClerkIdentity(forMember?:string){
   try{
-    const {userId}=await auth();
+    const userId=forMember||(await auth()).userId;
     if(!userId)return null;
-    const user=await cachedClerkUser(userId,()=>currentUser());
+    const user=forMember?await clerkUser(forMember):await cachedClerkUser(userId,()=>currentUser());
     if(!user)return null;
     const email=(user.primaryEmailAddress?.emailAddress||user.emailAddresses[0]?.emailAddress||"").toLowerCase();
     const metadata=user.privateMetadata as {pacificaWorkspaceId?:unknown;pacificaRole?:unknown}&ManagedAccess;
@@ -73,6 +73,15 @@ export async function getPacificaAccess(){
   if(identity.teamRole)return {allowed:true,role:identity.teamRole,...identity};
   if(await hasPaidSubscription(identity.email))return {allowed:true,role:"owner" as const,...identity};
   return {allowed:false,role:"subscription-required" as const,...identity};
+}
+
+export async function connectedAutomationAccess(workspaceId:string,memberId:string){
+  if(!isClerkConfigured())return false;
+  const identity=await getClerkIdentity(memberId);
+  if(!identity||identity.userId!==workspaceId||(memberId!==workspaceId&&!identity.teamRole))return false;
+  if(accessScope(identity.memberMetadata)!=="full"||accessScope(identity.accessMetadata)!=="full"||
+    [identity.memberMetadata,identity.accessMetadata].some(meta=>managedAccessState(meta)==="paused"))return false;
+  return workspaceAutomationAccess(workspaceId);
 }
 
 export async function requirePacificaWorkspacePage(){

@@ -41,7 +41,11 @@ export default function GmailTriagePanel({ today = false }: { today?: boolean })
   const [notice, setNotice] = useState("");
   const [draft, setDraft] = useState<Record<string, GmailPreferences>>({});
   const read = useCallback(async () => {
-    try { setSnapshot(await gmailRequest() as Snapshot | null); }
+    try {
+      const data = await gmailRequest() as Snapshot | null;
+      if (data && !Array.isArray(data.accounts)) throw new Error("Gmail returned an incomplete snapshot.");
+      setSnapshot(data);
+    }
     catch { setNotice("Gmail could not load. Try again shortly."); }
   }, []);
 

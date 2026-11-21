@@ -100,7 +100,8 @@ test('video navigation merges quote preparation into Industry Tools and billing 
  try{
   const nav=label=>document.querySelector(`.sidebar nav button[aria-label="${label}"]`);
   assert.equal(nav('Quote desk'),null);assert.equal(nav('Plans & Billing'),null);
-  assert.equal(nav('Miner'),null);assert.ok(nav('Pacifica AI').querySelector('svg'));
+  assert.equal(nav('Miner'),null);assert.equal(nav('Pacifica AI'),null);
+  assert.ok(document.querySelector('button[aria-label^="Open Pacifica assistant"]'));
   await act(async()=>nav('Industry Tools').click());assert.match(await waitForText(/Quote preparation/),/Quote preparation/);assert.match(document.body.textContent,/Scan license or policy/);assert.doesNotMatch(document.querySelector('.industry-tools').textContent,/COMING SOON/);
   await act(async()=>nav('Contacts').click());assert.ok([...document.querySelectorAll('button')].find(b=>/Export CSV/.test(b.textContent)));
   const settings=[...document.querySelectorAll('.sidebar button')].find(b=>b.getAttribute('aria-label')==='Owner settings');await act(async()=>settings.click());

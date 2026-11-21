@@ -35,13 +35,17 @@ config.name = deployment.name;
 config.workers_dev = deployment.workers_dev;
 config.preview_urls = false;
 config.keep_vars = true;
-config.triggers = { crons: process.env.PACIFICA_GMAIL_CRON_ENABLED === "true" ? ["*/5 * * * *"] : [] };
+const gmailCron = process.env.PACIFICA_GMAIL_CRON_ENABLED === "true";
+const connectedCron = process.env.PACIFICA_CONNECTED_SYNC_ENABLED === "true";
+config.triggers = { crons: gmailCron || connectedCron ? ["*/5 * * * *"] : [] };
 config.vars = {
   ...config.vars,
   ONYX_ENV: environment,
   ONYX_URL: deployment.origin,
   ONYX_BRANCH: branch,
   ONYX_COMMIT_SHA: commit,
+  PACIFICA_GMAIL_CRON_ENABLED: String(gmailCron),
+  PACIFICA_CONNECTED_SYNC_ENABLED: String(connectedCron),
 };
 if (environment === "production") {
   config.vars.NEXT_PUBLIC_APP_URL = deployment.origin;
