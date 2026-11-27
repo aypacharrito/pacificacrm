@@ -1,6 +1,7 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, session, shell, screen, nativeTheme, systemPreferences, dialog } from "electron";
+import { app, BrowserWindow, WebContentsView, ipcMain, session, shell, screen, nativeTheme, systemPreferences, dialog, safeStorage } from "electron";
 import electronUpdater from "electron-updater";
 import {createConnectedBrowser} from "./connected-browser.mjs";
+import {createFlintloadCompanion} from "./flintload-companion.mjs";
 import {createDesktopUpdater} from "./updater.mjs";
 import {desktopChrome} from "./chrome.mjs";
 import path from "node:path";
@@ -40,6 +41,7 @@ let lastRendererRecovery=0;
 let unresponsiveTimer=null;
 const connectedPages=createConnectedBrowser({getWindow:()=>mainWindow,WebContentsView,session,shell,appOrigin,onState:state=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('pacifica:page-state',state)}});
 let activePageIdentity=null;
+const flintload=createFlintloadCompanion({userData:app.getPath('userData'),safeStorage});
 async function verifiedPageIdentity(){
  const response=await session.defaultSession.fetch(new URL('/api/desktop/page-identity',appUrl).toString(),{credentials:'include',cache:'no-store',redirect:'error'});
  if(!response.ok)throw Error('Sign in to your workspace before opening connected pages.');
@@ -62,6 +64,17 @@ for(const [channel,handler] of Object.entries({
  'pacifica:page-capture':async()=>{await requireCurrentPageIdentity();return connectedPages.capture()},
  'pacifica:page-close':()=>connectedPages.close(),
 }))ipcMain.handle(channel,(event,...args)=>{if(!trustedPageControl(event))throw Error('Open your signed-in workspace first.');return handler(event,...args)});
+for(const [channel,handler] of Object.entries({
+ 'pacifica:flintload-status':(identity)=>flintload.status(identity),
+ 'pacifica:flintload-connect':(identity,token)=>flintload.connect(identity,token),
+ 'pacifica:flintload-disconnect':(identity)=>flintload.revoke(identity),
+ 'pacifica:flintload-lookup':(identity,query)=>flintload.lookup(identity,query),
+}))ipcMain.handle(channel,async(event,...args)=>{
+ if(process.platform!=='win32'||!trustedPageControl(event))throw Error('Open Pacifica on Windows in your signed-in workspace.');
+ const before=await verifiedPageIdentity();const value=await handler(before,...args);
+ const after=await verifiedPageIdentity();if(before.workspaceId!==after.workspaceId||before.memberId!==after.memberId)throw Error('Your member session changed. Sign in and try again.');
+ return value;
+});
 
 function host(url){
   try{return new URL(url).hostname.toLowerCase()}catch{return ""}

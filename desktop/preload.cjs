@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld("pacificaDesktop",{
     close:()=>ipcRenderer.invoke('pacifica:page-close'),
     onState:callback=>{if(typeof callback!=='function')return ()=>{};const handler=(_event,state)=>callback(state);ipcRenderer.on('pacifica:page-state',handler);return ()=>ipcRenderer.removeListener('pacifica:page-state',handler)},
   },
+  flintload:{
+    supportsMemberBinding:true,
+    status:()=>ipcRenderer.invoke('pacifica:flintload-status'),
+    connect:token=>ipcRenderer.invoke('pacifica:flintload-connect',token),
+    disconnect:()=>ipcRenderer.invoke('pacifica:flintload-disconnect'),
+    lookup:query=>ipcRenderer.invoke('pacifica:flintload-lookup',query),
+  },
   openCalendarBrowser:()=>ipcRenderer.invoke("pacifica:open-calendar-browser"),
   supportsDesktopWrapUp:true,
   supportsAtomicCallState:true,
