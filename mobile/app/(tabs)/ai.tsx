@@ -36,7 +36,7 @@ function AiWorkspace(){
     if(inFlight.current||(!prompt.trim()&&!photo))return;
     const account=userId;inFlight.current=true;setBusy(true);setError("");setSaved(undefined);
     try{
-      const token=await getToken();if(!token)throw new Error("Sign in to use Pacifica AI.");
+      const token=await getToken();if(!token)throw new Error("Sign in to use Doxa.");
       let answer:MobileAiResult;
       if(photo){const scan=await scanContactDocument(token,photo),e=scan.extraction;
         answer={summary:"Document details are ready to review.",notice:[scan.notice,scan.missingFields?.length?`Check missing or unreadable fields: ${scan.missingFields.join(", ")}`:""].filter(Boolean).join(" "),createLead:cleanContactDraft({...e,name:String(e.fullName||[e.firstName,e.middleName,e.lastName].filter(Boolean).join(" ")),vehicle:[e.vehicleYear,e.vehicleMake,e.vehicleModel].filter(Boolean).join(" "),line:"home-auto",notes:Array.isArray(e.otherFields)?e.otherFields.map((f:{label:string;value:string})=>`${f.label}: ${f.value}`).join("\n"):""})};
@@ -62,13 +62,13 @@ function AiWorkspace(){
     finally{inFlight.current=false;setBusy(false);}
   }
   return <Screen>
-    <Title eyebrow="PACIFICA AI">Capture a contact</Title>
+    <Title eyebrow="DOXA">Capture a contact</Title>
     <Muted>Take a photo of a number or business card, then check the details and save. Or ask AI about your CRM.</Muted>
     <View style={{gap:10,flexDirection:"row"}}><Button title="Take photo" disabled={busy} onPress={()=>void pick(true)} style={{flex:1}}/><Button title="Choose photo" kind="secondary" disabled={busy} onPress={()=>void pick(false)} style={{flex:1}}/></View>
     {photo?<Card><Image accessibilityLabel="Photo to read" source={{uri:photo}} style={{height:180,width:"100%",resizeMode:"contain"}}/><Button title="Remove photo" kind="secondary" disabled={busy} onPress={()=>setPhoto(undefined)}/></Card>:null}
-    <Field accessibilityLabel="Ask Pacifica AI" multiline value={prompt} editable={!busy} onChangeText={setPrompt} placeholder="Read this number, prepare a contact, or help me follow up…" style={{minHeight:100,paddingVertical:12}}/>
-    <Muted>Your selected photo is sent to Pacifica AI when you tap below.</Muted>
-    <Button title={photo?"Read photo":"Ask Pacifica AI"} loading={busy} disabled={!photo&&!prompt.trim()} onPress={()=>void analyze()}/>
+    <Field accessibilityLabel="Ask Doxa" multiline value={prompt} editable={!busy} onChangeText={setPrompt} placeholder="Read this number, prepare a contact, or help me follow up…" style={{minHeight:100,paddingVertical:12}}/>
+    <Muted>Your selected photo is sent to Doxa when you tap below.</Muted>
+    <Button title={photo?"Read photo":"Ask Doxa"} loading={busy} disabled={!photo&&!prompt.trim()} onPress={()=>void analyze()}/>
     {error?<Text accessibilityRole="alert" style={{color:p.danger}}>{error}</Text>:null}
     {result?<Card><Text style={{color:p.text}}>{result.summary}</Text>{result.notice?<Muted>{result.notice}</Muted>:null}{result.draft?<Text selectable style={{color:p.text}}>{result.draft}</Text>:null}</Card>:null}
     {draft&&!saved?<Card><Title eyebrow="REVIEW BEFORE SAVING">Contact details</Title>

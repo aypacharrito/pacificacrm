@@ -108,7 +108,7 @@ The mobile client sends the Clerk session token as a Bearer token to the existin
 
 Offline edits are cached locally and retried against the existing workspace endpoint. The server's workspace merge logic remains authoritative.
 
-## Pacifica AI photo capture
+## Doxa photo capture
 
 Signing in opens the AI tab. Take a photo or choose an existing image, tap
 Read photo, review the extracted name/phone/email and queue, then Save contact.
@@ -125,7 +125,7 @@ Camera permissions require a new native build:
 Use the existing EAS project and EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY configuration.
 iOS requires the corresponding EAS build/signing/distribution setup.
 
-The responsive web CRM also has Take photo / Choose photo in Pacifica AI.
+The responsive web CRM also has Take photo / Choose photo in Doxa.
 That version updates through Vercel and does not require an Expo build.
 
 Verification: mobile TypeScript and Expo web export pass. Physical camera

@@ -16,7 +16,7 @@ export default function FlintloadCompanion({memberId,onClose}:{memberId:string;o
  return <div role="dialog" aria-modal="true" aria-label="Flintload private context" style={{position:'fixed',inset:0,zIndex:2000,background:'rgba(15,30,25,.65)',display:'grid',placeItems:'center',padding:20}}>
   <section style={{width:'min(680px,100%)',maxHeight:'85vh',overflow:'auto',background:'var(--ps-bg,#fff)',color:'var(--ps-text,#172b25)',padding:24,borderRadius:16}}>
    <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h2>Flintload private context</h2><button type="button" onClick={onClose}>Close</button></header>
-   <p>Search approved local vault entries. Passages stay in this Windows panel and are not sent to Pacifica AI or CRM notes.</p>
+   <p>Search approved local vault entries. Passage results stay in this Windows panel.</p>
    {status&&<p role="status">{status.message}</p>}
    {error&&<p role="alert">{error}</p>}
    {status?.available&&status.encrypted&&!status.connected&&<form onSubmit={event=>{event.preventDefault();void action(async()=>{const next=await bridge()!.connect(token);setToken('');setStatus(next);return next})}}>

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getPacificaAccess,workspaceAutomationAccess,isPacificaOwnerApi} from '../../app/lib/clerk-access.ts';
 import {archonWorkspaceUrl,canOpenArchon} from '../../app/lib/archon-owner.ts';
+import ArchonPage from '../../app/dashboard/archon/page.tsx';
 const owner=metadata=>({id:'owner-id',primaryEmailAddress:{emailAddress:'test@example.com'},emailAddresses:[],privateMetadata:metadata});
 test('workspace owners and their team lose API and cron access when trial expires or is locked',async()=>{
  globalThis.paid=false;globalThis.identity=owner({pacificaManaged:true,pacificaTrialEndsAt:'2000-01-01'});globalThis.workspaceOwner=globalThis.identity;
@@ -44,17 +45,21 @@ test('Archon requires the exact authenticated owner and workspace with full acce
     globalThis.identity={...owner({pacificaRole:role,pacificaWorkspaceId:'owner-id'}),id:`${role}-id`};
     assert.equal((await getPacificaAccess()).allowed,true);
     assert.equal(canOpenArchon(await getPacificaAccess()),false);
+    await assert.rejects(ArchonPage(),/NOT_FOUND/);
   }
   globalThis.identity={...owner(permitted),id:'other-owner'};
   assert.equal(canOpenArchon(await getPacificaAccess()),false);
+  await assert.rejects(ArchonPage(),/NOT_FOUND/);
   globalThis.identity=owner({...permitted,pacificaWorkspaceId:'other-workspace'});
   assert.equal(canOpenArchon(await getPacificaAccess()),false);
+  await assert.rejects(ArchonPage(),/NOT_FOUND/);
   globalThis.identity=owner({...permitted,pacificaAccessScope:'read-only'});
   assert.equal(canOpenArchon(await getPacificaAccess()),false);
   globalThis.identity=owner({...permitted,pacificaAccessPaused:true});
   assert.equal(canOpenArchon(await getPacificaAccess()),false);
   globalThis.identity=undefined;
   assert.equal(canOpenArchon(await getPacificaAccess()),false);
+  await assert.rejects(ArchonPage(),/\/login/);
   delete process.env.PACIFICA_ARCHON_WORKSPACE_ID;
   globalThis.identity=owner(permitted);
   assert.equal(canOpenArchon(await getPacificaAccess()),false);

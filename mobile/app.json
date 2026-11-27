@@ -68,8 +68,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Take photos of contact details for Pacifica AI.",
-          "photosPermission": "Choose a photo to read contact details with Pacifica AI.",
+          "cameraPermission": "Take photos of contact details for Doxa.",
+          "photosPermission": "Choose a photo to read contact details with Doxa.",
           "microphonePermission": "Pacifica uses the microphone for business calls when you enable calling."
         }
       ],
