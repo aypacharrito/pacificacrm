@@ -94,7 +94,7 @@ const PhoneSettings=dynamic(()=>import("./components/PhoneSettings"),{loading:()
 const MinerStudio=dynamic(()=>import("./components/MinerStudio"),{loading:()=> <p role="status">Loading Miner…</p>});
 const ConnectedMail=dynamic(()=>import("./components/connected/ConnectedMail"),{loading:()=> <p role="status">Loading connected mail.</p>});
 const MessagesCenter=dynamic(()=>import("./components/MessagesCenter"),{loading:()=> <p role="status">Loading messages…</p>});
-const AiCommandCenter=dynamic(()=>import("./components/AiCommandCenter"),{loading:()=> <p role="status">Loading Pacifica AI…</p>});
+const AiCommandCenter=dynamic(()=>import("./components/AiCommandCenter"),{loading:()=> <p role="status">Loading Doxa…</p>});
 const PhoneNumberCenter=dynamic(()=>import("./components/PhoneNumberCenter"),{loading:()=> <p role="status">Loading phone numbers…</p>});
 const CallLogReport=dynamic(()=>import("./components/CallLogReport"),{loading:()=> <p role="status">Loading reports…</p>});
 
@@ -185,7 +185,7 @@ function Icon({name}:{name:string}) {
   return <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
-export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=false,featureAccess=defaultPlatformFeatures,workspaceId="local",accountUserId="",currentUserName="Pacifica user",currentUserEmail="",userRole="owner"}:{clerkEnabled?:boolean;isOwner?:boolean;isPlatformOwner?:boolean;featureAccess?:PlatformFeatures;workspaceId?:string;accountUserId?:string;currentUserName?:string;currentUserEmail?:string;userRole?:string}){
+export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=false,archonOwner=false,featureAccess=defaultPlatformFeatures,workspaceId="local",accountUserId="",currentUserName="Pacifica user",currentUserEmail="",userRole="owner"}:{clerkEnabled?:boolean;isOwner?:boolean;isPlatformOwner?:boolean;archonOwner?:boolean;featureAccess?:PlatformFeatures;workspaceId?:string;accountUserId?:string;currentUserName?:string;currentUserEmail?:string;userRole?:string}){
   const [view,setView]=useState<View>("today");
   const [assistantOpen,setAssistantOpen]=useState(false);
   const [assistantName,setAssistantName]=useState(defaultAssistantName);
@@ -1254,6 +1254,9 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
   const [quoteReviewOpen,setQuoteReviewOpen]=useState(false);
   const {t}=useLanguage();
   const nav:[View,string,string][]=([["today","Today","spark"],["dialer","Dialer","dial"],["leads","Contacts","users"],["messages","Messages","chat"],["office","Calendar","calendar"],["miner","Miner","pickaxe"],["clients","Clients","shield"],["activity","Reports","chart"],["quotes","Industry Tools","shield"]] as [View,string,string][]).filter(([id])=>id==="miner"?isPlatformOwner&&enabledTools.miner:id==="quotes"?enabledTools.industryTools:true);
+  const archonLink = archonOwner ? {id:"archon",label:"Archon",icon:<Icon name="spark"/>,href:"/dashboard/archon"} : null;
+  const mobileItems = [...nav,...(isOwner||clerkEnabled?[["settings","Settings","gear"] as [View,string,string]]:[])]
+    .map(([id,label,icon])=>({id,label:t(label),icon:<Icon name={icon}/> }));
   const activeLead=allLeads.find(l=>l.id===selectedLead&&!l.deletedAt);
   const growthLead=leads.find(l=>l.id===growthLeadId);
   const incomingLead=findDialedContact(leads,incomingNumber);
@@ -1348,10 +1351,10 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
         ...(input.product.trim()?{product:input.product.trim()}:{}),line,queueOverride:true,source:input.source.trim()||existing.source,notes,importedFields:{...(existing.importedFields||{}),...fields},
         ...(existing.deletedAt?{deletedAt:"",deletionUpdatedAt:now}:{}),
       };
-      setLeads(list=>list.map(item=>item.id===existing.id?{...item,...patch}:item));setSelectedLead(existing.id);activeLineRef.current=line;setActiveLine(line);setIndex(0);setView("leads");setToast(`${existing.name} enriched from Pacifica AI image · duplicate avoided`);return;
+      setLeads(list=>list.map(item=>item.id===existing.id?{...item,...patch}:item));setSelectedLead(existing.id);activeLineRef.current=line;setActiveLine(line);setIndex(0);setView("leads");setToast(`${existing.name} enriched from Doxa image · duplicate avoided`);return;
     }
-    const item:Lead={...documentPatch,id:Date.now(),name,phone,email,city:input.city.trim()||"Imported",state:input.state.trim(),status:"Ready",stage:"New lead",outcome:"Not contacted",notes:input.notes.trim(),followUp:"",doNotCall:false,lastContact:"Never",line,queueOverride:true,source:input.source.trim()||"Pacifica AI image",leadCost:0,product:input.product.trim()||"Service inquiry",sourceDisposition:"New",importedAt:now,received:now,smsConsent:false,smsOptOut:false,emailConsent:false,emailOptOut:false,communications:[],automationEnabled:false,importedFields:fields};
-    setLeads(list=>[item,...list]);setSelectedLead(item.id);activeLineRef.current=line;setActiveLine(line);setIndex(0);setView("leads");setToast(`${name} added to ${queueLabel(line,workspaceProfile.mode)} from Pacifica AI`);
+    const item:Lead={...documentPatch,id:Date.now(),name,phone,email,city:input.city.trim()||"Imported",state:input.state.trim(),status:"Ready",stage:"New lead",outcome:"Not contacted",notes:input.notes.trim(),followUp:"",doNotCall:false,lastContact:"Never",line,queueOverride:true,source:input.source.trim()||"Doxa image",leadCost:0,product:input.product.trim()||"Service inquiry",sourceDisposition:"New",importedAt:now,received:now,smsConsent:false,smsOptOut:false,emailConsent:false,emailOptOut:false,communications:[],automationEnabled:false,importedFields:fields};
+    setLeads(list=>[item,...list]);setSelectedLead(item.id);activeLineRef.current=line;setActiveLine(line);setIndex(0);setView("leads");setToast(`${name} added to ${queueLabel(line,workspaceProfile.mode)} from Doxa`);
   }
   function applyAiAction(action:AiAction){
     const current=leads.find(item=>item.id===action.leadId);if(!current)return;
@@ -1397,7 +1400,7 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
 
   return <main className={`app-shell${view==="dialer"?" is-dialer":""}${sidebarCollapsed?" sidebar-collapsed":""}`} onDragEnter={onFileDragEnter} onDragOver={onFileDragOver} onDragLeave={onFileDragLeave} onDrop={onFileDrop}>
     <WorkspaceChromeMetrics/>
-    <MobileNavigation items={[...nav,...(isOwner||clerkEnabled?[["settings","Settings","gear"] as [View,string,string]]:[])].map(([id,label,icon])=>({id,label:t(label),icon:<Icon name={icon}/>}))} active={view==="connected-mail"?"messages":view} onNavigate={id=>openView(id as View)} unread={messageUnreadCount} syncStatus={workspaceSyncStatus}/>
+    <MobileNavigation items={archonLink ? [...mobileItems, archonLink] : mobileItems} active={view==="connected-mail"?"messages":view} onNavigate={id=>openView(id as View)} unread={messageUnreadCount} syncStatus={workspaceSyncStatus}/>
     {!workspaceHydrated&&<WorkspaceLoadGate error={workspaceLoadError} onRetry={()=>setWorkspaceLoadAttempt(value=>value+1)}/>}
     {workspaceHydrated&&isOwner&&!workspaceProfile.onboardingCompleted&&<BusinessOnboarding profile={workspaceProfile} onComplete={setWorkspaceProfile}/>}
     {fileDragActive&&<div className="file-drop-overlay" role="status" aria-live="polite"><div><Icon name="upload"/><span>DROP TO IMPORT</span><b>License, policy, or lead file</b><small>Images create a reviewable lead · CSV, TSV, and TXT merge into Contacts</small></div></div>}
@@ -1405,7 +1408,9 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
     <aside className="sidebar">
 
       <button type="button" className="logo sidebar-logo-toggle" onClick={toggleSidebar} aria-expanded={!sidebarCollapsed} aria-label={sidebarCollapsed?"Expand sidebar":"Collapse sidebar"} title={sidebarCollapsed?"Expand sidebar":"Collapse sidebar"}><span className="brand-mark"><Image src="/pacifica-mark.png" width={32} height={32} alt="" priority/></span><div><b>PACIFICA</b></div></button>
-      <nav>{nav.map(([id,rawLabel,icon])=>{const label=t(rawLabel);return <button key={id} className={(view===id||id==="messages"&&view==="connected-mail")?"active":""} aria-label={id==="messages"&&messageUnreadCount?`${label}, ${messageUnreadCount} unread`:label} title={label} aria-current={(view===id||id==="messages"&&view==="connected-mail")?"page":undefined} onMouseEnter={()=>preloadView(id)} onFocus={()=>preloadView(id)} onClick={()=>openView(id)}><Icon name={icon}/><span>{label}</span>{id==="leads"&&<em>{leads.length}</em>}{id==="messages"&&messageUnreadCount>0&&<em className="message-unread">{Math.min(99,messageUnreadCount)}</em>}</button>})}</nav>{!sidebarCollapsed&&<LanguageSelect/>}
+      <nav>{nav.map(([id,rawLabel,icon])=>{const label=t(rawLabel);return <button key={id} className={(view===id||id==="messages"&&view==="connected-mail")?"active":""} aria-label={id==="messages"&&messageUnreadCount?`${label}, ${messageUnreadCount} unread`:label} title={label} aria-current={(view===id||id==="messages"&&view==="connected-mail")?"page":undefined} onMouseEnter={()=>preloadView(id)} onFocus={()=>preloadView(id)} onClick={()=>openView(id)}><Icon name={icon}/><span>{label}</span>{id==="leads"&&<em>{leads.length}</em>}{id==="messages"&&messageUnreadCount>0&&<em className="message-unread">{Math.min(99,messageUnreadCount)}</em>}</button>})}
+        {archonLink && <a className="archon-nav-link" href={archonLink.href} aria-label={archonLink.label} title={archonLink.label}>{archonLink.icon}<span>{archonLink.label}</span></a>}
+      </nav>{!sidebarCollapsed&&<LanguageSelect/>}
       <div className="sidebar-install"><PwaInstallButton/></div>
       <div className="sidebar-foot"><div className="agent"><span>{clerkEnabled?<ClerkTopAuth avatarOnly/>:currentUserName.split(" ").map(part=>part[0]).slice(0,2).join("")||"P"}</span><div><b>{currentUserName}</b><small title={currentUserEmail}><i/> {userRole}</small></div></div>{(isOwner||clerkEnabled)&&<button aria-label={isOwner?"Owner settings":"Settings"} title="Settings" onClick={()=>{if(isOwner)openView("settings");else openConnectedSettings()}}><Icon name="gear"/></button>}</div>
     </aside>

@@ -15,7 +15,7 @@ export async function POST(request:Request){
  const targets:FolderAiTarget[]=phase==='enrichment'&&Array.isArray(body.targets)?body.targets:[];
  const targetsValid=phase==='identity'||(targets.length>0&&targets.length<=16&&targets.every(target=>target&&typeof target.id==='string'&&target.id.length<=100&&typeof target.name==='string'&&target.name.length<=180&&typeof target.phone==='string'&&target.phone.length<=80));
  if(body?.mode!=='ai'||typeof body.text!=='string'||!body.text.trim()||body.text.length>12000||typeof body.file!=='string'||body.file.length>1000||typeof body.page!=='string'||body.page.length>160||typeof body.goal!=='string'||body.goal.length>1200||!targetsValid)return Response.json({error:'Choose a folder and start an AI scan.'},{status:400});
- if(!aiConfigured())return Response.json({error:'Connect Pacifica AI in Settings first.'},{status:503});
+ if(!aiConfigured())return Response.json({error:'Connect Doxa in Settings first.'},{status:503});
  try{
   request.signal.throwIfAborted();const model=aiModel();
   const instructions=phase==='identity'?folderIdentityInstructions:folderEnrichmentInstructions,schema=phase==='identity'?folderIdentitySchema:folderEnrichmentSchema;

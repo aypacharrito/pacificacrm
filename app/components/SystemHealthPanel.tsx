@@ -4,7 +4,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 
 type Check={ready:boolean;configured:boolean;observedAt:string|null;reason:string;nextAction:string};
 type Health={status:string;ready:number;total:number;checkedAt:string;checks:Record<string,Check>;release?:string};
-const labels:Record<string,string>={storage:"Storage",voice:"Calling",sms:"Texting",email:"Email",emailReplies:"Email replies",automation:"Automation",ai:"Pacifica AI",recording:"Recordings"};
+const labels:Record<string,string>={storage:"Storage",voice:"Calling",sms:"Texting",email:"Email",emailReplies:"Email replies",automation:"Automation",ai:"Doxa",recording:"Recordings"};
 
 export default function SystemHealthPanel(){
   const [health,setHealth]=useState<Health|null>(null);

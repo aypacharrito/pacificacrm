@@ -57,7 +57,7 @@ export async function POST(request:Request){
     const documents=Array.isArray(body.documents)?body.documents:[];
     if(documents.length+images.length>4)return Response.json({error:"Attach up to four files."},{status:400});
     if(documents.some(file=>!file||typeof file.dataUrl!=="string"||!/^data:application\/pdf;base64,[A-Za-z0-9+/]+={0,2}$/.test(file.dataUrl)||!Buffer.from(file.dataUrl.split(",")[1],"base64").subarray(0,5).equals(Buffer.from("%PDF-"))))return Response.json({error:"Attach a valid PDF document."},{status:400});
-    if(images.some(image=>!acceptedImage.test(image)))return Response.json({error:"Pacifica AI accepts JPG, PNG, or WebP images."},{status:400});
+    if(images.some(image=>!acceptedImage.test(image)))return Response.json({error:"Doxa accepts JPG, PNG, or WebP images."},{status:400});
     if(images.some(image=>image.length>2_600_000)||images.reduce((sum,image)=>sum+image.length,0)+documents.reduce((sum,file)=>sum+file.dataUrl.length,0)>3_800_000)return Response.json({error:"Those images are too large. Crop closer to the useful information and try again."},{status:413});
     if(!prompt&&!images.length&&!documents.length)return Response.json({error:"Enter a request or attach an image first."},{status:400});
     const intent=!images.length&&!documents.length&&!body.pageContexts?.length?connectedIntent(prompt):undefined;
@@ -130,7 +130,7 @@ Request: ${prompt||"Read the attached image and respond appropriately."}\n\nAssi
     // Read-and-suggest mode: model output cannot supply an existing-lead mutation.
     result.actions=[];
     if(result.createLead){
-      const lead=result.createLead;const normalized:CrmCreateLead={name:clean(lead.name,140),phone:clean(lead.phone,40),email:clean(lead.email,180),city:clean(lead.city,120),state:clean(lead.state,40),product:clean(lead.product,140)||"Service inquiry",line:lead.line==="home-auto"?"home-auto":"life",source:clean(lead.source,100)||"Pacifica AI image",notes:clean(lead.notes,600),otherFields:safeOtherFields(lead.otherFields)};
+      const lead=result.createLead;const normalized:CrmCreateLead={name:clean(lead.name,140),phone:clean(lead.phone,40),email:clean(lead.email,180),city:clean(lead.city,120),state:clean(lead.state,40),product:clean(lead.product,140)||"Service inquiry",line:lead.line==="home-auto"?"home-auto":"life",source:clean(lead.source,100)||"Doxa image",notes:clean(lead.notes,600),otherFields:safeOtherFields(lead.otherFields)};
       result.createLead=normalized.name||normalized.phone||normalized.email?{...normalized,...contactIntakeDetails(normalized)}:null;
     }
     result.controlRevision=control.revision;

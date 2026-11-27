@@ -12,9 +12,10 @@ button{cursor:pointer}
 .logo b{font-size: calc(12px * var(--workspace-text-scale, 1))}
 .logo small{color:#7e94a8;margin-top:3px}
 .sidebar nav{display:flex;flex-direction:column;gap:6px}
-.sidebar nav button{height:48px;border:0;background:transparent;color:#91a5b8;border-radius:10px;display:flex;align-items:center;gap:13px;padding:0 14px;font-size: calc(13px * var(--workspace-text-scale, 1));text-align:left}
-.sidebar nav button:hover,.sidebar nav button.active{background:var(--navy2);color:#fff}
-.sidebar nav button.active{box-shadow:inset 3px 0 var(--coral)}
+.sidebar nav a{text-decoration:none}
+.sidebar nav :is(button,a){height:48px;border:0;background:transparent;color:#91a5b8;border-radius:10px;display:flex;align-items:center;gap:13px;padding:0 14px;font-size: calc(13px * var(--workspace-text-scale, 1));text-align:left}
+.sidebar nav :is(button,a):hover,.sidebar nav :is(button,a).active{background:var(--navy2);color:#fff}
+.sidebar nav :is(button,a).active{box-shadow:inset 3px 0 var(--coral)}
 .sidebar nav em{font-style:normal;margin-left:auto;background:#173957;color:#a8bac9;border-radius:15px;padding:3px 8px;font-size: calc(12px * var(--workspace-text-scale, 1))}
 .sidebar-foot{margin-top:auto;border-top:1px solid #1e3a53;padding-top:17px;display:flex;align-items:center}
 .agent{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
@@ -151,7 +152,7 @@ button{cursor:pointer}
 .sidebar{width:72px;padding:22px 10px}
 .logo>div,.sidebar nav span,.sidebar nav em,.agent>div,.sidebar-foot>button{display:none}
 .logo{padding:0 6px 25px}
-.sidebar nav button{justify-content:center;padding:0}
+.sidebar nav :is(button,a){justify-content:center;padding:0}
 .workspace{margin-left:72px}
 .topbar{padding:0 15px}
 .topbar>div:first-child small,.connection,.import span{display:none}
@@ -341,11 +342,11 @@ button,input,select,textarea{font-family:inherit}
 .logo b{font-size: calc(13px * var(--workspace-text-scale, 1))}
 .logo small{font-size: calc(12px * var(--workspace-text-scale, 1));color:#6793a8;letter-spacing:.22em}
 .sidebar nav{gap:7px}
-.sidebar nav button{height:47px;border:1px solid transparent;color:#7690a6;border-radius:9px;padding:0 13px;font-size: calc(12px * var(--workspace-text-scale, 1))}
-.sidebar nav button svg{width:18px}
-.sidebar nav button:hover{background:#101f2e;color:#dbeaf5;border-color:#22374a}
-.sidebar nav button.active{background:linear-gradient(90deg,#123144,#102433);color:#f3fbff;border-color:#20506a;box-shadow:inset 3px 0 var(--cyan),0 8px 25px #0003}
-.sidebar nav button.active svg{color:#47dbe7}
+.sidebar nav :is(button,a){height:47px;border:1px solid transparent;color:#7690a6;border-radius:9px;padding:0 13px;font-size: calc(12px * var(--workspace-text-scale, 1))}
+.sidebar nav :is(button,a) svg{width:18px}
+.sidebar nav :is(button,a):hover{background:#101f2e;color:#dbeaf5;border-color:#22374a}
+.sidebar nav :is(button,a).active{background:linear-gradient(90deg,#123144,#102433);color:#f3fbff;border-color:#20506a;box-shadow:inset 3px 0 var(--cyan),0 8px 25px #0003}
+.sidebar nav :is(button,a).active svg{color:#47dbe7}
 .sidebar nav em{background:#172c3e;color:#7fcddd}
 .sidebar-foot{border-color:#1d3042}
 .agent>span{background:linear-gradient(135deg,#1a475d,#183148);border:1px solid #2e5a6f}
@@ -921,7 +922,7 @@ button,input,select,textarea{font-family:inherit}
 .logo .brand-mark{background:#102a31;border:1px solid #24424d;box-shadow:none;overflow:hidden}
 .logo .brand-mark img{width:32px;height:32px;object-fit:contain}
 .topbar{background:#0b1521;border-color:#203044;backdrop-filter:none;box-shadow:none}
-.sidebar nav button.active,.import,.primary{background:#123044;box-shadow:none}
+.sidebar nav :is(button,a).active,.import,.primary{background:#123044;box-shadow:none}
 .hero-call,.stats-row article,.queue-card,.table-card,.campaign-card,.chart-card,.provider-card,.phone-pad,.phone-config,.smart-connect,.setup-help{box-shadow:none}
 .start-call{box-shadow:none}
 .line-toggle button.active{box-shadow:none}
@@ -1034,11 +1035,11 @@ body{background:#111315}
 .sidebar{background:#17191b;border-right-color:#32363a}
 .topbar{background:#1c1f21;border-bottom-color:#34383c}
 .workspace{background:#111315}
-.sidebar nav button{border-radius:4px;color:#a9b0b5}
-.sidebar nav button:hover{background:#222629;color:#eef2f3}
-.sidebar nav button.active{background:#176f73;color:#fff;box-shadow:none}
-.sidebar nav button em{background:#2b3033;color:#dce3e5}
-.sidebar nav button.nav-pending,.sidebar nav button.nav-pending:hover{background:#141719;border-color:#292d30;color:#5f666a;cursor:not-allowed;opacity:.68;box-shadow:none}.sidebar nav button.nav-pending svg{color:#4b5256}.sidebar nav button.nav-pending .nav-soon{color:#737b7f;border-color:#383e42;background:#1b1e20}
+.sidebar nav :is(button,a){border-radius:4px;color:#a9b0b5}
+.sidebar nav :is(button,a):hover{background:#222629;color:#eef2f3}
+.sidebar nav :is(button,a).active{background:#176f73;color:#fff;box-shadow:none}
+.sidebar nav :is(button,a) em{background:#2b3033;color:#dce3e5}
+.sidebar nav :is(button,a).nav-pending,.sidebar nav :is(button,a).nav-pending:hover{background:#141719;border-color:#292d30;color:#5f666a;cursor:not-allowed;opacity:.68;box-shadow:none}.sidebar nav :is(button,a).nav-pending svg{color:#4b5256}.sidebar nav :is(button,a).nav-pending .nav-soon{color:#737b7f;border-color:#383e42;background:#1b1e20}
 .nav-soon{margin-left:auto;padding:3px 5px;border:1px solid #52585c;border-radius:3px;color:#979fa3;font-size: calc(12px * var(--workspace-text-scale, 1));font-weight:900;letter-spacing:.1em}
 .hero-call,.side-pad,.lead-file,.stats-row article,.queue-card,.table-card,.campaign-card,.chart-card,.provider-card,.phone-pad,.phone-config,.smart-connect,.setup-help,.pricing-grid article,.billing-compliance,.import-hint,.crm-summary article,.connection-card,.recent-quotes,.quote-form-card,.carrier-catalog,.quote-results-card{background:#1b1e20;border-color:#353a3e;border-radius:6px;box-shadow:none}
 .hero-call:before{display:none}
@@ -1137,7 +1138,7 @@ html[data-theme="light"] body{background:#f5f7f9;color:#14283a}
 html[data-theme="light"] .app-shell{background:#f5f7f9}
 html[data-theme="light"] .sidebar{border-right:1px solid #dce4e8;box-shadow:8px 0 28px rgba(30,58,74,.06);color:#173247}
 html[data-theme="light"] .logo b{color:#173247}html[data-theme="light"] .logo small{color:#76909f}
-html[data-theme="light"] .sidebar nav button{color:#607485}html[data-theme="light"] .sidebar nav button:hover{background:#f2f6f7;border-color:#dce6e9;color:#15384b}html[data-theme="light"] .sidebar nav button.active{background:#e9f5f5;border-color:#c7e3e4;color:#0d747a;box-shadow:inset 3px 0 #159aa5}html[data-theme="light"] .sidebar nav button.active svg{color:#0f8f95}html[data-theme="light"] .sidebar nav em{background:#edf3f5;color:#557080}
+html[data-theme="light"] .sidebar nav :is(button,a){color:#607485}html[data-theme="light"] .sidebar nav :is(button,a):hover{background:#f2f6f7;border-color:#dce6e9;color:#15384b}html[data-theme="light"] .sidebar nav :is(button,a).active{background:#e9f5f5;border-color:#c7e3e4;color:#0d747a;box-shadow:inset 3px 0 #159aa5}html[data-theme="light"] .sidebar nav :is(button,a).active svg{color:#0f8f95}html[data-theme="light"] .sidebar nav em{background:#edf3f5;color:#557080}
 html[data-theme="light"] .sidebar-foot{border-color:#e1e7ea}html[data-theme="light"] .agent>span{background:#e7f2f4;border-color:#cce0e4;color:#126a72}html[data-theme="light"] .agent small{color:#738996}html[data-theme="light"] .sidebar-foot>button{color:#607b8b}
 html[data-theme="light"] .workspace{background:#f5f7f9}
 html[data-theme="light"] .topbar{background:#fff;border-color:#dce4e8;box-shadow:0 2px 12px rgba(29,52,67,.05)}html[data-theme="light"] .topbar b{color:#173247}html[data-theme="light"] .topbar small,html[data-theme="light"] .session-bar label{color:#718796}
@@ -1337,13 +1338,13 @@ html[data-theme] .eyebrow{color:var(--ui-accent)}
 /* Light mode is deliberately bright, calm, and green-led. */
 html[data-theme="light"] .sidebar{background:#fff;border-color:var(--ui-border);box-shadow:8px 0 30px rgba(25,69,54,.06)}
 html[data-theme="light"] .topbar{background:rgba(255,255,255,.94);border-color:var(--ui-border);box-shadow:0 5px 22px rgba(25,69,54,.045)}
-html[data-theme="light"] .sidebar nav button{color:#5b746a}
-html[data-theme="light"] .sidebar nav button:hover{background:var(--ui-surface-soft);border-color:var(--ui-border);color:var(--ui-text)}
-html[data-theme="light"] .sidebar nav button.active{background:var(--ui-accent-soft);border-color:#b9ddcf;color:var(--ui-accent);box-shadow:inset 3px 0 var(--ui-accent)}
-html[data-theme="light"] .sidebar nav button.nav-pending,
-html[data-theme="light"] .sidebar nav button.nav-pending:hover{background:#f6f8f7;border:1px dashed #d6e0dc;color:#9aa9a3;box-shadow:none;opacity:.78}
-html[data-theme="light"] .sidebar nav button.nav-pending svg{color:#9eada7}
-html[data-theme="light"] .sidebar nav button.nav-pending .nav-soon{background:#fff;border-color:#d7e2de;color:#81938c}
+html[data-theme="light"] .sidebar nav :is(button,a){color:#5b746a}
+html[data-theme="light"] .sidebar nav :is(button,a):hover{background:var(--ui-surface-soft);border-color:var(--ui-border);color:var(--ui-text)}
+html[data-theme="light"] .sidebar nav :is(button,a).active{background:var(--ui-accent-soft);border-color:#b9ddcf;color:var(--ui-accent);box-shadow:inset 3px 0 var(--ui-accent)}
+html[data-theme="light"] .sidebar nav :is(button,a).nav-pending,
+html[data-theme="light"] .sidebar nav :is(button,a).nav-pending:hover{background:#f6f8f7;border:1px dashed #d6e0dc;color:#9aa9a3;box-shadow:none;opacity:.78}
+html[data-theme="light"] .sidebar nav :is(button,a).nav-pending svg{color:#9eada7}
+html[data-theme="light"] .sidebar nav :is(button,a).nav-pending .nav-soon{background:#fff;border-color:#d7e2de;color:#81938c}
 
 html[data-theme="light"] :is(
   .hero-call,.side-pad,.lead-file,.stats-row article,.queue-card,.table-card,
@@ -1390,9 +1391,9 @@ html[data-theme="light"] .empty-call-log{background:linear-gradient(145deg,#fff,
 /* Dark mode uses charcoal surfaces and emerald actions, without blue-black leftovers. */
 html[data-theme="dark"] .sidebar{background:#101714;border-color:var(--ui-border);box-shadow:10px 0 34px rgba(0,0,0,.22)}
 html[data-theme="dark"] .topbar{background:rgba(16,23,20,.94);border-color:var(--ui-border);box-shadow:0 5px 24px rgba(0,0,0,.18)}
-html[data-theme="dark"] .sidebar nav button{color:#91a69e}
-html[data-theme="dark"] .sidebar nav button:hover{background:var(--ui-surface-hover);border-color:var(--ui-border-strong);color:#fff}
-html[data-theme="dark"] .sidebar nav button.active{background:var(--ui-accent-soft);border-color:#2d6853;color:#8be0bf;box-shadow:inset 3px 0 var(--ui-accent)}
+html[data-theme="dark"] .sidebar nav :is(button,a){color:#91a69e}
+html[data-theme="dark"] .sidebar nav :is(button,a):hover{background:var(--ui-surface-hover);border-color:var(--ui-border-strong);color:#fff}
+html[data-theme="dark"] .sidebar nav :is(button,a).active{background:var(--ui-accent-soft);border-color:#2d6853;color:#8be0bf;box-shadow:inset 3px 0 var(--ui-accent)}
 html[data-theme="dark"] :is(
   .hero-call,.side-pad,.lead-file,.stats-row article,.queue-card,.table-card,
   .campaign-card,.chart-card,.provider-card,.activity-grid article,.follow-card,
@@ -2078,7 +2079,7 @@ html[data-theme] .smart-table .table-row>span:nth-child(5){white-space:normal;ov
   .app-shell{grid-template-columns:78px minmax(0,1fr)}
   .sidebar{width:78px;padding:22px 10px}
   .logo{justify-content:center;padding:0 4px 25px}.logo>div,.sidebar nav span,.sidebar nav em,.agent>div{display:none}
-  .sidebar nav button{justify-content:center;padding:0}.sidebar-foot{justify-content:center}.sidebar-foot>button{display:none}.agent{justify-content:center}.agent>span{flex:none}
+  .sidebar nav :is(button,a){justify-content:center;padding:0}.sidebar-foot{justify-content:center}.sidebar-foot>button{display:none}.agent{justify-content:center}.agent>span{flex:none}
   .workspace{grid-column:2!important;margin-left:0!important;min-width:0}
   .topbar{padding-inline:18px;gap:12px}.workspace-sync,.connection{display:none}.top-actions{gap:7px}
   .lead-line-switch{margin-left:auto}.today-workspace{padding:24px}.today-grid{grid-template-columns:1fr}
@@ -2244,7 +2245,7 @@ html[data-theme="light"] .quick-follow-up button:hover{background:#e8f7f0!import
 }
 html[data-theme] body{font-family:var(--font-ui);font-feature-settings:"kern" 1,"ss01" 1}
 html[data-theme] :is(h1,h2,h3,.title,.headline){font-family:var(--font-display);letter-spacing:-.025em}
-html[data-theme] .sidebar nav button{font-size: calc(13px * var(--workspace-text-scale, 1))!important;letter-spacing:-.005em}
+html[data-theme] .sidebar nav :is(button,a){font-size: calc(13px * var(--workspace-text-scale, 1))!important;letter-spacing:-.005em}
 html[data-theme] .topbar :is(button,.caller-id,.workspace-sync,.connection){font-size: calc(12px * var(--workspace-text-scale, 1))}
 html[data-theme] .module-bar>.eyebrow,html[data-theme] .settings-title-bar>.eyebrow{font-size: calc(12px * var(--workspace-text-scale, 1))!important}
 html[data-theme] :is(.crm-summary,.today-metrics,.report-metrics)>article>span{font-size: calc(12px * var(--workspace-text-scale, 1))!important}
@@ -2292,7 +2293,7 @@ html[data-display-size="comfortable"]{--ui-type-scale:1;--ui-control-scale:1}
 html[data-display-size="large"],html:not([data-display-size]){--ui-type-scale:1.14;--ui-control-scale:1.08}
 html[data-display-size="extra-large"]{--ui-type-scale:1.28;--ui-control-scale:1.16}
 html[data-theme] body{font-size:calc(16px * var(--ui-type-scale,1));line-height:1.5}
-html[data-theme] .sidebar nav button{min-height:calc(50px * var(--ui-control-scale,1));font-size:calc(14px * var(--ui-type-scale,1))!important}
+html[data-theme] .sidebar nav :is(button,a){min-height:calc(50px * var(--ui-control-scale,1));font-size:calc(14px * var(--ui-type-scale,1))!important}
 html[data-theme] .topbar :is(button,.caller-id,.workspace-sync,.connection){font-size:calc(12px * var(--ui-type-scale,1))!important}
 html[data-theme] :is(.module-bar>.eyebrow,.settings-title-bar>.eyebrow){font-size:calc(12px * var(--ui-type-scale,1))!important;font-weight:900}
 html[data-theme] :is(.crm-summary,.today-metrics,.report-metrics)>article>span{font-size:calc(12px * var(--ui-type-scale,1))!important;font-weight:800}

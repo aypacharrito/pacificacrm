@@ -37,9 +37,9 @@ export default function MoreScreen() {
       </Card>
 
       <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: p.text }]}>Pacifica AI</Text>
+        <Text style={[styles.sectionTitle, { color: p.text }]}>Doxa</Text>
         <Muted>Your assistant for this workspace.</Muted>
-        <Button title="Open Pacifica AI" kind="secondary" onPress={() => router.push("/ai")} />
+        <Button title="Open Doxa" kind="secondary" onPress={() => router.push("/ai")} />
       </Card>
 
       <Card style={styles.section}>

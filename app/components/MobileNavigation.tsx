@@ -3,7 +3,7 @@
 import {useEffect,useRef,useState,type ReactNode} from "react";
 import {useDialogFocus} from "../hooks/use-dialog-focus";
 
-type Item={id:string;label:string;icon:ReactNode};
+type Item={id:string;label:string;icon:ReactNode;href?:string};
 const primaryIds=["today","dialer","messages","leads"];
 
 /** Phone navigation is independent of the saved desktop sidebar width. */
@@ -52,6 +52,12 @@ export default function MobileNavigation({items,active,onNavigate,unread=0,syncS
       {primary.map(item=><button key={item.id} type="button" aria-label={item.id==="messages"&&unread?`${item.label}, ${unread} unread`:item.label} aria-current={active===item.id?"page":undefined} onClick={()=>navigate(item.id)}><span>{item.icon}{item.id==="messages"&&unread>0&&<em>{Math.min(99,unread)}</em>}</span><small>{item.label}</small></button>)}
       <button type="button" aria-label="More navigation" aria-expanded={open} aria-controls="mobile-workspace-menu" aria-current={!primaryIds.includes(active)?"page":undefined} onClick={()=>setOpen(true)}><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span><small>More</small></button>
     </nav>
-    {open&&<div className="mobile-menu-overlay" onClick={event=>{if(event.target===event.currentTarget)setOpen(false)}}><div ref={dialog} id="mobile-workspace-menu" className="mobile-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" tabIndex={-1}><header><div><small>PACIFICA</small><h2 id="mobile-menu-title">Your workspace</h2></div><button type="button" aria-label="Close navigation" onClick={()=>setOpen(false)}>×</button></header><nav aria-label="All workspace pages">{items.map(item=><button key={item.id} type="button" aria-current={active===item.id?"page":undefined} onClick={()=>navigate(item.id)}>{item.icon}<span>{item.label}</span><span aria-hidden="true">↗</span></button>)}</nav></div></div>}
+    {open&&<div className="mobile-menu-overlay" onClick={event=>{if(event.target===event.currentTarget)setOpen(false)}}><div ref={dialog} id="mobile-workspace-menu" className="mobile-menu" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" tabIndex={-1}><header><div><small>PACIFICA</small><h2 id="mobile-menu-title">Your workspace</h2></div><button type="button" aria-label="Close navigation" onClick={()=>setOpen(false)}>×</button></header><nav aria-label="All workspace pages">
+      {items.map(item=>{
+        const contents = <>{item.icon}<span>{item.label}</span><span aria-hidden="true">↗</span></>;
+        return item.href ? <a key={item.id} href={item.href}>{contents}</a> :
+          <button key={item.id} type="button" aria-current={active===item.id?"page":undefined} onClick={()=>navigate(item.id)}>{contents}</button>;
+      })}
+    </nav></div></div>}
   </>;
 }
