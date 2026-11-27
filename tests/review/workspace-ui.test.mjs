@@ -23,6 +23,10 @@ async function setup(fail,mode=defaultWorkspaceProfile.mode,preferences={}){
  const requests=[];
  globalThis.fetch=async(url,options)=>{
   requests.push({url,options});
+  if(url==='/api/ai/assistant-preference'&&preferences.assistant){
+   if(options?.method==='POST')preferences.assistant.name=JSON.parse(options.body).name;
+   return Response.json({name:preferences.assistant.name});
+  }
   if(url==='/api/crm/workspace'){
    if(typeof fail==='function'&&options?.method!=='PUT')return fail();
    if(fail&&options?.method!=='PUT')return new Response('{}',{status:503});
@@ -101,7 +105,7 @@ test('video navigation merges quote preparation into Industry Tools and billing 
   const nav=label=>document.querySelector(`.sidebar nav button[aria-label="${label}"]`);
   assert.equal(nav('Quote desk'),null);assert.equal(nav('Plans & Billing'),null);
   assert.equal(nav('Miner'),null);assert.equal(nav('Pacifica AI'),null);
-  assert.ok(document.querySelector('button[aria-label^="Open Pacifica assistant"]'));
+  assert.ok(document.querySelector('button[aria-label^="Open Doxa"]'));
   await act(async()=>nav('Industry Tools').click());assert.match(await waitForText(/Quote preparation/),/Quote preparation/);assert.match(document.body.textContent,/Scan license or policy/);assert.doesNotMatch(document.querySelector('.industry-tools').textContent,/COMING SOON/);
   await act(async()=>nav('Contacts').click());assert.ok([...document.querySelectorAll('button')].find(b=>/Export CSV/.test(b.textContent)));
   const settings=[...document.querySelectorAll('.sidebar button')].find(b=>b.getAttribute('aria-label')==='Owner settings');await act(async()=>settings.click());
@@ -169,4 +173,38 @@ test('local appearance changes paint immediately and pending saves flush on page
   await act(async()=>h.root.unmount());closed=true;
   assert.equal(JSON.parse(localStorage.getItem('pacifica:test-workspace:profile')).appearance,'dark');
  }finally{if(closed)h.dom.window.close();else await h.cleanup()}
+});
+
+test('the CRM assistant uses a saved name after reload and can reset to Doxa',async()=>{
+ const preference={name:''};
+ const click=async label=>{
+  const button=[...document.querySelectorAll('button')].find(item=>item.getAttribute('aria-label')?.startsWith(label)||item.textContent.trim()===label);
+  assert.ok(button,label);
+  await act(async()=>button.click());
+ };
+ let h=await setup(false,defaultWorkspaceProfile.mode,{assistant:preference});
+ try{
+  await click('Open Doxa.');
+  await click('Rename assistant');
+  const input=document.querySelector('#assistant-name-form input');
+  assert.ok(input);
+  await act(async()=>{
+   Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(input,'Aster');
+   input.dispatchEvent(new window.Event('input',{bubbles:true}));
+  });
+  await click('Save name');
+  assert.equal(preference.name,'Aster');
+  assert.equal(document.getElementById('assistant-label').textContent,'Aster');
+  assert.ok(document.querySelector('button[aria-label="Close Aster"]'));
+ }finally{await h.cleanup()}
+ h=await setup(false,defaultWorkspaceProfile.mode,{assistant:preference});
+ try{
+  await click('Open Aster.');
+  await waitForText(/How can I help/);
+  assert.ok(document.querySelector('[aria-label="Message Aster"]'));
+  await click('Rename assistant');
+  await click('Reset to Doxa');
+  assert.equal(preference.name,'');
+  assert.ok(document.querySelector('[aria-label="Message Doxa"]'));
+ }finally{await h.cleanup()}
 });

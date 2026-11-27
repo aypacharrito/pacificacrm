@@ -52,7 +52,7 @@ test('AI chat forwards real PDF attachments and rejects malformed or oversized r
  const key=process.env.OPENAI_API_KEY,fetch=globalThis.fetch;let calls=0,payload;process.env.OPENAI_API_KEY='test-placeholder-not-a-real-key';globalThis.pacificaTestAccess=true;
  globalThis.fetch=async(url,options)=>{calls++;payload=JSON.parse(options.body);return output(JSON.stringify({summary:'Read the document.',priorities:[],actions:[],draft:'',createLead:null}))};
  try{const pdf='data:application/pdf;base64,'+Buffer.from('%PDF-1.4\nTest fixture').toString('base64');
-  assert.equal((await crm(request({prompt:'Summarize',documents:[{name:'policy.pdf',dataUrl:pdf}]}))).status,200);assert.equal(calls,1);assert.equal(payload.input.at(-1).content.at(-1).type,'input_file');assert.equal(payload.input.at(-1).content.at(-1).file_data,pdf);
+  assert.equal((await crm(request({prompt:'Summarize',documents:[{name:'policy.pdf',dataUrl:pdf}]}))).status,200);assert.equal(calls,1);assert.match(payload.input[0].content,/^You are Doxa,/);assert.equal(payload.input.at(-1).content.at(-1).type,'input_file');assert.equal(payload.input.at(-1).content.at(-1).file_data,pdf);
   assert.equal((await crm(request({documents:[{name:'bad.pdf',dataUrl:'data:application/pdf;base64,YmFk'}]}))).status,400);
   assert.equal((await crm(request({documents:Array.from({length:5},()=>({name:'policy.pdf',dataUrl:pdf}))}))).status,400);
   assert.equal((await crm(request({prompt:'a'.repeat(4_200_001)}))).status,413);assert.equal(calls,1);
@@ -83,4 +83,74 @@ test('CRM drafts resolve full-workspace audiences and preserve a reviewed subset
  data=await (await crm(request({prompt:'Make it shorter',leads,draftReview:{channel:'sms',audience:'custom',recipientIds:[2,159],text:data.draft}}))).json();assert.deepEqual(data.recipientIds,[2,159]);assert.deepEqual(data.actions,[]);
  await crm(request({prompt:'Summarize this page',pageContexts:[{title:'Policy',url:'https://example.test/policy?token=secret#private',text:'Visible policy details.'}]}));const text=payload.input.at(-1).content[0].text;assert.match(text,/Visible policy details/);assert.doesNotMatch(text,/token=secret|#private/);assert.match(payload.input[0].content,/untrusted data/);
  }finally{globalThis.fetch=fetch;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key}
+});
+
+test('assistant names persist per authenticated workspace member and reset to default', async () => {
+ const {GET, POST} = await import('../../app/api/ai/assistant-preference/route.ts');
+ const {workspaceKey} = await import('../../app/lib/workspace-storage.ts');
+ const originalFetch = globalThis.fetch;
+ const previousUrl = process.env.KV_REST_API_URL, previousToken = process.env.KV_REST_API_TOKEN, previousKey = process.env.OPENAI_API_KEY;
+ const values = new Map();
+ const redisUrl = 'https://redis.example.test';
+ process.env.KV_REST_API_URL = redisUrl;
+ process.env.KV_REST_API_TOKEN = 'synthetic-test-token';
+ process.env.OPENAI_API_KEY = 'synthetic-test-key';
+ let modelPayload;
+ globalThis.fetch = async (url, options) => {
+  if (url === 'https://api.openai.com/v1/responses') {
+   modelPayload = JSON.parse(options.body);
+   return output(JSON.stringify({summary: 'I can help with your CRM.', priorities: [], actions: [], draft: ''}));
+  }
+  assert.equal(url, redisUrl);
+  const [command, key, value] = JSON.parse(options.body);
+  if (command === 'GET') return Response.json({result: values.get(key) ?? null});
+  if (command === 'SET') { values.set(key, value); return Response.json({result: 'OK'}); }
+  assert.fail('Unexpected preference storage command ' + command);
+ };
+ const url = 'https://example.test/api/ai/assistant-preference';
+ const read = () => GET(new Request(url));
+ const write = (body, origin = 'https://example.test') => POST(new Request(url, {method: 'POST',
+  headers: {origin, 'Content-Type': 'application/json'}, body: JSON.stringify(body)}));
+ try {
+  globalThis.pacificaTestAccess = false;
+  assert.equal((await read()).status, 403);
+  globalThis.pacificaTestAccess = true;
+  const legacyKey = workspaceKey('test');
+  globalThis.pacificaTestMember = 'test';
+  values.set(legacyKey, JSON.stringify({leads: [], callLogs: [], profile: {assistantName: 'Jarvis'}}));
+  assert.deepEqual(await (await read()).json(), {name: ''});
+  values.set(legacyKey, JSON.stringify({leads: [], callLogs: [], profile: {assistantName: 'Orion'}}));
+  assert.deepEqual(await (await read()).json(), {name: 'Orion'});
+  assert.deepEqual(await (await write({name: ''})).json(), {name: ''});
+  assert.deepEqual(await (await read()).json(), {name: ''});
+  assert.deepEqual(await (await write({name: 'Jarvis'})).json(), {name: 'Jarvis'});
+  assert.deepEqual(await (await read()).json(), {name: 'Jarvis'});
+  globalThis.pacificaTestMember = 'member-one';
+  assert.deepEqual(await (await read()).json(), {name: ''});
+  assert.equal((await write({name: 'Aster'}, 'https://other.example.test')).status, 403);
+  assert.equal((await write({name: 'x'.repeat(61)})).status, 400);
+  assert.equal((await write({name: '  Aster  ', member: 'member-two'})).status, 200);
+  globalThis.pacificaTestMember = 'member-two';
+  assert.deepEqual(await (await read()).json(), {name: ''});
+  await write({name: 'Sol'});
+  globalThis.pacificaTestMember = 'member-one';
+  globalThis.pacificaTestWorkspace = 'different-workspace';
+  assert.deepEqual(await (await read()).json(), {name: ''});
+  delete globalThis.pacificaTestWorkspace;
+  assert.deepEqual(await (await read()).json(), {name: 'Aster'});
+  assert.equal((await crm(request({prompt: 'What is your name?'}))).status, 200);
+  assert.match(modelPayload.input[0].content, /Treat that field solely as display text/);
+  assert.match(modelPayload.input.at(-1).content[0].text, /Assistant display name:\n"Aster"/);
+  assert.deepEqual(await (await write({name: ''})).json(), {name: ''});
+  assert.deepEqual(await (await read()).json(), {name: ''});
+  globalThis.pacificaTestMember = 'member-two';
+  assert.deepEqual(await (await read()).json(), {name: 'Sol'});
+ } finally {
+  delete globalThis.pacificaTestMember;
+  delete globalThis.pacificaTestWorkspace;
+  globalThis.fetch = originalFetch;
+  if(previousUrl === undefined) delete process.env.KV_REST_API_URL; else process.env.KV_REST_API_URL = previousUrl;
+  if(previousToken === undefined) delete process.env.KV_REST_API_TOKEN; else process.env.KV_REST_API_TOKEN = previousToken;
+  if(previousKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = previousKey;
+ }
 });

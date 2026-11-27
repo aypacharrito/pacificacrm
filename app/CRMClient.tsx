@@ -16,7 +16,7 @@ import MobileNavigation from "./components/MobileNavigation";
 import SettingsUpdateCheck from "./components/SettingsUpdateCheck";
 import GmailTriagePanel from "./components/GmailTriagePanel";
 import ConnectedAccounts,{ConnectedHealth} from "./components/connected/ConnectedAccounts";
-import AssistantLauncher,{type AssistantActivity} from "./components/connected/AssistantLauncher";
+import AssistantLauncher,{defaultAssistantName,type AssistantActivity} from "./components/connected/AssistantLauncher";
 import connectedStyles from "./components/connected/Connected.module.css";
 import CallTimer from "./components/CallTimer";
 import {callDurationSeconds,formatCallDuration} from "./lib/call-duration";
@@ -188,6 +188,30 @@ function Icon({name}:{name:string}) {
 export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=false,featureAccess=defaultPlatformFeatures,workspaceId="local",currentUserName="Pacifica user",currentUserEmail="",userRole="owner"}:{clerkEnabled?:boolean;isOwner?:boolean;isPlatformOwner?:boolean;featureAccess?:PlatformFeatures;workspaceId?:string;currentUserName?:string;currentUserEmail?:string;userRole?:string}){
   const [view,setView]=useState<View>("today");
   const [assistantOpen,setAssistantOpen]=useState(false);
+  const [assistantName,setAssistantName]=useState(defaultAssistantName);
+  const assistantNameRevision=useRef(0);
+  useEffect(()=>{
+    if(!clerkEnabled)return;
+    const controller=new AbortController();
+    const revision=assistantNameRevision.current;
+    void fetch('/api/ai/assistant-preference',{cache:'no-store',signal:controller.signal}).then(async response=>{
+      if(!response.ok)return;
+      const data=await response.json();
+      if(!controller.signal.aborted&&assistantNameRevision.current===revision&&typeof data.name==='string')
+        setAssistantName(data.name||defaultAssistantName);
+    }).catch(()=>{});
+    return ()=>controller.abort();
+  },[clerkEnabled,workspaceId,currentUserEmail]);
+
+  async function renameAssistant(name:string){
+    const response=await fetch('/api/ai/assistant-preference',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name}),
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||typeof data.name!=='string')throw Error(data.error||'The assistant name could not be saved.');
+    assistantNameRevision.current++;
+    setAssistantName(data.name||defaultAssistantName);
+  }
   const [linkedMail,setLinkedMail]=useState("");
   const [linkedEvent,setLinkedEvent]=useState<{source?:string;day?:string;item?:string}>({});
   const [connectedCallback,setConnectedCallback]=useState("");
@@ -270,6 +294,7 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
   const incomingCallRef=useRef<Call|null>(null);
   const [resumeAfterWrap,setResumeAfterWrap]=useState(false);
   const [workspaceProfile,setWorkspaceProfile]=useState<WorkspaceProfile>(defaultWorkspaceProfile);
+  const visibleAssistantName=clerkEnabled?assistantName:workspaceProfile.assistantName||defaultAssistantName;
   const [priorityNow,setPriorityNow]=useState(()=>Date.now());
   const [workspaceSyncStatus,setWorkspaceSyncStatus]=useState("Loading workspace…");
   const [workspaceSavePulse,setWorkspaceSavePulse]=useState(0);
@@ -1464,7 +1489,7 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
       <div hidden={view!=="messages"} className="page-view messages-view"><MessagesCenter visible={view==="messages"} key={`${workspaceId}:${messageTarget?.leadId||"inbox"}:${messageTarget?.channel||"sms"}`} workspaceId={workspaceId} profile={workspaceProfile} leads={leads} initialLeadId={messageTarget?.leadId} initialChannel={messageTarget?.channel} onOpenContact={id=>setSelectedLead(id)} onCloseLead={id=>updateLead(id,{stage:"Closed",status:"Closed",outcome:"Not interested",followUp:"",automationEnabled:false,automationNextAt:"",automationStatus:"complete",automationUpdatedAt:new Date().toISOString()})} onPatch={(id,patch)=>updateLead(id,patch as Partial<Lead>)} onProfileChange={setWorkspaceProfile}/></div>
 
 
-      <AssistantLauncher open={assistantOpen} activity={aiActivity} blocked={showNewLead||Boolean(activeLead)||Boolean(growthLead)||Boolean(incomingCall)||Boolean(postCallLeadId)||folderOpen} away={view==="dialer"||view==="messages"||view==="connected-mail"} onOpen={()=>setAssistantOpen(true)} onClose={closeAssistant}><AiCommandCenter soundOwner={currentUserEmail} onSource={openAssistantSource} onScanFolder={openFolder} callBusy={dialing||autoDialing||Boolean(incomingCall)||Boolean(postCallLeadId)} onNavigate={next=>{if(next==="settings")setSettingsSection("integrations");openView(next)}} clerkEnabled={clerkEnabled} onQuoteRequests={()=>setQuoteReviewOpen(open=>!open)} visible={assistantOpen&&!showNewLead&&!activeLead&&!growthLead&&!incomingCall&&!postCallLeadId&&!folderOpen} onActivity={setAiActivity} key={workspaceId} workspaceId={workspaceId} activeLine={activeLine} profile={workspaceProfile} leads={allLeads} recentCalls={callLogs} onApply={applyAiAction} onCreateLead={createAiLead} onOpen={id=>setSelectedLead(id)} onCall={callLeadById}>{quoteReviewOpen&&assistantOpen&&<OpportunityDesk leads={leads} initialLeadId={quoteRequestLeadId} onOpen={setSelectedLead} onMessage={id=>{const item=leads.find(l=>l.id===id);if(item)openLeadMessage(item,"sms")}} onRefresh={async()=>{const response=await fetch("/api/crm/workspace",{cache:"no-store"});if(!response.ok)throw Error("Contact refresh failed. Your reviewed request remains saved.");const data=await response.json();setLeads(current=>mergeIncomingContacts(current,normalizeSavedLeads(data.leads)));}}/>}</AiCommandCenter></AssistantLauncher>
+      <AssistantLauncher name={visibleAssistantName} onRename={clerkEnabled?renameAssistant:undefined} open={assistantOpen} activity={aiActivity} blocked={showNewLead||Boolean(activeLead)||Boolean(growthLead)||Boolean(incomingCall)||Boolean(postCallLeadId)||folderOpen} away={view==="dialer"||view==="messages"||view==="connected-mail"} onOpen={()=>setAssistantOpen(true)} onClose={closeAssistant}><AiCommandCenter assistantName={visibleAssistantName} soundOwner={currentUserEmail} onSource={openAssistantSource} onScanFolder={openFolder} callBusy={dialing||autoDialing||Boolean(incomingCall)||Boolean(postCallLeadId)} onNavigate={next=>{if(next==="settings")setSettingsSection("integrations");openView(next)}} clerkEnabled={clerkEnabled} onQuoteRequests={()=>setQuoteReviewOpen(open=>!open)} visible={assistantOpen&&!showNewLead&&!activeLead&&!growthLead&&!incomingCall&&!postCallLeadId&&!folderOpen} onActivity={setAiActivity} key={workspaceId} workspaceId={workspaceId} activeLine={activeLine} profile={workspaceProfile} leads={allLeads} recentCalls={callLogs} onApply={applyAiAction} onCreateLead={createAiLead} onOpen={id=>setSelectedLead(id)} onCall={callLeadById}>{quoteReviewOpen&&assistantOpen&&<OpportunityDesk leads={leads} initialLeadId={quoteRequestLeadId} onOpen={setSelectedLead} onMessage={id=>{const item=leads.find(l=>l.id===id);if(item)openLeadMessage(item,"sms")}} onRefresh={async()=>{const response=await fetch("/api/crm/workspace",{cache:"no-store"});if(!response.ok)throw Error("Contact refresh failed. Your reviewed request remains saved.");const data=await response.json();setLeads(current=>mergeIncomingContacts(current,normalizeSavedLeads(data.leads)));}}/>}</AiCommandCenter></AssistantLauncher>
 
 
       {view==="clients"&&<div className="page-view clients-view"><ClientPortfolio leads={leads} profile={workspaceProfile} onOpen={id=>setSelectedLead(id)} onPatch={(id,patch)=>updateLead(id,patch as Partial<Lead>)} onProfileChange={setWorkspaceProfile} onImportDocument={openDocumentPicker}/></div>}
