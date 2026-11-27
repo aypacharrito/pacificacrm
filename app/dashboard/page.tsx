@@ -7,6 +7,7 @@ import { isPacificaPlatformOwnerEmail, requirePacificaWorkspacePage } from "../l
 import { isClerkConfigured } from "../lib/clerk-config";
 import { redirect } from "next/navigation";
 import {getPlatformFeatures} from "../lib/platform-feature-store";
+import {canOpenArchon} from "../lib/archon-owner";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function DashboardPage(){
         clerkEnabled
         isOwner={access.role==="owner"||access.role==="manager"}
         isPlatformOwner={isPacificaPlatformOwnerEmail(access.email)}
+        archonOwner={canOpenArchon(access)}
         featureAccess={await getPlatformFeatures()}
         workspaceId={access.userId}
         accountUserId={access.accountUserId}

@@ -35,10 +35,20 @@ async function setup(fail,mode=defaultWorkspaceProfile.mode,preferences={}){
   return new Response(JSON.stringify({configured:false,phone:'',leads:[]}));
  };
  const {createRoot}=await import('react-dom/client');const root=createRoot(document.getElementById('root'));
- await act(async()=>root.render(React.createElement(CRM,{clerkEnabled:!preferences.local,isOwner:true,workspaceId:'test-workspace',featureAccess:preferences.features})));
+ await act(async()=>root.render(React.createElement(CRM,{clerkEnabled:!preferences.local,isOwner:true,archonOwner:preferences.archonOwner,workspaceId:'test-workspace',featureAccess:preferences.features})));
  await act(async()=>new Promise(resolve=>setTimeout(resolve,750)));
  return {dom,root,requests,cleanup:async()=>{await act(async()=>root.unmount());dom.window.close()}};
 }
+test('the Archon entry is limited to the authorized owner in desktop and phone navigation',async()=>{
+ for (const archonOwner of [false,true]) {
+  const h=await setup(false,defaultWorkspaceProfile.mode,{archonOwner});
+  try {
+   assert.equal(document.querySelectorAll('.sidebar nav a[href="/dashboard/archon"]').length,archonOwner?1:0);
+   await act(async()=>document.querySelector('button[aria-label="More navigation"]').click());
+   assert.equal(document.querySelectorAll('.mobile-menu a[href="/dashboard/archon"]').length,archonOwner?1:0);
+  } finally {await h.cleanup()}
+ }
+});
 test('a failed initial cloud read never starts an empty workspace save',async()=>{
  const h=await setup(true);
  assert.match(document.querySelector('.workspace-load-card').textContent,/couldn’t load/);
@@ -104,7 +114,7 @@ test('video navigation merges quote preparation into Industry Tools and billing 
  try{
   const nav=label=>document.querySelector(`.sidebar nav button[aria-label="${label}"]`);
   assert.equal(nav('Quote desk'),null);assert.equal(nav('Plans & Billing'),null);
-  assert.equal(nav('Miner'),null);assert.equal(nav('Pacifica AI'),null);
+  assert.equal(nav('Miner'),null);assert.equal(nav('Doxa'),null);
   assert.ok(document.querySelector('button[aria-label^="Open Doxa"]'));
   await act(async()=>nav('Industry Tools').click());assert.match(await waitForText(/Quote preparation/),/Quote preparation/);assert.match(document.body.textContent,/Scan license or policy/);assert.doesNotMatch(document.querySelector('.industry-tools').textContent,/COMING SOON/);
   await act(async()=>nav('Contacts').click());assert.ok([...document.querySelectorAll('button')].find(b=>/Export CSV/.test(b.textContent)));

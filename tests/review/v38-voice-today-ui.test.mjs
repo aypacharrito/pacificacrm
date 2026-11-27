@@ -18,10 +18,10 @@ function microphone(){let permissions=0,stops=0;const stream={getTracks:()=>[{st
  globalThis.MediaRecorder=class{static isTypeSupported(){return true}mimeType='audio/webm';state='inactive';start(){this.state='recording'}stop(){this.state='inactive';this.ondataavailable?.({data:new Blob(['audio'],{type:'audio/webm'})});void this.onstop?.()}};
  return {get permissions(){return permissions},get stops(){return stops},stream};
 }
-test('Pacifica AI voice adds editable words, blocks sending during recording, and never sends automatically',async()=>{
+test('Doxa voice adds editable words, blocks sending during recording, and never sends automatically',async()=>{
  const original=globalThis.fetch,posts=[];globalThis.fetch=async(url,options)=>{if(options?.method==='POST')posts.push(String(url));if(String(url)==='/api/ai/transcribe')return Response.json({text:'Check today’s unfinished requests.'});return Response.json({providerConfigured:true,configured:true,rules:[]})};
  const h=await mount(React.createElement(AiCommandCenter,{visible:true,workspaceId:'test',profile:defaultWorkspaceProfile,leads:[],recentCalls:[],onActivity(){},onApply(){},onCreateLead(){},onOpen(){},onCall(){}}));const mic=microphone();
- try{assert.equal(mic.permissions,0);await click('[aria-label="Voice input"]');assert.equal(mic.permissions,1);assert.equal(document.querySelector('[aria-label="Send to Pacifica AI"]').disabled,true);await click('[aria-label="Finish recording"]');assert.equal(document.querySelector('textarea').value,'Check today’s unfinished requests.');assert.deepEqual(posts,['/api/ai/transcribe']);assert.equal(document.querySelector('[aria-label="Send to Pacifica AI"]').disabled,false);assert.ok(mic.stops>0)}finally{await h.close();globalThis.fetch=original;delete globalThis.MediaRecorder}
+ try{assert.equal(mic.permissions,0);await click('[aria-label="Voice input"]');assert.equal(mic.permissions,1);assert.equal(document.querySelector('[aria-label="Send to Doxa"]').disabled,true);await click('[aria-label="Finish recording"]');assert.equal(document.querySelector('textarea').value,'Check today’s unfinished requests.');assert.deepEqual(posts,['/api/ai/transcribe']);assert.equal(document.querySelector('[aria-label="Send to Doxa"]').disabled,false);assert.ok(mic.stops>0)}finally{await h.close();globalThis.fetch=original;delete globalThis.MediaRecorder}
 });
 test('cancelled transcription cannot append late words and releases the microphone',async()=>{
  const original=globalThis.fetch,words=[];let finish,signal;globalThis.fetch=async(_url,options)=>{signal=options.signal;return new Promise(resolve=>{finish=resolve})};
@@ -47,7 +47,7 @@ test('AI revisions preserve the selected audience and channel when the provider 
   return Response.json({providerConfigured:true,configured:true,rules:[]});
  };
  const h=await mount(React.createElement(AiCommandCenter,{visible:true,workspaceId:'test',profile:defaultWorkspaceProfile,leads,recentCalls:[],onActivity(){},onApply(){},onCreateLead(){},onOpen(){},onCall(){}}));
- async function ask(value){const input=document.querySelector('[aria-label="Message Pacifica AI"]');await act(async()=>{Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set.call(input,value);input.dispatchEvent(new window.Event('input',{bubbles:true}))});await click('[aria-label="Send to Pacifica AI"]')}
+ async function ask(value){const input=document.querySelector('[aria-label="Message Doxa"]');await act(async()=>{Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set.call(input,value);input.dispatchEvent(new window.Event('input',{bubbles:true}))});await click('[aria-label="Send to Doxa"]')}
  try{
   await ask('Write texts for all followups');assert.match(document.querySelector('.ai-selection-heading').textContent,/3 selected/);
   await click('.ai-recipient-list input');assert.match(document.querySelector('.ai-selection-heading').textContent,/2 selected/);
