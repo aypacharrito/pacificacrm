@@ -5,7 +5,7 @@ import {runDailyOutreach} from './daily-outreach';
 import {runFollowUpAutomation} from './follow-up-engine';
 import {runClientReminderAutomation} from './client-reminder-engine';
 import {runOfficeReminders} from './office-reminder-engine';
-export async function runScheduledAutomation(options:{workspaceId?:string;workspaceLimit?:number;sendLimit?:number}={}){
+export async function runScheduledAutomation(options:{workspaceId?:string;workspaceLimit?:number;sendLimit?:number;trigger?:'manual'|'scheduled'}={}){
  const key='pacifica:v2:automation:run-lease',token=crypto.randomUUID();
  if(!await acquireAutomationLease(key,token))return {ok:true,alreadyRunning:true};
  try{

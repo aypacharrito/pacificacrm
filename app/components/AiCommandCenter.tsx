@@ -69,7 +69,7 @@ async function imageForAi(file:File){
   }finally{bitmap.close()}
 }
 
-export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,onApply,onCreateLead,onOpen,onCall,workspaceId,profile,onActivity,onQuoteRequests,onNavigate,callBusy=false,onAutopilot,onScanFolder,children,visible=false,onSource,soundOwner="",assistantName}:{assistantName?:string;soundOwner?:string;onSource?:(href:string)=>void;clerkEnabled?:boolean;callBusy?:boolean;onAutopilot?:()=>void;onScanFolder?:(goal?:string)=>void;children?:ReactNode;onQuoteRequests?:()=>void;onNavigate?:(view:"messages"|"office"|"settings")=>void;visible?:boolean;onActivity:(state:AssistantActivity)=>void;workspaceId:string;activeLine:"life"|"home-auto";profile:WorkspaceProfile;leads:Lead[];recentCalls:RecentCall[];onApply:(action:AiAction)=>void;onCreateLead:(lead:AiCreateLead)=>void;onOpen:(leadId:number)=>void;onCall:(leadId:number)=>void}){
+export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,onApply,onCreateLead,onOpen,onCall,workspaceId,accountUserId="",profile,onActivity,onQuoteRequests,onNavigate,callBusy=false,onAutopilot,onScanFolder,children,visible=false,onSource,soundOwner="",assistantName}:{assistantName?:string;soundOwner?:string;onSource?:(href:string)=>void;clerkEnabled?:boolean;callBusy?:boolean;onAutopilot?:()=>void;onScanFolder?:(goal?:string)=>void;children?:ReactNode;onQuoteRequests?:()=>void;onNavigate?:(view:"messages"|"office"|"settings")=>void;visible?:boolean;onActivity:(state:AssistantActivity)=>void;workspaceId:string;accountUserId?:string;activeLine:"life"|"home-auto";profile:WorkspaceProfile;leads:Lead[];recentCalls:RecentCall[];onApply:(action:AiAction)=>void;onCreateLead:(lead:AiCreateLead)=>void;onOpen:(leadId:number)=>void;onCall:(leadId:number)=>void}){
   const {t,writingLanguage}=useLanguage();
   const assistantTitle=assistantName||"Pacifica AI";
   const replyName=assistantName||"Pacifica";
@@ -230,7 +230,7 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
         <button type="button" aria-pressed={muted} onClick={toggleSound}>{muted?"Unmute replies":"Mute replies"}</button></div>{spokenError&&<small role="alert">{spokenError}</small>}</div></div></section>}
 
       {!result&&<section className="ai-starters">{clerkEnabled&&[
-        ["Today’s calendar","What is on my calendar today?"],["Starred mail","Which starred emails need a response?"],["Carrier follow-ups","Show carrier follow-ups from these accounts"],
+          ["Needs me today","What needs me today?"],["Asked for a call","¿Quién pidió que le llamara?"],["Today's calendar","What is on my calendar today?"],["Starred mail","Which starred emails need a response?"],["Carrier follow-ups","Show carrier follow-ups from these accounts"],
       ].map(([label,question])=><button type="button" key={label} onClick={()=>void run(question)} disabled={loading||sending||dictating}><b>{label}</b></button>)}{quickPrompts.map(item=><button key={item.title} onClick={()=>void run(item.prompt)} disabled={!eligible.length||loading||sending||dictating}><b>{item.title}</b><span>{item.detail}</span><em>→</em></button>)}</section>}
 
       {cameraOpen&&<AiCamera onClose={()=>setCameraOpen(false)} onCapture={file=>void addFiles([file])}/>}
@@ -267,7 +267,7 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
 
     </aside>}
     </div>
-    {pagesOpen&&visible&&<ConnectedPages workspaceId={workspaceId} onClose={closePages} onNavigate={onNavigate} onAdd={page=>{setPageContexts(items=>[...items,page].slice(-3));composerRef.current?.focus()}}/>}
+    {pagesOpen&&visible&&<ConnectedPages workspaceId={workspaceId} memberId={accountUserId} onClose={closePages} onNavigate={onNavigate} onAdd={page=>{setPageContexts(items=>[...items,page].slice(-3));composerRef.current?.focus()}}/>}
     {result&&<button type="button" className="ai-new-chat" onClick={reset} disabled={loading||sending}>New request</button>}
   </div>;
 }

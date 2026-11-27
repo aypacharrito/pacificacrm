@@ -19,7 +19,7 @@ export function NativeVoiceProvider({children}:{children:React.ReactNode}){
  const workspaceRef=useRef(workspace);workspaceRef.current=workspace;
  const getTokenRef=useRef(getToken);getTokenRef.current=getToken;
  const voice=useRef<Voice|null>(null),sdk=useRef<typeof import('@twilio/voice-react-native-sdk')|null>(null),credentials=useRef<Credentials|null>(null);
- const active=useRef<Call|null>(null),invite=useRef<CallInvite|null>(null),generation=useRef(0),starting=useRef(false),enabled=useRef(false);
+ const active=useRef<Call|null>(null),invite=useRef<CallInvite|null>(null),generation=useRef(0),starting=useRef(false),dialing=useRef(false),enabled=useRef(false);
  const [status,setStatus]=useState<NativeVoice['status']>('off'),[notice,setNotice]=useState('Native Android calls are off.'),[number,setNumber]=useState(''),[busy,setBusy]=useState(false),[panel,setPanel]=useState(false),[ringing,setRinging]=useState(false),[muted,setMuted]=useState(false);
  const [callNote,setCallNote]=useState<CallNoteDraft|null>(null);
  const preference=`pacifica:${userId||'signed-out'}:native-voice`;
@@ -29,19 +29,19 @@ export function NativeVoiceProvider({children}:{children:React.ReactNode}){
   active.current=call;invite.current=null;setRinging(false);setBusy(true);setPanel(true);
   const external=dialedNumber||([call.getFrom(),call.getTo()].find(v=>v&&/^\+?\d{10,15}$/.test(v))||number);
   setNumber(external);let connected=call.getState()==='connected';setNotice(connected?'Connected':'Connecting…');
-  call.on(sdk.current.Call.Event.Connected,()=>{connected=true;setNotice('Connected')});
+  call.on(sdk.current.Call.Event.Connected,()=>{if(active.current!==call)return;connected=true;setNotice('Connected')});
   const finish=()=>{if(active.current!==call)return;active.current=null;setBusy(false);setPanel(false);setMuted(false);setNotice(enabled.current?'Ready for incoming calls':'Native Android calls are off.');
    if(connected){const matches=workspaceRef.current.leads.filter(l=>!l.deletedAt&&digits(l.phone)===digits(external));setCallNote({key:'mobile:'+Date.now()+'-'+Math.random().toString(36).slice(2),number:external,leadId:matches.length===1?matches[0]!.id:null,notes:'',outcome:'Completed'})}
   };
   call.on(sdk.current.Call.Event.Disconnected,finish);
-  call.on(sdk.current.Call.Event.ConnectFailure,error=>{finish();showError(error)});
+  call.on(sdk.current.Call.Event.ConnectFailure,error=>{if(active.current!==call)return;finish();showError(error)});
  }
  async function initialize(){
   if(voice.current)return voice.current;
   const twilioSdk=await import('@twilio/voice-react-native-sdk');sdk.current=twilioSdk;const driver=new twilioSdk.Voice();voice.current=driver;
   driver.on(twilioSdk.Voice.Event.Error,showError);
   driver.addListener(twilioSdk.Voice.Event.CallInvite,(pending:CallInvite)=>{
-   if(!enabled.current||active.current){void pending.reject();return;}
+   if(!enabled.current||active.current||dialing.current||(invite.current&&invite.current!==pending)){void pending.reject();return;}
    invite.current=pending;setRinging(true);setBusy(true);setPanel(true);setNumber(pending.getFrom());setNotice('Incoming Pacifica call');
    pending.on(twilioSdk.CallInvite.Event.Accepted,attachCall);
    const clear=()=>{if(invite.current!==pending)return;invite.current=null;setRinging(false);setBusy(false);setPanel(false);};
@@ -55,14 +55,14 @@ export function NativeVoiceProvider({children}:{children:React.ReactNode}){
  }
  const register=useCallback(async(prompt=false)=>{
   if(Platform.OS!=='android'||!isSignedIn||starting.current)return;
-  const run=generation.current;starting.current=true;setStatus('starting');setNotice('Connecting native calls…');
+  const run=generation.current;starting.current=true;setStatus('starting');if(!active.current&&!invite.current)setNotice('Connecting native calls…');
   try{
    await permissions(prompt);const auth=await getTokenRef.current();if(!auth)throw Error('Sign in before enabling calls.');
    const next=await crmRequest<Credentials>(auth,'/api/twilio/token?platform=android');if(run!==generation.current)return;
    const driver=await initialize();if(run!==generation.current)return;credentials.current=next;enabled.current=true;
    await driver.register(next.token);
    if(run!==generation.current){await driver.unregister(next.token).catch(()=>{});return;}
-   setStatus('ready');setNotice('Ready for incoming calls');
+   setStatus('ready');if(!active.current&&!invite.current)setNotice('Ready for incoming calls');
    for(const pending of (await driver.getCallInvites()).values())driver.emit(sdk.current!.Voice.Event.CallInvite,pending);
    for(const call of (await driver.getCalls()).values())if(call.getState()!=='disconnected'){attachCall(call);break;}
   }catch(error){if(run===generation.current){enabled.current=false;showError(error)}}finally{starting.current=false;}
@@ -78,17 +78,20 @@ export function NativeVoiceProvider({children}:{children:React.ReactNode}){
  },[userId,isSignedIn,preference]);
  async function enable(){await AsyncStorage.setItem(preference,'on');await register(true)}
  async function disable(){
-  if(active.current)throw Error('End the active call before turning incoming calls off.');
+  if(active.current||invite.current||dialing.current)throw Error('Finish the current call before turning incoming calls off.');
   await AsyncStorage.setItem(preference,'off');enabled.current=false;generation.current++;
   try{if(voice.current&&credentials.current)await voice.current.unregister(credentials.current.token)}
   finally{setStatus('off');setNotice('Native Android calls are off.');}
  }
  async function connect(value:string){
-  if(active.current||invite.current)throw Error('Finish the current call first.');if(callNote)throw Error('Save or skip your after-call notes first.');const phone=digits(value);if(phone.length!==10)throw Error('Enter a US or Canadian phone number.');
+  if(active.current||invite.current||dialing.current)throw Error('Finish the current call first.');if(callNote)throw Error('Save or skip your after-call notes first.');const phone=digits(value);if(phone.length!==10)throw Error('Enter a US or Canadian phone number.');
   if(workspaceRef.current.leads.some(l=>digits(l.phone)===phone&&(l.doNotCall||l.deletedAt)))throw Error('This contact is marked Do Not Call.');
-  await permissions(true);const auth=await getTokenRef.current();if(!auth)throw Error('Sign in before calling.');
-  const next=await crmRequest<Credentials>(auth,'/api/twilio/token?platform=android'),driver=await initialize();credentials.current=next;
-  const call=await driver.connect(next.token,{notificationDisplayName:'Pacifica',params:{To:'+1'+phone,RouteToken:next.routeToken,RingTimeout:'20'}});setNumber('+1'+phone);attachCall(call,'+1'+phone);
+  dialing.current=true;
+  try{
+   await permissions(true);const auth=await getTokenRef.current();if(!auth)throw Error('Sign in before calling.');
+   const next=await crmRequest<Credentials>(auth,'/api/twilio/token?platform=android'),driver=await initialize();credentials.current=next;
+   const call=await driver.connect(next.token,{notificationDisplayName:'Pacifica',params:{To:'+1'+phone,RouteToken:next.routeToken,RingTimeout:'20'}});setNumber('+1'+phone);attachCall(call,'+1'+phone);
+  }finally{dialing.current=false}
  }
  const contact=workspace.leads.find(l=>digits(l.phone)===digits(number));
  const button=(label:string,onPress:()=>void,danger=false)=><Pressable accessibilityRole="button" onPress={onPress} style={{minHeight:52,alignItems:'center',justifyContent:'center',padding:16,borderRadius:12,backgroundColor:danger?palette.danger:palette.green,flex:1}}><Text style={{fontWeight:'700',color:'#fff'}}>{label}</Text></Pressable>;

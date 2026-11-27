@@ -28,6 +28,6 @@ export async function GET(){
 
 export async function POST(){
   const workspace=await access();if(!workspace)return Response.json({error:"Workspace access required"},{status:403});
-  try{return Response.json(await runScheduledAutomation({workspaceId:workspace.userId,workspaceLimit:1,sendLimit:50}))}
+  try{return Response.json(await runScheduledAutomation({workspaceId:workspace.userId,workspaceLimit:1,sendLimit:50,trigger:'manual'}))}
   catch(error){return Response.json({error:error instanceof Error?error.message:"Automation run failed"},{status:500})}
 }

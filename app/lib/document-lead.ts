@@ -80,14 +80,18 @@ export function documentLeadImportedFields(extraction:DocumentLeadExtraction){
   const pairs:Array<[string,string]>=[
     ["Document type",extraction.documentType],["Full name",documentLeadName(extraction)],["Phone",extraction.phone],["Email",extraction.email],
     ["Street address",extraction.address],["City",extraction.city],["State",extraction.state],["ZIP",extraction.zip],["Date of birth",extraction.dateOfBirth],
-    ["Driver license number",extraction.licenseNumber],["Driver license state",extraction.licenseState],
-    ["Driver license expiration",extraction.licenseExpiration],["Policy number",extraction.policyNumber],
+    ["Policy number",extraction.policyNumber],
     ["Insurance carrier",extraction.carrier],["Policy effective date",extraction.policyEffectiveDate],
     ["Policy expiration date",extraction.policyExpirationDate],["VIN",extraction.vin],
     ["Vehicle year",extraction.vehicleYear],["Vehicle make",extraction.vehicleMake],["Vehicle model",extraction.vehicleModel],
     ["Policy premium",extraction.policyPremium],["Policy term months",extraction.policyTermMonths],
     ["Billing frequency",extraction.billingFrequency],["Installment amount",extraction.installmentAmount],
-    ...extraction.otherFields.map(field=>[field.label,field.value] as [string,string]),
+    ...extraction.otherFields.filter(field=>!/(?:licen[sc]e|identification|\bid card\b)/i.test(extraction.documentType)&&!/(?:driver'?s?\s*licen[sc]e|\bDL\b|identification|\bID\s*(?:no\.?|number)|restriction|\bsex\b|\beyes?\b|\bhair\b|\bheight\b|\bweight\b)/i.test(field.label)&&!(extraction.licenseNumber.length>=5&&field.value.includes(extraction.licenseNumber))).map(field=>[field.label,field.value] as [string,string]),
   ];
   return Object.fromEntries(pairs.filter(([,value])=>Boolean(value)));
+}
+
+export function reviewedDocumentLeadFields(fields:Record<string,string>,reviewed:{name:string;address:string;city:string;state:string;zip:string;dateOfBirth:string;policyNumber:string;policyEffectiveDate:string;policyExpirationDate:string;vin:string}){
+  const next={...fields,"Full name":reviewed.name,"Street address":reviewed.address,"City":reviewed.city,"State":reviewed.state,"ZIP":reviewed.zip,"Date of birth":reviewed.dateOfBirth,"Policy number":reviewed.policyNumber,"Policy effective date":reviewed.policyEffectiveDate,"Policy expiration date":reviewed.policyExpirationDate,"VIN":reviewed.vin};
+  return Object.fromEntries(Object.entries(next).filter(([key,value])=>Boolean(value)&&!/(?:driver'?s?\s*licen[sc]e|\bDL\b|identification)/i.test(key)));
 }

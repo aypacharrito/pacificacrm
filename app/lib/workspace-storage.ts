@@ -36,6 +36,7 @@ export type StoredWorkspace = {
   conversationCalendar?: ConversationCalendar;
   aiControl?: AiControl;
   quoteIntake?: QuoteIntakeState;
+  vehiclePartnerLinks?:string[];
   officeItems?: OfficeItem[];
   leads: unknown[];
   callLogs: unknown[];
@@ -85,6 +86,7 @@ export function cleanWorkspacePayload(value: unknown): StoredWorkspace {
     ...(body.aiControl?{aiControl:cleanAiControl(body.aiControl)}:{}),
     ...(body.officeItems?{officeItems:cleanOfficeItems(body.officeItems)}:{}),
     ...(body.quoteIntake?{quoteIntake:cleanQuoteIntake(body.quoteIntake)}:{}),
+    ...(Array.isArray(body.vehiclePartnerLinks)?{vehiclePartnerLinks:body.vehiclePartnerLinks.filter((id):id is string=>typeof id==='string'&&/^[0-9a-f-]{36}$/i.test(id)).slice(-50)}:{}),
   };
 }
 
@@ -312,6 +314,7 @@ export function mergeStoredWorkspace(
     conversationCalendar:server.conversationCalendar,
     officeItems:reconcileCallCalendar(rawServerLeads,leads,server.officeItems),
     ...(server.quoteIntake?{quoteIntake:server.quoteIntake}:{}),
+    ...(server.vehiclePartnerLinks?{vehiclePartnerLinks:server.vehiclePartnerLinks}:{}),
   });
 }
 

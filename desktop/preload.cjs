@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld("pacificaDesktop",{
   getSystemAppearance:()=>ipcRenderer.invoke('pacifica:system-appearance'),
   onSystemAppearance:callback=>{if(typeof callback!=='function')return ()=>{};const handler=(_event,value)=>callback(value);ipcRenderer.on('pacifica:system-appearance',handler);return ()=>ipcRenderer.removeListener('pacifica:system-appearance',handler)},
   connectedBrowser:{
-    open:(url,workspaceId)=>ipcRenderer.invoke('pacifica:page-open',url,workspaceId),
+    supportsMemberBinding:true,
+    open:(url,workspaceId,memberId)=>ipcRenderer.invoke('pacifica:page-open',url,workspaceId,memberId),
     bounds:value=>ipcRenderer.invoke('pacifica:page-bounds',value),
     action:name=>ipcRenderer.invoke('pacifica:page-action',name),
     capture:()=>ipcRenderer.invoke('pacifica:page-capture'),

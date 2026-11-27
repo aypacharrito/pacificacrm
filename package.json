@@ -18,6 +18,7 @@
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "pretest:unit": "npm run sync:assets",
     "test:unit": "node scripts/test-unit.mjs",
+    "test:dealer-pilot": "node scripts/test-dealer-pilot.mjs",
     "verify:vercel": "npm run lint && npm run typecheck && npm run test:unit && npm run test:routes && npm run test:ui && VERCEL=1 npm run build",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern public/clearvoice --ignore-pattern public/scanner",

@@ -22,6 +22,7 @@ export default async function DashboardPage(){
         isPlatformOwner={isPacificaPlatformOwnerEmail(access.email)}
         featureAccess={await getPlatformFeatures()}
         workspaceId={access.userId}
+        accountUserId={access.accountUserId}
         currentUserName={access.displayName}
         currentUserEmail={access.email}
         userRole={access.role}

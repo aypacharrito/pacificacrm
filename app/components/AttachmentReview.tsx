@@ -1,35 +1,36 @@
 "use client";
-import {useEffect,useRef,useState} from 'react';
+import {useRef,useState} from 'react';
 import type {StoredCommunication} from '../lib/communications';
 type Contact={id:number;name:string;communications?:StoredCommunication[]};
 export default function AttachmentReview({leads}:{leads:Contact[]}){
- const [leadId,setLeadId]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false);
- const input=useRef<HTMLInputElement>(null),running=useRef(false),reviewed=useRef(new Set<string>()),current=useRef(leads);
- useEffect(()=>{current.current=leads},[leads]);
+ const [leadId,setLeadId]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[approved,setApproved]=useState(false),[kind,setKind]=useState<'policy'|'other'>('policy'),[savedIndex,setSavedIndex]=useState('');
+ const input=useRef<HTMLInputElement>(null);
+ const saved=(leads.find(lead=>String(lead.id)===leadId)?.communications||[]).flatMap(message=>(message.attachments||[]).flatMap((file,index)=>/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)&&/^\/api\/(message-media|email\/media|twilio\/messages)\//.test(file.url)?[{messageId:message.id,index,name:file.name||'Attachment',url:file.url}]:[]));
  async function review(body:Record<string,unknown>){
-  if(running.current)return;running.current=true;setBusy(true);
-  try{const response=await fetch('/api/crm/review-attachment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Error(data.error||'File review failed.');setStatus(data.alreadyReviewed?'Already reviewed.':data.added?'Document context saved. Today will check it against the conversation.':'No new document details found.');window.dispatchEvent(new Event('pacifica:ai-review'));}
-  catch(error){setStatus(error instanceof Error?error.message:'File review failed.')}
-  finally{running.current=false;setBusy(false)}
+  if(!approved||!leadId||busy){setStatus('Choose a contact and approve AI review first.');return}
+  setBusy(true);
+  try{
+   const response=await fetch('/api/crm/review-attachment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leadId:Number(leadId),documentKind:kind,aiConsent:true,...body})});
+   const result=await response.json();if(!response.ok)throw Error(result.error||'File review failed.');
+   setStatus(result.alreadyReviewed?'Already reviewed.':result.added?'Document context saved. Today will check it against the conversation.':'No new document details found.');
+   window.dispatchEvent(new Event('pacifica:ai-review'));
+  }catch(error){setStatus(error instanceof Error?error.message:'File review failed.')}
+  finally{setBusy(false)}
  }
- useEffect(()=>{
-  const check=async()=>{
-   if(running.current||document.visibilityState==='hidden')return;
-   for(const contact of current.current)for(const message of contact.communications||[])for(const [index,file] of (message.attachments||[]).entries()){
-    if(!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)||!/^\/api\/(message-media|email\/media|twilio\/messages)\//.test(file.url))continue;
-    const key=`${contact.id}:${message.id}:${index}:${file.url}`;if(reviewed.current.has(key))continue;
-    reviewed.current.add(key);await review({leadId:contact.id,messageId:message.id,index});return;
-   }
-  };
-  const start=window.setTimeout(()=>void check(),1500),timer=window.setInterval(()=>void check(),60000);
-  return()=>{clearTimeout(start);clearInterval(timer)};
- },[]);
  async function upload(file:File){
-  if(!leadId){setStatus('Choose the contact this document belongs to.');return}
   if(file.size>2_700_000){setStatus('Choose a file smaller than 2.7 MB.');return}
   if(!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type)){setStatus('Use JPEG, PNG, WebP or PDF.');return}
-  const data=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(Error('File could not be read.'));reader.readAsDataURL(file)});
-  await review({leadId:Number(leadId),fileName:file.name,...(file.type==='application/pdf'?{pdf:data}:{image:data})});
+  try{const data=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(Error('File could not be read.'));reader.readAsDataURL(file)});
+   await review({fileName:file.name,...(file.type==='application/pdf'?{pdf:data}:{image:data})});
+  }catch{setStatus('File could not be read.')}
  }
- return <details className="public-business-search"><summary>Pictures & documents</summary><p>Pictures and PDFs provide context for Today. Only unfinished actions become tasks.</p><div className="public-records-controls"><label>Contact<select value={leadId} onChange={event=>setLeadId(event.target.value)} disabled={busy}><option value="">Choose a contact</option>{leads.map(lead=><option key={lead.id} value={lead.id}>{lead.name}</option>)}</select></label><button disabled={busy||!leadId} onClick={()=>input.current?.click()}>{busy?'Reading…':'Add picture or PDF'}</button><button disabled={busy} onClick={()=>{reviewed.current.clear();setStatus('Saved attachments will be checked again on the next review.')}}>Retry</button><input ref={input} type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf" onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)void upload(file).catch(()=>setStatus('File could not be read.'))}}/></div><p role="status">{status}</p></details>;
+ const selected=savedIndex===''?undefined:saved[Number(savedIndex)];
+ return <details className="public-business-search"><summary>Pictures &amp; documents</summary><p>Inspect and choose a policy or other non-ID business document for AI review. Use Industry Tools for local license scanning. Saved message attachments are never reviewed automatically.</p><div className="public-records-controls">
+ <label>Contact<select value={leadId} onChange={event=>{setLeadId(event.target.value);setSavedIndex('');setApproved(false)}} disabled={busy}><option value="">Choose a contact</option>{leads.map(lead=><option key={lead.id} value={lead.id}>{lead.name}</option>)}</select></label>
+ <label>Document type<select value={kind} onChange={event=>{setKind(event.target.value as 'policy'|'other');setApproved(false)}} disabled={busy}><option value="policy">Policy or declaration</option><option value="other">Other non-ID business document</option></select></label>
+ <label><input type="checkbox" checked={approved} onChange={event=>setApproved(event.target.checked)} disabled={busy}/> I inspected this non-ID document and have permission to send it to the external AI scanner for Today context.</label>
+ <button disabled={busy||!leadId||!approved} onClick={()=>input.current?.click()}>{busy?'Reading…':'Add picture or PDF'}</button>
+ <input ref={input} type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf" onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)void upload(file)}}/>
+ {saved.length>0&&<><label>Saved attachment<select value={savedIndex} onChange={event=>{setSavedIndex(event.target.value);setApproved(false)}} disabled={busy}><option value="">Choose after inspecting</option>{saved.map((file,index)=><option key={`${file.messageId}:${file.index}`} value={index}>{file.name}</option>)}</select></label>{selected&&<a href={selected.url} target="_blank" rel="noopener noreferrer">Inspect selected attachment</a>}<button disabled={busy||!approved||!selected} onClick={()=>{if(selected)void review({messageId:selected.messageId,index:selected.index})}}>Review selected attachment</button></>}
+ </div><p role="status">{status}</p></details>;
 }

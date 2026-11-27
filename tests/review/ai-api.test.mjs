@@ -6,6 +6,70 @@ import {POST as crm} from '../../app/api/ai/crm/route.ts';
 const request=body=>new Request('https://example.test/api/ai/message',{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'application/json'}});
 const output=text=>Response.json({id:'resp_test',object:'response',created_at:1,status:'completed',model:'gpt-5-mini',output:[{type:'message',id:'msg_1',role:'assistant',status:'completed',content:[{type:'output_text',text,annotations:[]}]}]});
 
+test('bilingual source queries require access and report missing connected accounts without AI or writes',async()=>{
+ const previous={fetch:globalThis.fetch,url:process.env.KV_REST_API_URL,token:process.env.KV_REST_API_TOKEN,key:process.env.PACIFICA_CONNECTED_ENCRYPTION_KEY,ai:process.env.OPENAI_API_KEY};
+ const commands=[];
+ process.env.KV_REST_API_URL='https://synthetic-redis.example.test';process.env.KV_REST_API_TOKEN='synthetic';
+ process.env.PACIFICA_CONNECTED_ENCRYPTION_KEY='a'.repeat(64);process.env.OPENAI_API_KEY='synthetic-no-network';
+ globalThis.fetch=async(url,options)=>{assert.equal(url,process.env.KV_REST_API_URL);const command=JSON.parse(options.body);commands.push(command[0]);
+   return Response.json({result:command[0]==='SMEMBERS'?[]:null});};
+ const ask=prompt=>crm(new Request('https://example.test/api/ai/crm',{method:'POST',headers:{origin:'https://example.test'},body:JSON.stringify({prompt})}));
+ try{
+   globalThis.pacificaTestAccess=false;assert.equal((await ask('What needs me today?')).status,403);assert.deepEqual(commands,[]);
+   globalThis.pacificaTestAccess=true;
+   for(const prompt of ['What needs me today?','¿Quién pidió que le llamara?']){
+     const response=await ask(prompt),data=await response.json();assert.equal(response.status,200);assert.deepEqual(data.sources,[]);assert.deepEqual(data.actions,[]);assert.equal(data.createLead,null);
+     assert.match(data.notice||'',/no connected mail account/i);
+   }
+   assert.ok(commands.length>0);assert.ok(commands.every(command=>['GET','SMEMBERS'].includes(command)));
+ }finally{globalThis.fetch=previous.fetch;for(const [name,value] of [['KV_REST_API_URL',previous.url],['KV_REST_API_TOKEN',previous.token],['PACIFICA_CONNECTED_ENCRYPTION_KEY',previous.key],['OPENAI_API_KEY',previous.ai]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}}
+});
+
+test('CRM bilingual briefings keep workspace and roster member boundaries with exact source links',async()=>{
+ const {workspaceKey}=await import('../../app/lib/workspace-storage.ts');
+ const previous={fetch:globalThis.fetch,url:process.env.KV_REST_API_URL,token:process.env.KV_REST_API_TOKEN,key:process.env.PACIFICA_CONNECTED_ENCRYPTION_KEY,workspace:globalThis.pacificaTestWorkspace,member:globalThis.pacificaTestMember,role:globalThis.pacificaTestRole};
+ process.env.KV_REST_API_URL='https://synthetic-redis.example.test';process.env.KV_REST_API_TOKEN='synthetic';process.env.PACIFICA_CONNECTED_ENCRYPTION_KEY='b'.repeat(64);
+ const at=new Date(Date.now()-3600_000).toISOString();
+ const fixture=(name)=>JSON.stringify({profile:{automationTimezone:'Etc/UTC',teamRoster:[{userId:'member-a',email:'a@example.test',name:'Dealer A',role:'agent',active:true},{userId:'member-b',email:'b@example.test',name:'Dealer B',role:'agent',active:true}]},callLogs:[],officeItems:[{id:'apt-a',leadId:1,kind:'appointment',title:'Ana review',dueAt:new Date().toISOString(),status:'open'}],leads:[
+   {id:1,name,assignedTo:'Dealer A',stage:'Follow-up',followUp:at,communications:[{id:'spanish-sms',channel:'sms',direction:'inbound',status:'received',provider:'twilio',body:'Sí, me interesa. Llámame el martes a las dos.',sentAt:at}]},
+   {id:2,name:'Private B',assignedTo:'Dealer B',stage:'Follow-up',communications:[{id:'private-sms',channel:'sms',direction:'inbound',status:'received',provider:'twilio',body:'Call me',sentAt:at}]},
+ ]});
+ const values=new Map([[workspaceKey('dealer-one'),fixture('Ana')],[workspaceKey('dealer-two'),fixture('Other Ana')]]);
+ const commands=[];
+ globalThis.fetch=async(url,options)=>{assert.equal(url,process.env.KV_REST_API_URL);const [command,key]=JSON.parse(options.body);commands.push(command);return Response.json({result:command==='SMEMBERS'?[]:values.get(key)??null});};
+ const ask=(prompt='¿Quién pidió que le llamara?')=>crm(new Request('https://example.test/api/ai/crm',{method:'POST',headers:{origin:'https://example.test'},body:JSON.stringify({prompt})}));
+ try{
+   globalThis.pacificaTestAccess=true;globalThis.pacificaTestRole='agent';globalThis.pacificaTestWorkspace='dealer-one';globalThis.pacificaTestMember='member-a';
+   const a=await (await ask()).json();assert.deepEqual(a.sources.map(row=>row.href),['/dashboard?crmLead=1&crmMessage=spanish-sms']);assert.equal(a.sources[0].label,'Ana');
+   const today=await (await ask('What needs me today?')).json();assert.ok(today.sources.some(row=>row.href==='/dashboard?crmLead=1'));
+   assert.ok(today.sources.some(row=>row.href.includes('appointment=apt-a')));
+   globalThis.pacificaTestMember='member-b';const b=await (await ask()).json();assert.deepEqual(b.sources.map(row=>row.href),['/dashboard?crmLead=2&crmMessage=private-sms']);
+   globalThis.pacificaTestWorkspace='dealer-two';globalThis.pacificaTestMember='member-a';const other=await (await ask()).json();assert.equal(other.sources[0].label,'Other Ana');
+   assert.ok(commands.every(command=>['GET','SMEMBERS'].includes(command)));
+ }finally{globalThis.fetch=previous.fetch;for(const [name,value] of [['KV_REST_API_URL',previous.url],['KV_REST_API_TOKEN',previous.token],['PACIFICA_CONNECTED_ENCRYPTION_KEY',previous.key]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}globalThis.pacificaTestWorkspace=previous.workspace;globalThis.pacificaTestMember=previous.member;globalThis.pacificaTestRole=previous.role;}
+});
+
+test('generic AI fallback and context scope use server assignments, not caller records or private notes',async()=>{
+ const {workspaceKey,cleanWorkspacePayload}=await import('../../app/lib/workspace-storage.ts');
+ const {aiVisibleLeads}=await import('../../app/lib/ai-workspace-scope.ts');
+ const {leadAiContext}=await import('../../app/lib/business-context.ts');
+ const old={fetch:globalThis.fetch,url:process.env.KV_REST_API_URL,token:process.env.KV_REST_API_TOKEN,ai:process.env.OPENAI_API_KEY,host:process.env.VERCEL,workspace:globalThis.pacificaTestWorkspace,member:globalThis.pacificaTestMember,role:globalThis.pacificaTestRole};
+ process.env.KV_REST_API_URL='https://synthetic-redis.example.test';process.env.KV_REST_API_TOKEN='synthetic';delete process.env.OPENAI_API_KEY;
+ const saved=JSON.stringify({profile:{teamRoster:[{userId:'member-a',email:'a@example.test',name:'Dealer A',role:'agent',active:true},{userId:'member-b',email:'b@example.test',name:'Dealer B',role:'agent',active:true}]},officeItems:[{id:'appointment-b',leadId:2,kind:'appointment',title:'Private B appointment',dueAt:'2026-12-01T18:00:00Z',status:'open'}],callLogs:[],leads:[
+  {id:1,name:'Ana',assignedTo:'Dealer A',source:'A source',stage:'Follow-up',outcome:'Interested',phone:'+15550000001',notes:'PRIVATE NOTE A',licenseNumber:'RAW-LICENSE-A'},
+  {id:2,name:'Ben',assignedTo:'Dealer B',source:'B source',stage:'Follow-up',outcome:'Interested',phone:'+15550000002',notes:'PRIVATE NOTE B',licenseNumber:'RAW-LICENSE-B'},
+ ]});
+ globalThis.fetch=async(url,options)=>{assert.equal(url,process.env.KV_REST_API_URL);const [command,key]=JSON.parse(options.body);assert.equal(command,'GET');return Response.json({result:key===workspaceKey('dealer-one')?saved:null})};
+ const ask=()=>crm(request({prompt:'Summarize my CRM',includeNotes:true,leads:[{id:999,name:'Injected private contact'}],recentCalls:[{name:'Other dealer call'}],history:[{role:'user',content:'Other dealer secret'}]}));
+ try{
+  globalThis.pacificaTestAccess=true;globalThis.pacificaTestRole='agent';globalThis.pacificaTestWorkspace='dealer-one';globalThis.pacificaTestMember='member-a';
+  const a=await (await ask()).json();assert.deepEqual(a.priorities.map(row=>row.leadId),[1]);
+  globalThis.pacificaTestMember='member-b';const b=await (await ask()).json();assert.deepEqual(b.priorities.map(row=>row.leadId),[2]);
+  const workspace=cleanWorkspacePayload(JSON.parse(saved));const scoped=aiVisibleLeads(workspace,{accountUserId:'member-a',role:'agent'});
+  assert.deepEqual(scoped.map(row=>row.id),[1]);assert.doesNotMatch(JSON.stringify(scoped.map(row=>leadAiContext(row,false))),/PRIVATE NOTE|RAW-LICENSE|Ben|B source/);
+  globalThis.pacificaTestWorkspace='dealer-two';globalThis.pacificaTestRole='owner';process.env.VERCEL='1';const hosted=await (await ask()).json();assert.deepEqual(hosted.priorities,[]);
+ }finally{globalThis.fetch=old.fetch;for(const [name,value] of [['KV_REST_API_URL',old.url],['KV_REST_API_TOKEN',old.token],['OPENAI_API_KEY',old.ai],['VERCEL',old.host]]){if(value===undefined)delete process.env[name];else process.env[name]=value}globalThis.pacificaTestWorkspace=old.workspace;globalThis.pacificaTestMember=old.member;globalThis.pacificaTestRole=old.role;}
+});
 test('AI setup and a small paid check enforce workspace access and report real provider outcomes',async()=>{
  const previousKey=process.env.OPENAI_API_KEY,previousFetch=globalThis.fetch;let calls=0;let payload;
  process.env.OPENAI_API_KEY='test-placeholder-not-a-real-key';
@@ -43,9 +107,9 @@ test('document scan sends a validated PDF to AI, retains printed dates, and reje
  globalThis.fetch=async(url,options)=>{calls++;payload=JSON.parse(options.body);return output(JSON.stringify({fullName:'Test Person',dateOfBirth:'1990-06-15',address:'123 Test Street',city:'Test City',state:'CA',zip:'90001',policyNumber:'TEST-1',policyExpirationDate:'2026-10-02',policyPremium:'838.58',documentType:'Policy declaration',otherFields:[{label:'Vehicle 2 VIN',value:'1HGCM82633A004352'}]}))};
  try{
   const pdf='data:application/pdf;base64,'+Buffer.from('%PDF-1.4\nmock document').toString('base64');
-  const response=await scan(request({pdf}));assert.equal(response.status,200);const data=await response.json();assert.equal(data.extraction.policyExpirationDate,'2026-10-02');assert.equal(data.extraction.policyPremium,'838.58');assert.equal(calls,1);assert.equal(payload.store,false);assert.equal(payload.input[0].content[1].type,'input_file');assert.equal(payload.input[0].content[1].file_data,pdf);
+  const response=await scan(request({pdf,documentKind:'policy',aiConsent:true}));assert.equal(response.status,200);const data=await response.json();assert.equal(data.extraction.policyExpirationDate,'2026-10-02');assert.equal(data.extraction.policyPremium,'838.58');assert.equal(calls,1);assert.equal(payload.store,false);assert.equal(payload.input[0].content[1].type,'input_file');assert.equal(payload.input[0].content[1].file_data,pdf);
   assert.equal((await scan(request({pdf:'data:application/pdf;base64,YmFk'}))).status,400);assert.equal(calls,1);
-  globalThis.pacificaTestAccess=false;assert.equal((await scan(request({pdf}))).status,403);assert.equal(calls,1);
+  globalThis.pacificaTestAccess=false;assert.equal((await scan(request({pdf,documentKind:'policy',aiConsent:true}))).status,403);assert.equal(calls,1);
  }finally{globalThis.fetch=previousFetch;if(previousKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previousKey}
 });
 test('AI chat forwards real PDF attachments and rejects malformed or oversized requests before provider calls',async()=>{

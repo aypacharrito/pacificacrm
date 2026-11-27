@@ -16,6 +16,7 @@ export async function POST(request:Request){
  try{
   const raw=await request.text();if(raw.length>4_200_000)return json({error:'File too large.'},413);
   const body=JSON.parse(raw);if(!Number.isSafeInteger(body.leadId))return json({error:'Choose a contact.'},400);
+  if(!['policy','other'].includes(body.documentKind)||body.aiConsent!==true)return json({error:'Choose a non-ID document and approve AI review before uploading.'},400);
   const workspace=await readStoredWorkspace(access.userId);
   const lead=(workspace?.leads as Lead[]||[]).find(l=>l.id===body.leadId&&!l.deletedAt);if(!lead)return json({error:'Contact not found.'},404);
   let payload:{image?:string;pdf?:string;fileName?:string}={},identity='',name='Uploaded document';
@@ -55,7 +56,7 @@ export async function POST(request:Request){
    return {...current,noteReview:{...state,checked:{...state.checked,[claimKey]:claim}}};
   });
   if(claimed.noteReview?.checked[claimKey]!==claim)return json({added:0,alreadyReviewed:true});
-  const scan=await scanDocument(new Request(new URL('/api/ai/document-lead',request.url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}));
+  const scan=await scanDocument(new Request(new URL('/api/ai/document-lead',request.url),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,documentKind:body.documentKind,aiConsent:true})}));
   const result=await scan.json();if(!scan.ok)throw Error(result.error||'AI document review failed.');
   const fields=documentLeadImportedFields(cleanDocumentLeadExtraction(result.extraction));
   const evidence=Object.entries(fields).filter(([,value])=>value).map(([key,value])=>`${key}: ${value}`);

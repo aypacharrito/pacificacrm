@@ -49,10 +49,12 @@ export default function LeadDetailScreen() {
       </View>
 
       <View style={styles.actions}>
-        <Button title="Call" onPress={() => void openUrl(phoneCallUrl(lead.phone))} disabled={!lead.phone || lead.doNotCall} style={styles.action} />
+        <Button title="Phone app" onPress={() => void openUrl(phoneCallUrl(lead.phone))} disabled={!lead.phone || lead.doNotCall} style={styles.action} />
         <Button title="Text" kind="secondary" onPress={() => router.push(`/conversation/${lead.id}`)} disabled={!lead.phone || lead.smsOptOut || lead.doNotCall} style={styles.action} />
         <Button title="Email" kind="secondary" onPress={() => void openUrl(`mailto:${lead.email}`)} disabled={!lead.email || lead.emailOptOut} style={styles.action} />
       </View>
+
+      <Muted>Phone app opens this device's system calling service, not your Pacifica business line.</Muted>
 
       {lead.doNotCall ? <Card><Text style={{ color: p.danger, fontWeight: "900" }}>Do Not Call is enabled for this contact.</Text></Card> : null}
 

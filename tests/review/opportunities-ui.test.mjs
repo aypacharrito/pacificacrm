@@ -29,10 +29,10 @@ test('personal quote form collects DOB without displaying existing personal reco
 test('quote requests review refreshes contacts without the redundant dashboard',async()=>{
  const h=await setup();let refreshed=0;const actions=[];const pending={id:'r1',leadId:1,linkId:'l1',status:'pending',source:'Website',submittedAt:new Date().toISOString(),consentText:'Requested quote',details:{name:'Test Person',phone:'8185550101',dateOfBirth:'1990-06-15',product:'Auto',renewalDate:'',vin:'',address:'',city:'',state:'',zip:''}};
  const leads=[{id:1,name:'Test Person',phone:'8185550101',product:'Auto',outcome:'Interested'},{id:2,name:'Cold Contact',phone:'8185550102',source:'SmartFinancial',outcome:'Not contacted'},{id:3,name:'Renewal Contact',phone:'8185550103',renewalDate:new Date(Date.now()+14*86400000).toISOString().slice(0,10)}];
- globalThis.fetch=async(url,init)=>{assert.equal(url,'/api/crm/opportunities');if(init.method==='POST'){actions.push(JSON.parse(init.body));return Response.json({ok:true})}return Response.json({links:[],submissions:actions.length?[]:[pending]})};
+ globalThis.fetch=async(url,init)=>{if(url==='/api/vehicle-partner')return Response.json({error:'Temporarily unavailable'},{status:503});assert.equal(url,'/api/crm/opportunities');if(init.method==='POST'){actions.push(JSON.parse(init.body));return Response.json({ok:true})}return Response.json({links:[],submissions:actions.length?[]:[pending]})};
  try{
   await h.render(React.createElement(OpportunityDesk,{leads,onOpen(){},onMessage(){},onRefresh:async()=>{refreshed++}}));
-  assert.match(document.body.textContent,/Quote requests to review/);assert.doesNotMatch(document.body.textContent,/Your weekly growth plan/);
+  assert.match(document.body.textContent,/Quote requests to review/);assert.match(document.body.textContent,/Dealer partnership status could not be refreshed/);assert.doesNotMatch(document.body.textContent,/Your weekly growth plan/);
   await click(button('Reviewed · save to CRM'));assert.deepEqual(actions,[{action:'accept',id:'r1'}]);assert.equal(refreshed,1);assert.match(document.body.textContent,/No pending requests/);
  }finally{await h.cleanup()}
 });
