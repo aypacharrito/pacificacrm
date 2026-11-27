@@ -1,21 +1,20 @@
 import type {StoredWorkspace} from '../workspace-storage';
 import type {ConnectedSource} from './assistant';
+import {agentAssignedLead} from '../ai-workspace-scope';
 
 type Row=Record<string,unknown>;
 type Member={id:string;role:string};
 const callRequest=/(?:\b(?:call|phone|ring)\s+me\b|\b(?:give|return)\s+me\s+a\s+call\b|\b(?:ll[aá]mame|me\s+(?:puede|puedes)\s+llamar|que\s+(?:le|me)\s+llamara|devu[eé]lveme\s+la\s+llamada)\b)/i;
 const time=(value:unknown)=>typeof value==='string'&&Number.isFinite(Date.parse(value))?Date.parse(value):NaN;
-const memberName=(workspace:StoredWorkspace,member:Member)=>member.role==='agent'?workspace.profile.teamRoster.find(person=>person.userId===member.id&&person.active)?.name||null:null;
-const visible=(lead:Row,member:Member,assigned:string|null)=>!lead.deletedAt&&lead.stage!=='Closed'&&Number.isSafeInteger(lead.id)&&Number(lead.id)>0&&
-  (member.role!=='agent'||Boolean(assigned&&lead.assignedTo===assigned));
+const visible=(workspace:StoredWorkspace,lead:Row,member:Member)=>!lead.deletedAt&&lead.stage!=='Closed'&&Number.isSafeInteger(lead.id)&&Number(lead.id)>0&&
+  (member.role!=='agent'||agentAssignedLead(workspace,member.id,lead));
 const leadLink=(id:number)=>'/dashboard?crmLead='+id;
 const messageLink=(id:number,message:string)=>'/dashboard?crmLead='+id+'&crmMessage='+encodeURIComponent(message);
 
 /** Server-owned CRM records. IDs link to the exact contact and saved inbound message. */
 export function crmBriefing(workspace:StoredWorkspace|null,member:Member,kind:'callback'|'needsToday',start:number,end:number,now=Date.now()):ConnectedSource[]{
   if(!workspace)return [];
-  const assigned=memberName(workspace,member);
-  const leads=(workspace.leads as Row[]).filter(lead=>visible(lead,member,assigned));
+  const leads=(workspace.leads as Row[]).filter(lead=>visible(workspace,lead,member));
   const sources: Array<ConnectedSource&{at:number}>=[];
   for(const lead of leads){
     const id=Number(lead.id),name=String(lead.name||'Contact').slice(0,100);

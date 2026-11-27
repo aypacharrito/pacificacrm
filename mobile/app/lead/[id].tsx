@@ -54,7 +54,7 @@ export default function LeadDetailScreen() {
         <Button title="Email" kind="secondary" onPress={() => void openUrl(`mailto:${lead.email}`)} disabled={!lead.email || lead.emailOptOut} style={styles.action} />
       </View>
 
-      <Muted>Phone app opens this device's system calling service, not your Pacifica business line.</Muted>
+      <Muted>The phone app uses the mobile line selected on this device.</Muted>
 
       {lead.doNotCall ? <Card><Text style={{ color: p.danger, fontWeight: "900" }}>Do Not Call is enabled for this contact.</Text></Card> : null}
 

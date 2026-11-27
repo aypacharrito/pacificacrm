@@ -482,8 +482,9 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
     if(query.has("crmLead")){
       const raw=query.get("crmLead")||"",id=/^[1-9]\d{0,15}$/.test(raw)?Number(raw):NaN;
       const item=leads.find(lead=>lead.id===id&&!lead.deletedAt&&lead.stage!=="Closed");
-      const member=workspaceProfile.teamRoster.find(person=>person.active&&person.email.toLowerCase()===currentUserEmail.toLowerCase());
-      if(!item||(userRole==="agent"&&(!member||item.assignedTo!==member.name))){setToast("This CRM source is no longer available to you.");return}
+      const member=workspaceProfile.teamRoster.find(person=>person.active&&person.userId===accountUserId);
+      const matching=workspaceProfile.teamRoster.filter(person=>person.active&&person.name===item?.assignedTo);
+      if(!item||(userRole==="agent"&&(!member||matching.length!==1||matching[0].userId!==member.userId))){setToast("This CRM source is no longer available to you.");return}
       const messageId=query.get("crmMessage");
       if(messageId!==null){
         if(!messageId||!(item.communications||[]).some(message=>message.channel==="sms"&&message.direction==="inbound"&&(message.id===messageId||message.providerId===messageId))){setToast("This saved message is no longer available.");return}
@@ -496,7 +497,7 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
     openView("office");
   }
   const initialCrmSourceHandled=useRef(false);
-  useEffect(()=>{if(!workspaceHydrated||initialCrmSourceHandled.current||!new URLSearchParams(window.location.search).has("crmLead"))return;initialCrmSourceHandled.current=true;openAssistantSource(window.location.href)},[workspaceHydrated,leads]);
+  useEffect(()=>{if(!workspaceHydrated||initialCrmSourceHandled.current||!new URLSearchParams(window.location.search).has("crmLead"))return;initialCrmSourceHandled.current=true;openAssistantSource(window.location.href)},[workspaceHydrated,leads,openAssistantSource]);
   useEffect(()=>{if(!workspaceHydrated||!clerkEnabled||view!=="activity")return;let canceled=false;let refreshCount=0;const refresh=()=>{if(document.hidden)return;void (async()=>{const response=await fetch("/api/crm/workspace",{cache:"no-store"});const data=await response.json();if(!canceled&&Array.isArray(data.callLogs))setCallLogs(current=>mergeRecordingUpdates(current,data.callLogs as CallLog[]));refreshCount+=1;if(refreshCount%6!==1)return;const recordingSids=callLogsRef.current.filter(log=>log.recordingSid&&!log.recordingUrl).map(log=>String(log.recordingSid)).slice(0,20);if(!recordingSids.length)return;const syncResponse=await fetch("/api/twilio/recordings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"sync",recordingSids})});const synced=await syncResponse.json();if(!canceled&&syncResponse.ok&&Array.isArray(synced.callLogs))setCallLogs(current=>mergeRecordingUpdates(current,synced.callLogs as CallLog[]))})().catch(()=>undefined)};const initial=window.setTimeout(refresh,0);const timer=window.setInterval(refresh,30000);return()=>{canceled=true;window.clearTimeout(initial);window.clearInterval(timer)}},[clerkEnabled,view,workspaceHydrated]);
   const fetchToken=useCallback(async()=>{const response=await fetch("/api/twilio/token",{cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data.error||"Twilio is not configured");voiceRouteTokenRef.current=String(data.routeToken||"");return String(data.token)},[]);
   const configureClearVoice=useCallback(async(device:Device)=>{

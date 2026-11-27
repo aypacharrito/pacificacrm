@@ -26,6 +26,9 @@ test('two dealer members see only their own exact CRM SMS source, including Span
   assert.equal(a[0].label,'Ana');
   assert.deepEqual(crmBriefing(workspace,{id:'missing-roster-member',role:'agent'},'callback',0,0,now),[]);
   assert.deepEqual(crmBriefing(null,{id:'dealer-a',role:'agent'},'callback',0,0,now),[]);
+  const sameName={...workspace,profile:{...profile,teamRoster:profile.teamRoster.map(person=>({...person,name:'Dealer A'}))}};
+  assert.deepEqual(crmBriefing(sameName,{id:'dealer-a',role:'agent'},'callback',0,0,now),[]);
+  assert.deepEqual(crmBriefing(sameName,{id:'dealer-b',role:'agent'},'callback',0,0,now),[]);
 });
 
 test('workspace boundary, due callbacks and exact appointment links exclude stale and other-member records',()=>{

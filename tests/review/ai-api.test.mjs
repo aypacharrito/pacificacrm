@@ -67,6 +67,8 @@ test('generic AI fallback and context scope use server assignments, not caller r
   globalThis.pacificaTestMember='member-b';const b=await (await ask()).json();assert.deepEqual(b.priorities.map(row=>row.leadId),[2]);
   const workspace=cleanWorkspacePayload(JSON.parse(saved));const scoped=aiVisibleLeads(workspace,{accountUserId:'member-a',role:'agent'});
   assert.deepEqual(scoped.map(row=>row.id),[1]);assert.doesNotMatch(JSON.stringify(scoped.map(row=>leadAiContext(row,false))),/PRIVATE NOTE|RAW-LICENSE|Ben|B source/);
+  const duplicateNames={...workspace,profile:{...workspace.profile,teamRoster:workspace.profile.teamRoster.map(person=>({...person,name:'Dealer A'}))}};
+  assert.deepEqual(aiVisibleLeads(duplicateNames,{accountUserId:'member-a',role:'agent'}),[]);
   globalThis.pacificaTestWorkspace='dealer-two';globalThis.pacificaTestRole='owner';process.env.VERCEL='1';const hosted=await (await ask()).json();assert.deepEqual(hosted.priorities,[]);
  }finally{globalThis.fetch=old.fetch;for(const [name,value] of [['KV_REST_API_URL',old.url],['KV_REST_API_TOKEN',old.token],['OPENAI_API_KEY',old.ai],['VERCEL',old.host]]){if(value===undefined)delete process.env[name];else process.env[name]=value}globalThis.pacificaTestWorkspace=old.workspace;globalThis.pacificaTestMember=old.member;globalThis.pacificaTestRole=old.role;}
 });

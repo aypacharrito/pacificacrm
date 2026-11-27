@@ -49,6 +49,8 @@ test('member confirmation requires exact saved SMS, conflict review and stores o
     const list=(await (await GET()).json()).items;assert.equal(list.length,1);assert.equal(list[0].sourceMessageId,'source-a');
     const complete=await (await post({action:'complete',id:approved.item.id})).json();assert.equal(complete.item.status,'done');
     assert.equal((await (await post({...request,acknowledgeConflict:true})).json()).item.status,'done');
+    const ambiguous=JSON.parse(data.get(workspaceKey('dealer-one')));ambiguous.profile.teamRoster[1].name='Dealer A';data.set(workspaceKey('dealer-one'),JSON.stringify(ambiguous));
+    assert.equal((await post({action:'preview',leadId:1,messageId:'source-a',localTime})).status,404);
     member('dealer-one','member-b');assert.deepEqual((await (await GET()).json()).items,[]);
     member('dealer-two','member-a');assert.deepEqual((await (await GET()).json()).items,[]);
     member('dealer-one','member-a');globalThis.pacificaTestAccess=false;assert.equal((await GET()).status,403);

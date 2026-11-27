@@ -3,6 +3,7 @@ import {workspaceRedis} from './workspace-storage';
 import type {OfficeItem} from './office-schedule';
 import type {StoredWorkspace} from './workspace-storage';
 import {eligible,thread} from './conversation-calendar';
+import {agentAssignedLead} from './ai-workspace-scope';
 
 export type MemberOwner={workspace:string;member:string;role:string};
 export type PrivateCallback=OfficeItem&{sourceMessageId:string;timezone:string;privateMemberId:string};
@@ -23,8 +24,7 @@ export function callbackLead(workspace:StoredWorkspace,owner:MemberOwner,leadId:
   const lead=(workspace.leads as Array<Record<string,unknown>&{id:number;name:string;phone:string}>).find(row=>row.id===leadId);
   if(!lead||!eligible(lead)||!Number.isSafeInteger(leadId))return null;
   if(owner.role==='agent'){
-    const member=workspace.profile.teamRoster.find(row=>row.userId===owner.member&&row.active);
-    if(!member||lead.assignedTo!==member.name)return null;
+    if(!agentAssignedLead(workspace,owner.member,lead))return null;
   }
   const messages=thread(lead,now);
   const source=messages.find(row=>row.id===messageId&&row.channel==='sms'&&row.direction==='inbound');

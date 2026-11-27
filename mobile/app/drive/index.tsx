@@ -99,7 +99,7 @@ export default function DriveModeScreen() {
         <Card style={styles.hero}>
           <Text style={[styles.phone, { color: p.text }]}>{lead.phone}</Text>
           <Muted>{lead.product || "Lead"} · {lead.source || "Pacifica"}</Muted>
-          <Muted>Calls open this device's system phone service, not your Pacifica business line.</Muted>
+          <Muted>Calls open the phone app and use the mobile line selected on this device.</Muted>
           <Pill active>{lead.priorityReason}</Pill>
 
           {session.phase === "briefing" ? <Button title="Open phone app" onPress={() => void call()} disabled={pending} /> : null}
