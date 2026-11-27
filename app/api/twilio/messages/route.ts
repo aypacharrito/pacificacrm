@@ -9,6 +9,8 @@ import {
   type TwilioApiError,
 } from "../../../lib/twilio-rest";
 import { blocksAiText } from "../../../lib/ai-sms-recipients";
+import {agentAssignedLead} from "../../../lib/ai-workspace-scope";
+import {claimReviewedSend,finishReviewedSend,ReviewedSendConflictError} from "../../../lib/reviewed-send-claim";
 import { hasContactPermission } from "../../../lib/contact-permission";
 import { getPacificaAccess } from "../../../lib/clerk-access";
 import { isClerkConfigured } from "../../../lib/clerk-config";
@@ -39,7 +41,7 @@ type TwilioError = TwilioApiError;
 async function workspaceAccess() {
   const access = isClerkConfigured()
     ? await getPacificaAccess()
-    : { allowed: !isHostedRuntime(), userId: "local", email: "local" };
+    : { allowed: !isHostedRuntime(), userId: "local", accountUserId:"local", role:"owner" as const, email: "local" };
   if (!access.allowed)
     throw new Error("An active Pacifica subscription is required.");
   return access;
@@ -161,6 +163,8 @@ export async function POST(request: Request) {
       body?: string;
       permissionDocumented?: boolean;
       sendMode?: "ai" | "manual";
+      leadId?: number;
+      reviewId?: string;
       mediaUrls?: string[];
     };
     const to = normalized(String(body.to || ""));
@@ -189,6 +193,7 @@ export async function POST(request: Request) {
     const lead = workspace?.leads.find((raw) => {
       const item = raw as Record<string, unknown>;
       return (
+        (body.sendMode!=="ai"||Number(item.id)===Number(body.leadId)) &&
         String(item.phone || "")
           .replace(/\D/g, "")
           .slice(-10) === digits
@@ -202,6 +207,12 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
+    if(body.sendMode==="ai"){
+      if(Number(body.leadId)!==Number(lead.id)||
+        ("role" in access&&access.role==="agent"&&
+          !agentAssignedLead(workspace!,String(access.accountUserId||""),lead)))
+        return Response.json({error:"This reviewed contact is no longer assigned to you."},{status:403});
+    }
     if (
       workspace!.leads.some((raw) => {
         const item = raw as Record<string, unknown>;
@@ -245,6 +256,9 @@ export async function POST(request: Request) {
         },
         { status: 403 },
       );
+    const claim=body.sendMode==="ai"?await claimReviewedSend({workspaceId:access.userId,reviewId:String(body.reviewId||""),leadId:Number(lead.id),channel:"sms",recipient:to,body:text}):null;
+    if(claim&&!claim.claimed)return Response.json({ok:true,reviewedSend:claim.receipt,duplicate:true},{status:claim.receipt.state==="submitting"?202:200});
+    try{
     const attachments=mediaUrls.length?await archiveMessageFiles(access.userId,mediaUrls.map(path=>({path,filename:"Attachment",contentType:""})),new URL(request.url).origin):[];
     const result = await sendOutboundSms({
       workspaceId: access.userId,
@@ -252,6 +266,7 @@ export async function POST(request: Request) {
       to,
       body: text,
       automated: body.sendMode === "ai",
+      idempotencyKey:claim?.key,
       authorship: body.sendMode === "ai" ? "automation" : "owner",
       mediaUrls,attachments,
     });
@@ -272,8 +287,15 @@ export async function POST(request: Request) {
       toLast4: to.slice(-4),
       credential: "tenant SMS adapter",
     });
-    return Response.json({ ok: true, historySaved:result.historySaved,message: {...safe(message),body:result.communication?.body||message.body,attachments} });
+    const reviewedSend=claim?{state:"accepted" as const,at:new Date().toISOString(),payloadHash:claim.receipt.payloadHash,providerId:result.id}:undefined;
+    if(claim)await finishReviewedSend(claim.key,reviewedSend!,claim.holdKey);
+    return Response.json({ ok: true, historySaved:result.historySaved,reviewedSend,message: {...safe(message),body:result.communication?.body||message.body,attachments} });
+    }catch(error){
+      if(claim)await finishReviewedSend(claim.key,{state:"uncertain",at:new Date().toISOString(),payloadHash:claim.receipt.payloadHash,reason:"Submission could not be confirmed. Reconcile in Messages before making another review."},claim.holdKey);
+      throw error;
+    }
   } catch (error) {
+    if(error instanceof ReviewedSendConflictError)return Response.json({error:error.message,submitted:false},{status:409});
     if(error instanceof SmsPreflightError)return Response.json({error:error.message,code:error.code,submitted:false},{status:422});
     console.error(
       "[twilio/messages] send failed",

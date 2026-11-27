@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import AiCamera from "./AiCamera";
 import VoiceDictation from "./VoiceDictation";
 import ConnectedPages,{type PageContext} from "./ConnectedPages";
+import FlintloadCompanion,{FlintloadAvailable} from "./FlintloadCompanion";
 import type {WorkspaceProfile} from "../lib/workspace-profile";
 import {hasContactPermission} from "../lib/contact-permission";
 import {messageChannel,cleanSmsDraft,audienceMessageTargets} from "../lib/ai-message-plan";
@@ -74,6 +75,9 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
   const assistantTitle=assistantName||"Pacifica AI";
   const replyName=assistantName||"Pacifica";
   const [pagesOpen,setPagesOpen]=useState(false),[pageContexts,setPageContexts]=useState<PageContext[]>([]);
+  const [flintloadOpen,setFlintloadOpen]=useState(false),[flintloadAvailable,setFlintloadAvailable]=useState(false);
+  useEffect(()=>setFlintloadAvailable(FlintloadAvailable()),[]);
+  useEffect(()=>setFlintloadOpen(false),[accountUserId]);
   const closePages=useCallback(()=>{setPagesOpen(false);document.getElementById("ai-pages-toggle")?.focus()},[]);
   const [toolsOpen,setToolsOpen]=useState(false),[showRules,setShowRules]=useState(false),[quoteLink,setQuoteLink]=useState("");
   const toolsRef=useRef<HTMLDivElement>(null);
@@ -186,7 +190,7 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
     if(draftChannel==="sms"&&body.length>1400){setSendReport("Shorten this text to 1,400 characters before sending.");return}
     if(draftChannel==="email"&&(!result.subject?.trim()||!emailReady.configured)){setSendReport("Add a subject and connect email in Messages before sending.");return}
     sendLock.current=true;stopSending.current=false;setSending(true);
-    let submitted=0,failed=0,skipped=0;const failures:string[]=[];const planned=[...targets];const channel=draftChannel;
+    let submitted=0,failed=0,skipped=0,unconfirmed=0;const failures:string[]=[];const planned=[...targets];const channel=draftChannel;
     try{
       for(const contact of planned){
         if(stopSending.current)break;
@@ -198,14 +202,15 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
         // Mark attempts before dispatch. A lost response must not cause an automatic duplicate.
         submittedSms.current.add(key);
         try{
-          const payload=channel==="sms"?{to:contact.phone,body,sendMode:"ai"}:{to:contact.email,leadId:contact.id,subject:result.subject,text:body,sendMode:"ai",fromName:profile.businessName||profile.agentName,replyTo:profile.replyToEmail,idempotencyKey:`ai:${workspaceId}:${requestId}:${contact.id}`};
+          const payload=channel==="sms"?{to:contact.phone,leadId:contact.id,reviewId:requestId,body,sendMode:"ai"}:{to:contact.email,leadId:contact.id,reviewId:requestId,subject:result.subject,text:body,sendMode:"ai",fromName:profile.businessName||profile.agentName,replyTo:profile.replyToEmail,idempotencyKey:`ai:${workspaceId}:${requestId}:${contact.id}`};
           const response=await fetch(channel==="sms"?"/api/twilio/messages":"/api/email/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(25000)});
-          const data=await response.json();if(!response.ok)throw new Error(data.error||"Send failed");
-          submitted++;
-        }catch(reason){failed++;failures.push(`${contact.name}: ${reason instanceof Error?reason.message:"Submission unconfirmed; check Messages before retrying."}`)}
-        setSendReport(`${submitted} of ${planned.length} submitted · ${failed} failed/unconfirmed · ${skipped} skipped`);
+          const data=await response.json();if(!response.ok)throw new Error(data.error||"Submission unconfirmed");
+          if(data.reviewedSend?.state==="accepted")submitted++;
+          else {unconfirmed++;failures.push(`${contact.name}: ${data.reviewedSend?.reason||"Submission pending or unconfirmed. Reconcile in Messages before another review."}`)}
+        }catch(reason){failed++;failures.push(`${contact.name}: ${reason instanceof Error?reason.message:"Submission unconfirmed"}. Reconcile in Messages before another review.`)}
+        setSendReport(`${submitted} of ${planned.length} accepted by provider · ${unconfirmed+failed} pending/unconfirmed · ${skipped} skipped`);
       }
-      setSendReport(`${submitted} submitted · ${failed} failed/unconfirmed · ${skipped} skipped${stopSending.current?" · remaining messages cancelled":""}. Check Messages for delivery status.${failures.length?" Issues: "+failures.slice(0,5).join("; "):""}`);
+      setSendReport(`${submitted} accepted by provider · ${unconfirmed+failed} pending/unconfirmed · ${skipped} skipped${stopSending.current?" · remaining messages cancelled":""}. Provider acceptance is not delivery. Check Messages for delivery status.${failures.length?" Issues: "+failures.slice(0,5).join("; "):""}`);
     }finally{sendLock.current=false;setSending(false)}
   }
 
@@ -219,7 +224,7 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
   const hasDetails=Boolean(result&&(result.controlCommands?.length||result.controlError||result.createLead||result.priorities.length||result.actions.length||result.draft));
   return <div className={`ai-workspace ${pagesOpen?"has-pages":""} ${hasDetails?"has-details":""}`} onDragEnter={event=>{if(Array.from(event.dataTransfer.types).includes("Files")){event.preventDefault();setDragging(true)}}} onDragOver={event=>{if(Array.from(event.dataTransfer.types).includes("Files")){event.preventDefault();event.dataTransfer.dropEffect="copy"}}} onDragLeave={event=>{if(event.currentTarget===event.target)setDragging(false)}} onDrop={event=>{event.preventDefault();event.stopPropagation();setDragging(false);void addFiles(event.dataTransfer.files)}}>
     {dragging&&<div className="ai-drop-overlay"><div><b>Drop photos or PDFs into {assistantTitle}</b><span>I’ll read it together with your instructions.</span></div></div>}
-    <header className="ai-shell-header"><div className="ai-shell-brand"><ProfileAvatar enabled={clerkEnabled}/><span><b>{assistantTitle}</b><small role="status">{loading?"Thinking…":sending?"Sending…":service}</small></span></div><div className="ai-header-tools">{onScanFolder&&<button type="button" disabled={loading||sending} onClick={()=>onScanFolder()}>Scan folder</button>}{profile.mode==="insurance"&&onAutopilot&&<button type="button" disabled={callBusy} onClick={onAutopilot}>Ava dialer</button>}<button id="ai-pages-toggle" type="button" aria-expanded={pagesOpen} onClick={()=>setPagesOpen(value=>!value)}>Pages & connections</button><label className="ai-notes-control"><input type="checkbox" checked={includeNotes} onChange={event=>setIncludeNotes(event.target.checked)}/><span><b>{t("Use CRM context")}</b></span></label></div></header>
+    <header className="ai-shell-header"><div className="ai-shell-brand"><ProfileAvatar enabled={clerkEnabled}/><span><b>{assistantTitle}</b><small role="status">{loading?"Thinking…":sending?"Sending…":service}</small></span></div><div className="ai-header-tools">{onScanFolder&&<button type="button" disabled={loading||sending} onClick={()=>onScanFolder()}>Scan folder</button>}{profile.mode==="insurance"&&onAutopilot&&<button type="button" disabled={callBusy} onClick={onAutopilot}>Ava dialer</button>}{flintloadAvailable&&accountUserId&&<button type="button" onClick={()=>setFlintloadOpen(true)}>Flintload</button>}<button id="ai-pages-toggle" type="button" aria-expanded={pagesOpen} onClick={()=>setPagesOpen(value=>!value)}>Pages & connections</button><label className="ai-notes-control"><input type="checkbox" checked={includeNotes} onChange={event=>setIncludeNotes(event.target.checked)}/><span><b>{t("Use CRM context")}</b></span></label></div></header>
     <div className="ai-content-layout">
     <main className={result?"ai-chat answered":"ai-chat"}>
       {earlier.length>0&&<section className="ai-compact-transcript" aria-label="Earlier messages">{earlier.map((turn,index)=>
@@ -268,6 +273,7 @@ export default function AiCommandCenter({clerkEnabled=false,leads,recentCalls,on
     </aside>}
     </div>
     {pagesOpen&&visible&&<ConnectedPages workspaceId={workspaceId} memberId={accountUserId} onClose={closePages} onNavigate={onNavigate} onAdd={page=>{setPageContexts(items=>[...items,page].slice(-3));composerRef.current?.focus()}}/>}
+    {flintloadOpen&&visible&&accountUserId&&<FlintloadCompanion key={accountUserId} memberId={accountUserId} onClose={()=>setFlintloadOpen(false)}/>}
     {result&&<button type="button" className="ai-new-chat" onClick={reset} disabled={loading||sending}>New request</button>}
   </div>;
 }
