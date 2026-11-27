@@ -5,6 +5,7 @@ import {GET as list,POST as manage} from '../../app/api/crm/opportunities/route.
 import {GET as publicInfo,POST as submit} from '../../app/api/quote-intake/route.ts';
 import {PUT as save} from '../../app/api/crm/workspace/route.ts';
 import {defaultWorkspaceProfile} from '../../app/lib/workspace-profile.ts';
+import {calculateSyntheticTowing} from '../../app/lib/integon-value-diagnostic.ts';
 import {workspaceKey} from '../../app/lib/workspace-storage.ts';
 const store=new Map();
 const details={name:'Test Person',phone:'8185550123',email:'',product:'Auto',address:'1 Test St',city:'Test City',state:'CA',zip:'91331',dateOfBirth:'1990-06-15',contactPermission:true};
@@ -16,6 +17,30 @@ function setup(){
  globalThis.fetch=async(url,init)=>{assert.equal(url,'https://kv.example.test');const c=JSON.parse(init.body);if(c[0]==='GET')return Response.json({result:store.get(c[1])??null});if(c[0]==='EVAL'){const key=c[3],before=c[4],after=c[5];if(globalThis.intakeTestFailPartnerWrite&&key.includes(':vehicle-partner:')){globalThis.intakeTestFailPartnerWrite=false;throw Error('Synthetic interrupted status write')};if(store.get(key)===before||!store.has(key)&&c[6]==='create'){store.set(key,after);return Response.json({result:1})}return Response.json({result:0})}throw Error('Unexpected storage command '+c[0]);};
 }
 const workspace=()=>JSON.parse(store.get(workspaceKey('a')));
+test('page-74 synthetic arithmetic is exact, partial, and refuses unsupported lookups or policy inputs',()=>{
+ const low=calculateSyntheticTowing({scenario:'synthetic-only',limit:25});
+ assert.equal(low.partialProduct,'9.04400');assert.equal(low.factor,'0.850');
+ assert.equal(calculateSyntheticTowing({scenario:'synthetic-only',limit:35}).partialProduct,'10.64000');
+ assert.equal(calculateSyntheticTowing({scenario:'synthetic-only',limit:50}).partialProduct,'14.36400');
+ assert.equal(low.kind,'partial-table-arithmetic');assert.match(low.disclaimer,/different Value Option base/);
+ assert.throws(()=>calculateSyntheticTowing({scenario:'synthetic-only',limit:100}),/Limit factor/);
+ assert.throws(()=>calculateSyntheticTowing({scenario:'synthetic-only',limit:35,effectiveDate:'2026-12-01'}),/Only page-74/);
+ assert.throws(()=>calculateSyntheticTowing({scenario:'synthetic-only',limit:35,customer:'Someone'}),/Only page-74/);
+});
+test('synthetic exercise is confined to an authenticated insurance agency owner',async()=>{
+ setup();const original=workspace();original.profile.mode='insurance';store.set(workspaceKey('a'),JSON.stringify(original));
+ const body={action:'synthetic-towing-diagnostic',scenario:{scenario:'synthetic-only',limit:50}};
+ globalThis.intakeTestAccess={allowed:true,userId:'a',accountUserId:'assistant',role:'agent'};
+ assert.equal((await manage(request(body))).status,403);
+ globalThis.intakeTestAccess={allowed:true,userId:'a',accountUserId:'assistant',role:'owner'};
+ assert.equal((await manage(request(body))).status,403);
+ globalThis.intakeTestAccess={allowed:true,userId:'a',accountUserId:'a',role:'owner'};
+ const allowed=await manage(request(body));assert.equal(allowed.status,200);
+ assert.equal((await allowed.json()).diagnostic.partialProduct,'14.36400');
+ assert.equal((await manage(request({...body,scenario:{...body.scenario,term:'annual'}}))).status,400);
+ const sales=workspace();sales.profile.mode='sales';store.set(workspaceKey('a'),JSON.stringify(sales));
+ assert.equal((await manage(request(body))).status,403);
+});
 async function link(leadId=null){const r=await manage(request({action:'create-link',leadId,source:'Realtor referral'}));assert.equal(r.status,200);return (await r.json()).path.split('#')[1]}
 test('secure link → prospect submission → review → CRM persists through stale autosave',async()=>{
  setup();const stale=workspace(),token=await link(1);

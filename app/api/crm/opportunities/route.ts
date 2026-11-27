@@ -9,6 +9,7 @@ import {acceptQuoteSubmission,rankOpportunities,type OpportunityLead} from '../.
 import {aiClient,aiConfigured,aiModel,aiReasoning} from '../../../lib/ai-provider';
 import {evidencePartnerStatus,partnerActive,partnerStatusRank,readPartner,updatePartner} from '../../../lib/vehicle-partner-pairing';
 import {WorkspaceLoadError} from '../../../lib/workspace-load';
+import {calculateSyntheticTowing} from '../../../lib/integon-value-diagnostic';
 export const runtime='nodejs';
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 async function identity(){if(!isClerkConfigured())return isHostedRuntime()?null:{userId:'local',role:'owner'};const access=await getPacificaAccess();return access.allowed?access:null}
@@ -25,8 +26,16 @@ export async function GET(){
 export async function POST(request:Request){
  const owner=await identity();if(!owner)return json({error:'Sign in required'},401);
  try{
-  const body=await request.json() as {action?:string;leadId?:number;source?:string;id?:string;vehicleReferral?:boolean;intendedDealerWorkspaceId?:string;evidenceId?:string;stage?:QuoteEvidenceStage;reference?:string;attested?:boolean;agencyAuthorized?:boolean;licensedAgentAttestation?:boolean};
+  const body=await request.json() as {action?:string;leadId?:number;source?:string;id?:string;vehicleReferral?:boolean;intendedDealerWorkspaceId?:string;evidenceId?:string;stage?:QuoteEvidenceStage;reference?:string;attested?:boolean;agencyAuthorized?:boolean;licensedAgentAttestation?:boolean;scenario?:unknown};
   const now=new Date();let path='',acceptedLeadId:number|undefined;
+  if(body.action==='synthetic-towing-diagnostic'){
+   if(owner.role!=='owner'||'accountUserId' in owner&&owner.accountUserId&&owner.accountUserId!==owner.userId)
+    return json({error:'Only the designated agency owner may run this internal diagnostic.'},403);
+   const workspace=await readStoredWorkspace(owner.userId);
+   if(!workspace||workspace.profile.mode!=='insurance')return json({error:'An insurance agency workspace is required.'},403);
+   try{return json({diagnostic:calculateSyntheticTowing(body.scenario)})}
+   catch{return json({error:'Unsupported synthetic table input.'},400)}
+  }
   if(body.action==='plan'){
    const workspace=await readStoredWorkspace(owner.userId);if(!workspace)return json({error:'Save your workspace first.'},409);
    const intake=cleanQuoteIntake(workspace.quoteIntake),ranked=rankOpportunities(workspace.leads as OpportunityLead[]);
