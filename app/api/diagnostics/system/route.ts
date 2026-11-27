@@ -34,7 +34,7 @@ export async function GET() {
   const voiceConfigured = Boolean(assignment?.provider === "twilio" && assignment.phoneNumber &&
     process.env.TWILIO_TWIML_APP_SID && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_API_KEY_SID &&
     process.env.TWILIO_API_KEY_SECRET && process.env.TWILIO_AUTH_TOKEN);
-  const replyConfigured = Boolean(process.env.RESEND_WEBHOOK_SECRET && replyAddress);
+  const replyConfigured = Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_WEBHOOK_SECRET?.trim() && replyAddress);
   const automationConfigured = Boolean(process.env.CRON_SECRET && workspace?.profile.serverAutomationEnabled);
   const manualStatus = runs?.manual ? " Last manual follow-up pass completed at " + runs.manual + "." : "";
   const checks = {
@@ -50,7 +50,7 @@ export async function GET() {
     email: check(email.configured, observed.email, email.configured ? "The provider has yet to accept a workspace email." :
       email.message, "Check an agency email in the provider delivery history."),
     emailReplies: check(replyConfigured, observed.emailReplies, replyConfigured ? "No reply has been recorded for this address." :
-      "Configure the signed inbound email webhook and reply domain.", "Review a reply in the workspace inbox."),
+      "Configure the Resend API key, signed inbound email webhook, and reply domain.", "Review a reply in the workspace inbox."),
     automation: check(automationConfigured, runs?.scheduled ? {at: runs.scheduled, reason: "A scheduled follow-up pass checked this workspace." + manualStatus} : null,
       (automationConfigured ? "A recent scheduled follow-up pass has yet to be verified for this workspace." : "Workspace Autopilot or the scheduler is disabled.") + manualStatus,
       "Review the saved automation pause and the scheduler run history.", Boolean(runs?.scheduledRecent)),
