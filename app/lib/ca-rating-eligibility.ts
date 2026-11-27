@@ -6,7 +6,7 @@
  * so each known filing fails closed to a carrier quote.
  */
 
-export const CA_RATING_REGISTRY_VERSION = "ca-program-review-2026-11-27.3" as const;
+export const CA_RATING_REGISTRY_VERSION = "ca-program-review-2026-11-27.4" as const;
 export const CA_RATING_REGISTRY_AS_OF = "2026-11-27" as const;
 
 export type CaliforniaProgram = {
@@ -44,6 +44,7 @@ export const CALIFORNIA_PROGRAMS: readonly CaliforniaProgram[] = [
       "The filing includes older rules beginning on p. 708 and the reconciliation on p. 1500. Effective applicability and authorized carrier comparisons remain outstanding.",
       "On November 27, SERFF listed the May 2025 replacement manual for this filing. Its eleven pages match the text in the CDI copy after removing the public-record stamps and whitespace.",
       "SERFF lists the Value symbol class plan 24-2128 (GMMX-134286985) and the minimum-limit rule 23-1661 (GMMX-133699991) as approved. The November 20 Cornerstone/Value conversion GMMX-135164367 is in Intake.",
+      "Integon withdrew class-plan filing 25-1742 (GMMX-134642447) on September 3, 2026. Its proposed SS10 symbol sheets are excluded. The attached historical Value underwriting guidelines match the text at pp. 725-727 of the CDI Value copy.",
     ],
   },
   {

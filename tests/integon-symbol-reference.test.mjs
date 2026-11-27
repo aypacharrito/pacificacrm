@@ -44,3 +44,12 @@ test('invalid key, unknown file and cancellation fail before PDF worker starts',
   const controller=new AbortController(); controller.abort();
   await assert.rejects(lookupSelectedSymbolSheet(file,'1FTFW2K5*R','2024',{signal:controller.signal}),{name:'AbortError'});
 });
+
+test('a replacement with the approved filename and size still needs the approved digest', async () => {
+  const file = new File([new Uint8Array(645005)], 'SS5_2021_.pdf', {type:'application/pdf'});
+  const result = await lookupSelectedSymbolSheet(file, '1FTFW2K5*R', 2024, {
+    pdfjsLoader() { throw new Error('A different filing must be rejected before opening the PDF'); },
+  });
+  assert.equal(result.state, 'invalid-source');
+  assert.match(result.reason, /exact public SS5/);
+});
