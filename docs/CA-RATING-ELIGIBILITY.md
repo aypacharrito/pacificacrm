@@ -1,6 +1,6 @@
 # California carrier quote review
 
-The agency review screen displays **Carrier quote required** for all six filings. Registry `ca-program-review-2026-11-27.1` records which carrier materials still need review. Each licensed-agent handoff needs an authorized quote for the actual risk before the agency records a premium or delivers evidence of insurance.
+The agency review screen displays **Carrier quote required** for all six filings. Registry `ca-program-review-2026-11-27.2` records the evidence available to the licensed agent. A transaction needs an authorized carrier quote before the agency records a quoted premium. Delivering evidence of insurance requires the corresponding carrier confirmation.
 
 | California filing | Program | Disposition printed in the downloaded copy | Pilot action |
 |---|---|---|---|
@@ -13,10 +13,19 @@ The agency review screen displays **Carrier quote required** for all six filings
 
 ## Integon Value source pages
 
-Use physical PDF page numbers in the 1,612-page copy of SERFF filing `GMMX-134127116`. Page 6 carries the disposition. On page 68, a carrier note dated June 5 gives the revised effective date. Page 54 references the minimum-limits and vehicle-symbol filings. Page 72 lists `2025_05_CA IP Exhibit 12_Rate Manual_.pdf` and predecessor `GMMX-133321311`. Page 77 contains driver-class relativities, page 1500 is a premium reconciliation, and page 1610 points to an attachment. The downloaded PDF contains no separately embedded files. The identified exhibits do not establish the complete calculation order.
+All references use physical PDF pages in the 1,612-page filing `GMMX-134127116`. Page 72 lists `2025_05_CA IP Exhibit 12_Rate Manual_.pdf` and predecessor `GMMX-133321311`. The manual follows on pages **73–83**, labeled CDI-00016569 through CDI-00016579. The filing SHA-256 is `b246df7adc0322573d2f161e647b24dc44d70a6530c0241bc27838f29a273df9`.
+
+| Filing pages | Contents | Use in the pilot |
+| --- | --- | --- |
+| 73–74 | Base rates, Value Option bases, policy terms, coverage-specific discounts, limits, deductibles and optional coverages | Page 73 gives 19.12 for Value Option towing. Page 74 gives 10.64 in the towing table. The agency-only synthetic exercise uses the page 74 base and its corresponding limit factor. The carrier must identify the applicable table before rating a policy. |
+| 75–76 | Vehicle symbols, stated values, model years and driving-record factors | A vehicle needs a confirmed symbol or supported classification. Page 54 cites the associated minimum-limit and annual-symbol revisions. |
+| 77–81 | Driver-class relativities, experience, mileage, frequency and severity factors | The factor tables require the matching coverage column and the applicable driver and vehicle classifications. |
+| 82–83 | Coverage-specific calculation order, discounts and whole-dollar rounding down | Read each coverage's A–H or A–D sequence from the rendered tables. Some discount rows visible on the page disappear from text extraction. |
+
+Page 6 gives July 15, 2025 for new and renewal business. The carrier's June 5 note on page 68 gives August 1, 2025. The rules manual beginning on page 708 carries a June 2022 revision. The premium reconciliation is on page 1500. Review these dates, predecessor rules and any later amendments with the licensed carrier before using the factors for a transaction.
 
 The regulator’s closed-filings workbook through October 31, 2026 lists CAIC homeowners 25-2014 at row 445. Row 1333 is a separate Integon Value **forms** approval, 25-193 (`GMMX-134404390`). The four filings printed as pending have no matching entries in that workbook. The workbook cutoff precedes the November 27 review. [California Department of Insurance, October 2026 closed filings](https://www.insurance.ca.gov/0250-insurers/0800-rate-filings/0100-rate-filing-lists/rate-filing-approvals/upload/Approval-Closed-List-YTD-10-31-26.xlsx)
 
 ## Calculator status
 
-The deterministic check returns the filing, registry version, missing inputs and the licensed-agent handoff. It accepts new business and renewal dates, identifies missing symbols for auto, and routes unresolved risk flags for review. Synthetic tests keep all date boundaries on that same carrier path. The remaining pricing evidence is a current approved manual with page-by-page coverage calculation rules and authorized comparison quotes that reconcile each coverage, rounding, fees and total.
+The eligibility check accepts new and renewal dates, identifies missing vehicle symbols and routes unresolved risk flags to the licensed agent. In the designated agency owner's opportunity screen, the synthetic page 74 diagnostic calculates the exact unrounded product of the displayed base and one of three displayed limit factors. It returns its source cells and uses no customer record for the calculation. Completing the rater requires confirmation of the applicable rule and symbol versions, deductible and discount eligibility, fees and minimums, plus authorized comparison quotes by coverage and total.

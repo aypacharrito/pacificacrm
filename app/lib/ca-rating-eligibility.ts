@@ -6,7 +6,7 @@
  * so each known filing fails closed to a carrier quote.
  */
 
-export const CA_RATING_REGISTRY_VERSION = "ca-program-review-2026-11-27.1" as const;
+export const CA_RATING_REGISTRY_VERSION = "ca-program-review-2026-11-27.2" as const;
 export const CA_RATING_REGISTRY_AS_OF = "2026-11-27" as const;
 
 export type CaliforniaProgram = {
@@ -35,8 +35,9 @@ export const CALIFORNIA_PROGRAMS: readonly CaliforniaProgram[] = [
     vehicleSymbolsRequiredForReview: true,
     provenance: [
       "GMMX-134127116 p. 6 records approval May 29, 2025 and effective dates July 15, 2025. The June 5 carrier note on p. 68 specifies August 1, 2025.",
-      "Local filing reference: p. 72 includes a filename/predecessor pointer; p. 1500 premium reconciliation; p. 1610 attachment pointer.",
-      "These pointers alone do not establish a successor program's current approved rules or effective dates.",
+      "The schedule on p. 72 identifies Exhibit 12. Its nine rate-factor pages are physical pp. 73–81 and its two coverage algorithm pages are pp. 82–83 (CDI-00016569–CDI-00016579).",
+      "Page 73 distinguishes Value Option base rates. Page 74 lists a separate towing base. The carrier must confirm which base, limits, vehicle symbols and rule revisions apply to the risk.",
+      "The filing includes older rules beginning on p. 708 and the reconciliation on p. 1500. Effective applicability and authorized carrier comparisons remain outstanding.",
     ],
   },
   {
