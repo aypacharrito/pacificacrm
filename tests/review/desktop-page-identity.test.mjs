@@ -20,7 +20,8 @@ test('desktop verifies the signed-in member before opening or capturing a page',
   await open(event,'https://example.com/policy','workspace','member-a');const first=[...partitions.keys()][0];assert.equal(partitions.size,1);
   await handlers.get('pacifica:page-capture')(event);member='member-b';
   await assert.rejects(handlers.get('pacifica:page-bounds')(event,{visible:true,bounds:{x:10,y:80,width:400,height:300}}),/another member/);assert.equal(partitions.get(first).cleared,true);
-  await assert.rejects(handlers.get('pacifica:page-capture')(event),/another member/);
+  // The visibility check already closed the former member's page session.
+  await assert.rejects(handlers.get('pacifica:page-capture')(event),/Wait for the page/);
   await open(event,'https://example.com/other','workspace','member-b');assert.equal(partitions.size,2);
   allowed=false;await assert.rejects(handlers.get('pacifica:page-capture')(event),/another member/);assert.equal([...partitions.values()][1].cleared,true);
  }finally{globalThis.setTimeout=timeout;delete globalThis.desktopHarness}
