@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cleanQuoteDetails,validBirthDate} from '../app/lib/quote-intake.ts';
+import {cleanQuoteDetails,validBirthDate,recordQuoteEvidence} from '../app/lib/quote-intake.ts';
 import {createQuoteToken,readQuoteToken} from '../app/lib/quote-intake-token.ts';
 import {opportunityFor,rankOpportunities,revenuePlan,acceptQuoteSubmission} from '../app/lib/opportunities.ts';
 import {mergeCloudContact} from '../app/lib/contact-sync.ts';
@@ -16,6 +16,18 @@ test('DOB requires a complete real date, not an age or month/year estimate',()=>
  assert.throws(()=>cleanQuoteDetails({...details,contactPermission:false},false,now),/Confirm/);
  assert.throws(()=>cleanQuoteDetails({...details,website:'spam'},false,now),/Unable/);
  assert.equal(cleanQuoteDetails(details,false,now).dateOfBirth,'1990-06-15');
+});
+test('manual evidence requires consent, attestation, ordered stages and stable retry IDs',()=>{
+ const reviewed={...submission,status:'accepted',consentText:'Customer requested insurance contact.'};
+ const base={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',stage:'carrier_quote',reference:'CARRIER-Q-1234',attested:true};
+ assert.throws(()=>recordQuoteEvidence(submission,base,'agent-1',now),/Review and customer consent/);
+ assert.throws(()=>recordQuoteEvidence(reviewed,{...base,attested:false},'agent-1',now),/personally reviewed/);
+ assert.throws(()=>recordQuoteEvidence(reviewed,{...base,stage:'binder_evidence'},'agent-1',now),/preceding/);
+ const first=recordQuoteEvidence(reviewed,base,'agent-1',now);
+ assert.equal(first.evidence[0].provenance,'agency_attested_unverified');
+ assert.equal(recordQuoteEvidence(first,base,'agent-1',now),first);
+ assert.throws(()=>recordQuoteEvidence(first,{...base,reference:'DIFFERENT'},'agent-1',now),/already belongs/);
+ assert.throws(()=>recordQuoteEvidence(first,{...base,id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'},'agent-1',now),/already recorded/);
 });
 test('quote-link tokens are opaque and reject alteration and key rotation',()=>{
  process.env.QUOTE_INTAKE_SECRET='test-key-only-'.repeat(4);

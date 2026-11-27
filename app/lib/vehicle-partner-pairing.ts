@@ -1,7 +1,9 @@
 import {isHostedRuntime} from './hosted-runtime';
 import {workspaceRedis,workspaceRedisConfig} from './workspace-redis';
 
-export type PartnerStatus='received'|'agency_reviewed'|'declined';
+export type PartnerStatus='received'|'agency_reviewed'|'declined'|'agency_quote_recorded'|'agency_acceptance_recorded'|'agency_binder_evidence_recorded';
+export const evidencePartnerStatus={carrier_quote:'agency_quote_recorded',customer_acceptance:'agency_acceptance_recorded',binder_evidence:'agency_binder_evidence_recorded'} as const;
+export const partnerStatusRank=(status:PartnerStatus)=>({received:0,agency_reviewed:1,agency_quote_recorded:2,agency_acceptance_recorded:3,agency_binder_evidence_recorded:4,declined:5})[status];
 export type PartnerPair={
  linkId:string;
  agencyWorkspaceId:string;
@@ -67,9 +69,10 @@ export async function updatePartner(id:string,update:(current:PartnerPair|null)=
 }
 
 export function partnerSummary(pair:PartnerPair){
+ const hasAgencyEvidence=partnerActive(pair)&&pair.receipts.some(({status})=>['agency_quote_recorded','agency_acceptance_recorded','agency_binder_evidence_recorded'].includes(status));
  return {
   linkId:pair.linkId,agencyName:pair.agencyName,source:pair.source,expiresAt:pair.expiresAt,
-  revoked:pair.revoked,receipts:partnerActive(pair)?pair.receipts.map(({id,status})=>({id,status,quoteStatus:'Carrier quote required' as const})):[],
-  stagesUnavailable:'Carrier quote required. Premiums and binding are unavailable until a licensed agent confirms a carrier path.',
+  revoked:pair.revoked,receipts:partnerActive(pair)?pair.receipts.map(({id,status})=>({id,status,quoteStatus:status==='agency_quote_recorded'||status==='agency_acceptance_recorded'||status==='agency_binder_evidence_recorded'?'Agency recorded evidence; provider unverified' as const:'Carrier quote required' as const})):[],
+  stagesUnavailable:hasAgencyEvidence?'Agency-recorded evidence is not independently provider verified. Premiums and confirmed binding remain unavailable.':'Carrier quote required. Premiums and binding are unavailable until a licensed agent confirms a carrier path.',
  };
 }

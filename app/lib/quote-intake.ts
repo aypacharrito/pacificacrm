@@ -1,11 +1,28 @@
 export type QuoteDetails={name:string;phone:string;email:string;product:string;address:string;city:string;state:string;zip:string;dateOfBirth:string;renewalDate:string;vin:string;currentCarrier:string;contactPermission:boolean};
 export type QuoteLink={id:string;leadId:number|null;source:string;createdAt:string;expiresAt:string;revoked?:boolean;vehicleReferral?:boolean};
-export type QuoteSubmission={id:string;linkId:string;leadId:number|null;source:string;submittedAt:string;status:"pending"|"accepted"|"dismissed";details:QuoteDetails;consentText:string;reviewedAt?:string;acceptedLeadId?:number;requestNotes?:string;requestId?:string};
+export type QuoteEvidenceStage='carrier_quote'|'customer_acceptance'|'binder_evidence';
+export type QuoteEvidence={id:string;stage:QuoteEvidenceStage;reference:string;recordedAt:string;recordedBy:string;provenance:'agency_attested_unverified'};
+export type QuoteSubmission={id:string;linkId:string;leadId:number|null;source:string;submittedAt:string;status:"pending"|"accepted"|"dismissed";details:QuoteDetails;consentText:string;reviewedAt?:string;acceptedLeadId?:number;requestNotes?:string;requestId?:string;evidence?:QuoteEvidence[]};
 export type QuoteIntakeState={links:QuoteLink[];submissions:QuoteSubmission[]};
 export type QuoteRequestEvidence={id:string;requestedAt:string;source:string};
 export const emptyQuoteIntake=():QuoteIntakeState=>({links:[],submissions:[]});
 export const quoteConsentText=(business:string)=>`I am requesting an insurance quote from ${business} for myself or someone I am authorized to represent. I authorize the agency to use these details to prepare a quote and contact me personally about this request. This does not enroll me in automated marketing.`;
 export const phoneKey=(value:string)=>value.replace(/\D/g,"").replace(/^1(?=\d{10}$)/,"");
+export function recordQuoteEvidence(submission:QuoteSubmission,input:{id:string;stage:QuoteEvidenceStage;reference:string;attested:boolean},actor:string,now=new Date()){
+ if(submission.status!=='accepted'||!submission.details.contactPermission||!submission.consentText)throw Error('Review and customer consent are required before recording evidence.');
+ if(input.attested!==true)throw Error('Confirm that you personally reviewed the external evidence.');
+ if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(input.id))throw Error('Use a valid evidence request ID.');
+ if(!/^[A-Za-z0-9._/-]{4,80}$/.test(input.reference))throw Error('Enter an external reference of 4–80 characters without personal details.');
+ const order:QuoteEvidenceStage[]=['carrier_quote','customer_acceptance','binder_evidence'];
+ const index=order.indexOf(input.stage);
+ if(index<0)throw Error('Choose a valid evidence stage.');
+ const evidence=submission.evidence||[];
+ const retry=evidence.find(item=>item.id===input.id);
+ if(retry){if(retry.stage!==input.stage||retry.reference!==input.reference)throw Error('Evidence request ID already belongs to another entry.');return submission}
+ if(evidence.some(item=>item.stage===input.stage))throw Error('This evidence stage is already recorded.');
+ if(index>0&&!evidence.some(item=>item.stage===order[index-1]))throw Error('Record the preceding evidence stage first.');
+ return {...submission,evidence:[...evidence,{id:input.id,stage:input.stage,reference:input.reference,recordedAt:now.toISOString(),recordedBy:actor,provenance:'agency_attested_unverified' as const}]};
+}
 export function exactDate(value:string){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
  const time=Date.parse(value+"T00:00:00Z");return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===value;

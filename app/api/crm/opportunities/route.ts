@@ -3,11 +3,11 @@ import {randomUUID} from 'node:crypto';
 import {getPacificaAccess} from '../../../lib/clerk-access';
 import {isClerkConfigured} from '../../../lib/clerk-config';
 import {readStoredWorkspace,updateStoredWorkspace} from '../../../lib/workspace-storage';
-import {cleanQuoteIntake,type QuoteLink} from '../../../lib/quote-intake';
+import {cleanQuoteIntake,recordQuoteEvidence,type QuoteEvidenceStage,type QuoteLink} from '../../../lib/quote-intake';
 import {createQuoteToken} from '../../../lib/quote-intake-token';
 import {acceptQuoteSubmission,rankOpportunities,type OpportunityLead} from '../../../lib/opportunities';
 import {aiClient,aiConfigured,aiModel,aiReasoning} from '../../../lib/ai-provider';
-import {partnerActive,updatePartner} from '../../../lib/vehicle-partner-pairing';
+import {evidencePartnerStatus,partnerActive,partnerStatusRank,readPartner,updatePartner} from '../../../lib/vehicle-partner-pairing';
 import {WorkspaceLoadError} from '../../../lib/workspace-load';
 export const runtime='nodejs';
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
@@ -17,13 +17,15 @@ export async function GET(){
  try{
   const workspace=await readStoredWorkspace(owner.userId);if(!workspace)return json({error:'Save the workspace before creating quote links.'},409);
   const intake=cleanQuoteIntake(workspace.quoteIntake);
-  return json({submissions:intake.submissions,links:intake.links.filter(link=>link.vehicleReferral).map(({id,source,expiresAt,revoked})=>({id,source,expiresAt,revoked:!!revoked}))});
+  const canRecordEvidence=owner.role==='owner'&&(!('accountUserId' in owner)||!owner.accountUserId||owner.accountUserId===owner.userId)&&workspace.profile.mode==='insurance';
+  const submissions=canRecordEvidence?intake.submissions:intake.submissions.map(({evidence,...submission})=>submission);
+  return json({submissions,canRecordEvidence,links:intake.links.filter(link=>link.vehicleReferral).map(({id,source,expiresAt,revoked})=>({id,source,expiresAt,revoked:!!revoked}))});
  }catch{return json({error:'Quote requests could not be loaded. Check secure quote-link setup and workspace storage.'},503)}
 }
 export async function POST(request:Request){
  const owner=await identity();if(!owner)return json({error:'Sign in required'},401);
  try{
-  const body=await request.json() as {action?:string;leadId?:number;source?:string;id?:string;vehicleReferral?:boolean;intendedDealerWorkspaceId?:string};
+  const body=await request.json() as {action?:string;leadId?:number;source?:string;id?:string;vehicleReferral?:boolean;intendedDealerWorkspaceId?:string;evidenceId?:string;stage?:QuoteEvidenceStage;reference?:string;attested?:boolean;agencyAuthorized?:boolean;licensedAgentAttestation?:boolean};
   const now=new Date();let path='',acceptedLeadId:number|undefined;
   if(body.action==='plan'){
    const workspace=await readStoredWorkspace(owner.userId);if(!workspace)return json({error:'Save your workspace first.'},409);
@@ -54,6 +56,37 @@ export async function POST(request:Request){
     return {...current,quoteIntake:{...intake,links:link.vehicleReferral?[...intake.links.filter(l=>!l.revoked),link]:intake.links}};
    });
    if(partnerLink){const link=partnerLink;await updatePartner(id,current=>current||{linkId:id,agencyWorkspaceId:owner.userId,agencyName,source:link.source,expiresAt:link.expiresAt,intendedDealerWorkspaceId,dealerWorkspaceId:'',revoked:false,receipts:[]})}
+  }else if(body.action==='record-evidence'){
+   if(owner.role!=='owner'||'accountUserId' in owner&&owner.accountUserId&&owner.accountUserId!==owner.userId)return json({error:'Only the agency owner acting as the designated person may record evidence.'},403);
+   if(body.agencyAuthorized!==true||body.licensedAgentAttestation!==true)return json({error:'Confirm your agency designation and licensed-agent attestation before recording evidence.'},400);
+   const workspace=await readStoredWorkspace(owner.userId);
+   const submission=cleanQuoteIntake(workspace?.quoteIntake).submissions.find(s=>s.id===body.id);
+   if(!workspace||workspace.profile.mode!=='insurance'||!submission)return json({error:'An insurance agency request is required.'},400);
+   const link=cleanQuoteIntake(workspace.quoteIntake).links.find(l=>l.id===submission.linkId&&l.vehicleReferral&&!l.revoked&&Date.parse(l.expiresAt)>Date.now());
+   const pair=link&&await readPartner(link.id);
+   if(!pair||!partnerActive(pair)||!pair.dealerWorkspaceId||pair.agencyWorkspaceId!==owner.userId)return json({error:'This partner request is no longer active.'},400);
+   let recordedStage:QuoteEvidenceStage|undefined;
+   await updateStoredWorkspace(owner.userId,current=>{
+    if(current.profile.mode!=='insurance')throw Error('An insurance agency request is required.');
+    const intake=cleanQuoteIntake(current.quoteIntake);
+    const currentLink=intake.links.find(l=>l.id===submission.linkId&&l.vehicleReferral&&!l.revoked&&Date.parse(l.expiresAt)>Date.now());
+    const currentSubmission=intake.submissions.find(s=>s.id===body.id);
+    if(!currentLink||!currentSubmission)throw Error('This partner request is no longer active.');
+    const updated=recordQuoteEvidence(currentSubmission,{id:body.evidenceId||'',stage:body.stage as QuoteEvidenceStage,reference:body.reference||'',attested:body.attested===true},'accountUserId' in owner?String(owner.accountUserId||owner.userId):owner.userId,now);
+    recordedStage=body.stage;
+    if(updated===currentSubmission)return current;
+    return {...current,quoteIntake:{...intake,submissions:intake.submissions.map(s=>s.id===updated.id?updated:s)}};
+   });
+   if(recordedStage){
+    const status=evidencePartnerStatus[recordedStage];
+    await updatePartner(submission.linkId,current=>{
+     if(!current||current.agencyWorkspaceId!==owner.userId)throw Error('Partner record unavailable.');
+     if(!partnerActive(current))return current;
+     const exists=current.receipts.some(r=>r.id===submission.id);
+     const receipts=exists?current.receipts.map(r=>r.id===submission.id&&partnerStatusRank(r.status)<partnerStatusRank(status)?{...r,status}:r):[...current.receipts,{id:submission.id,status}];
+     return {...current,receipts:receipts.slice(-500)};
+    });
+   }
   }else if(body.action==='revoke-link'){
    if(owner.role!=='owner')return json({error:'Only a workspace owner can revoke a vehicle partner invitation.'},403);
    const current=await readStoredWorkspace(owner.userId),link=cleanQuoteIntake(current?.quoteIntake).links.find(l=>l.id===body.id&&l.vehicleReferral);
@@ -84,7 +117,7 @@ export async function POST(request:Request){
  }catch(error){
   if(error instanceof WorkspaceLoadError)return json({error:'Partner or workspace storage is unavailable. Please retry.'},503);
   const message=error instanceof Error?error.message:'';
-  const safe=/^(Select an available|Vehicle partner links|Revoke an old|Quote request not found|Multiple contacts|The original contact|This contact is deleted|Only a workspace owner|Partner record unavailable)/.test(message);
+  const safe=/^(Select an available|Vehicle partner links|Revoke an old|Quote request not found|Multiple contacts|The original contact|This contact is deleted|Only a workspace owner|Partner record unavailable|An insurance agency|This partner request|Review and customer consent|Confirm that you personally|Use a valid evidence|Enter an external reference|Choose a valid evidence|Evidence request ID|This evidence stage|Record the preceding)/.test(message);
   return json({error:safe?message:'The quote request could not be saved. Please retry.'},safe?400:503);
  }
 }
