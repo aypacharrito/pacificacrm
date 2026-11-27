@@ -6,11 +6,13 @@
  * so each known filing fails closed to a carrier quote.
  */
 
-export const CA_RATING_REGISTRY_VERSION = "ca-program-review-2026-11-27.2" as const;
+export const CA_RATING_REGISTRY_VERSION = "ca-program-review-2026-11-27.3" as const;
 export const CA_RATING_REGISTRY_AS_OF = "2026-11-27" as const;
 
 export type CaliforniaProgram = {
   filingId: string;
+  serffTracking: string;
+  filingStatus: "Closed - Approved" | "Pending with Waiver";
   insurer: string;
   program: string;
   line: "personal-auto" | "homeowners";
@@ -27,6 +29,8 @@ export type CaliforniaProgram = {
 export const CALIFORNIA_PROGRAMS: readonly CaliforniaProgram[] = [
   {
     filingId: "24-1139",
+    serffTracking: "GMMX-134127116",
+    filingStatus: "Closed - Approved",
     insurer: "Integon Preferred Insurance Company",
     program: "Value",
     line: "personal-auto",
@@ -38,58 +42,70 @@ export const CALIFORNIA_PROGRAMS: readonly CaliforniaProgram[] = [
       "The schedule on p. 72 identifies Exhibit 12. Its nine rate-factor pages are physical pp. 73–81 and its two coverage algorithm pages are pp. 82–83 (CDI-00016569–CDI-00016579).",
       "Page 73 distinguishes Value Option base rates. Page 74 lists a separate towing base. The carrier must confirm which base, limits, vehicle symbols and rule revisions apply to the risk.",
       "The filing includes older rules beginning on p. 708 and the reconciliation on p. 1500. Effective applicability and authorized carrier comparisons remain outstanding.",
+      "On November 27, SERFF listed the May 2025 replacement manual for this filing. Its eleven pages match the text in the CDI copy after removing the public-record stamps and whitespace.",
+      "SERFF lists the Value symbol class plan 24-2128 (GMMX-134286985) and the minimum-limit rule 23-1661 (GMMX-133699991) as approved. The November 20 Cornerstone/Value conversion GMMX-135164367 is in Intake.",
     ],
   },
   {
     filingId: "26-1481",
+    serffTracking: "GMMX-135019770",
+    filingStatus: "Pending with Waiver",
     insurer: "Integon National Insurance Company",
     program: "Summit",
     line: "personal-auto",
     verification: "unverified",
     evidenceAsOf: "2026-11-27",
     vehicleSymbolsRequiredForReview: true,
-    provenance: ["Program/filing identification supplied for this review; current program rules and applicability are not verified."],
+    provenance: ["SERFF listed Integon National Summit as Pending with Waiver on November 27, 2026. The filing requests October 20, 2026."],
   },
   {
     filingId: "26-1598",
+    serffTracking: "MERY-135039801",
+    filingStatus: "Pending with Waiver",
     insurer: "Mercury Insurance Company",
     program: "Auto",
     line: "personal-auto",
     verification: "unverified",
     evidenceAsOf: "2026-11-27",
     vehicleSymbolsRequiredForReview: true,
-    provenance: ["Program/filing identification supplied for this review; current program rules and applicability are not verified."],
+    provenance: ["SERFF listed Mercury Personal Auto Rate as Pending with Waiver on November 27, 2026. The filing requests July 1, 2027."],
   },
   {
     filingId: "26-1599",
+    serffTracking: "MERY-135039802",
+    filingStatus: "Pending with Waiver",
     insurer: "California Automobile Insurance Company",
     program: "Auto",
     line: "personal-auto",
     verification: "unverified",
     evidenceAsOf: "2026-11-27",
     vehicleSymbolsRequiredForReview: true,
-    provenance: ["Program/filing identification supplied for this review; current program rules and applicability are not verified."],
+    provenance: ["SERFF listed CAIC Personal Auto Rate as Pending with Waiver on November 27, 2026. The filing requests July 1, 2027."],
   },
   {
     filingId: "26-486",
+    serffTracking: "BRWS-134878085",
+    filingStatus: "Pending with Waiver",
     insurer: "Coast National Insurance Company",
     program: "Basic",
     line: "personal-auto",
     verification: "unverified",
     evidenceAsOf: "2026-11-27",
     vehicleSymbolsRequiredForReview: true,
-    provenance: ["Program/filing identification supplied for this review; current program rules and applicability are not verified."],
+    provenance: ["SERFF listed Coast National Basic as Pending with Waiver on November 27, 2026. The filing requests June 30, 2026."],
   },
   {
     filingId: "25-2014",
+    serffTracking: "MERY-134655346",
+    filingStatus: "Closed - Approved",
     insurer: "California Automobile Insurance Company",
     program: "Homeowners",
     line: "homeowners",
     verification: "unverified",
-    evidenceAsOf: "2026-10-31",
+    evidenceAsOf: "2026-11-27",
     vehicleSymbolsRequiredForReview: false,
     provenance: [
-      "The downloaded 25-2014 disposition records approval June 2, 2026 and new and renewal effective dates October 15, 2026. The CDI workbook through October 31, 2026 lists the filing on row 445.",
+      "SERFF listed CAIC Homeowners Non-CAT CP as Closed - Approved on November 27, 2026. The disposition gives June 2, 2026 approval and October 15, 2026 for new business and renewal.",
       "This homeowners change requires the complete applicable manual and coverage-level carrier comparisons before a local estimate can be used.",
     ],
   },
@@ -136,7 +152,7 @@ export type RatingEligibilityResult = {
 const REASON_MESSAGES: Record<RatingEligibilityReasonCode, string> = {
   PROGRAM_NOT_IN_REGISTRY: "This filing is not in the California program registry; a carrier must review it.",
   PROGRAM_RULES_UNVERIFIED: "Current program-specific underwriting rules have not been verified.",
-  APPROVAL_AND_EFFECTIVE_STATUS_UNVERIFIED: "Current approval and applicability status have not been verified for this program.",
+  APPROVAL_AND_EFFECTIVE_STATUS_UNVERIFIED: "The carrier must confirm which approved rules apply to the requested policy term.",
   CARRIER_DECISION_REQUIRED: "Only the carrier can determine eligibility and provide a quote.",
   POLICY_TERM_MISSING_OR_UNSUPPORTED: "Select new business or renewal so the carrier can review the correct policy term.",
   EFFECTIVE_DATE_MISSING_OR_INVALID: "Provide a valid effective date in YYYY-MM-DD format for carrier review.",

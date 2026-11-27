@@ -1,15 +1,17 @@
 # California carrier quote review
 
-The agency review screen displays **Carrier quote required** for all six filings. Registry `ca-program-review-2026-11-27.2` records the evidence available to the licensed agent. A transaction needs an authorized carrier quote before the agency records a quoted premium. Delivering evidence of insurance requires the corresponding carrier confirmation.
+The agency review screen displays **Carrier quote required** for all six filings. Registry `ca-program-review-2026-11-27.3` records the public filing status alongside the evidence available to the licensed agent. A transaction needs an authorized carrier quote before the agency records a quoted premium. Delivering evidence of insurance requires the corresponding carrier confirmation.
 
-| California filing | Program | Disposition printed in the downloaded copy | Pilot action |
-|---|---|---|---|
-| 24-1139 | Integon Preferred Value auto | Approved May 29, 2025. The disposition lists July 15, 2025 for new business and renewal. A subsequent carrier note specifies August 1, 2025. | Reconcile the governing date, manual and vehicle symbols with the carrier. |
-| 26-1481 | Integon National Summit auto | Pending with waiver. Requested October 20, 2026. | Obtain subsequent disposition and the applicable manual. |
-| 26-1598 | Mercury auto | Pending with waiver. Requested July 1, 2027. | Obtain subsequent disposition and the applicable manual. |
-| 26-1599 | California Automobile Insurance Company auto | Pending with waiver. Requested July 1, 2027. | Obtain subsequent disposition and the applicable manual. |
-| 26-486 | Coast National Basic auto | Pending with waiver. Requested June 30, 2026. | Obtain subsequent disposition and the complete Basic manual. |
-| 25-2014 | California Automobile Insurance Company homeowners | Approved June 2, 2026. Both effective dates are October 15, 2026. | Review separately as a homeowners change filing. |
+| California filing | Program | SERFF tracking number | Status checked November 27, 2026 | Next dependency |
+|---|---|---|---|---|
+| 24-1139 | Integon Preferred Value auto | `GMMX-134127116` | Closed - Approved May 29, 2025. The disposition lists July 15, 2025 for both terms. The carrier subsequently gave August 1. | Confirm how the carrier implemented the manual, symbols and dates and compare coverage premiums. |
+| 26-1481 | Integon National Summit auto | `GMMX-135019770` | Pending with Waiver. Requested October 20, 2026. | Subsequent disposition and applicable manual. |
+| 26-1598 | Mercury auto | `MERY-135039801` | Pending with Waiver. Requested July 1, 2027. | Subsequent disposition and applicable manual. |
+| 26-1599 | California Automobile Insurance Company auto | `MERY-135039802` | Pending with Waiver. Requested July 1, 2027. | Subsequent disposition and applicable manual. |
+| 26-486 | Coast National Basic auto | `BRWS-134878085` | Pending with Waiver. Requested June 30, 2026. | Subsequent disposition and complete Basic manual. |
+| 25-2014 | California Automobile Insurance Company homeowners | `MERY-134655346` | Closed - Approved June 2, 2026. Both effective dates are October 15, 2026. | Separate homeowners manual and carrier comparison. |
+
+The operator searched each exact tracking number through the register's ordinary public interface. The list above records the status of the specified filing at the time of the search. Each individual policy still requires a carrier quote. [California SERFF Filing Access](https://serff-sfa.naic.org/serff/sfa/home/CA)
 
 ## Integon Value source pages
 
@@ -24,7 +26,25 @@ All references use physical PDF pages in the 1,612-page filing `GMMX-134127116`.
 
 Page 6 gives July 15, 2025 for new and renewal business. The carrier's June 5 note on page 68 gives August 1, 2025. The rules manual beginning on page 708 carries a June 2022 revision. The premium reconciliation is on page 1500. Review these dates, predecessor rules and any later amendments with the licensed carrier before using the factors for a transaction.
 
-The regulator’s closed-filings workbook through October 31, 2026 lists CAIC homeowners 25-2014 at row 445. Row 1333 is a separate Integon Value **forms** approval, 25-193 (`GMMX-134404390`). The four filings printed as pending have no matching entries in that workbook. The workbook cutoff precedes the November 27 review. [California Department of Insurance, October 2026 closed filings](https://www.insurance.ca.gov/0250-insurers/0800-rate-filings/0100-rate-filing-lists/rate-filing-approvals/upload/Approval-Closed-List-YTD-10-31-26.xlsx)
+The register lists the May 28 replacement attachment `2025_05_CA IP Exhibit 12_Rate Manual_.pdf`, SHA-256 `43904320fafdd8998130f1e5478ae33b5c727b5138dc50ffb94dd0e7c01b3785`. Its 11 pages match the text on physical pages 73–83 of the CDI copy after removing whitespace and the added public-records stamps. The exhibit extracted from that CDI copy also matches the original 11 pages in text, geometry, and rendered pixels.
+
+### Related records in the California register
+
+| Record | Public observation on November 27 | Use in the pilot |
+| --- | --- | --- |
+| Value symbols, `24-2128`, `GMMX-134286985` | Auto Class Plan approved April 22, 2025. The five selected SymbolSet5 PDFs contain 504, 1,124, 752, 905 and 662 pages in model-year order. The disposition leaves the effective-date fields blank and specifies the same implementation date for new business and renewals. | An exact masked vehicle key and model year can identify a filed symbol reference. A carrier must still confirm its applicability to the quote. |
+| Value minimum limits, `23-1661`, `GMMX-133699991` | Rule approved June 24, 2024. Its disposition records January 1, 2025 for both terms. The current attachment in this filing is the 11-page `2025_01_01_CA IP Exhibit 12_Rate Manual_Final_v3.pdf`, SHA-256 `de053b2375029582a36ef1a8a9dd90f99138fc99e03a7c1c67490be7919ef1fc`. | Reconcile these amendments with the later Value rate manual before applying them to a policy. |
+| Listed predecessor, `GMMX-133321311` | SERFF identifies the filing as a **Cornerstone** rate/rule filing, approved September 20, 2023. | Establish precisely which rules Value incorporates with the carrier. |
+| Value forms, `25-193`, `GMMX-134404390` | Form approval dated May 12, 2026. | Review the policy-form change separately from the rate tables. |
+| Cornerstone/Value conversion, `GMMX-135164367` | Rate/Rule/Form submitted November 20, 2026. The November 23 state status was **Intake** and the disposition was blank. Its attachment list includes a proposed November 2026 rate manual. | Excluded from the pilot calculation. Check for a subsequent disposition before considering its rates. |
+
+The November 27 search for NAIC company 31488 and product names containing “Value” returned 16 records. Other product names and later changes still require the carrier's confirmation. [California public filing register](https://serff-sfa.naic.org/serff/sfa/home/CA) · [CDI monthly approval lists](https://www.insurance.ca.gov/0250-insurers/0800-rate-filings/0100-rate-filing-lists/rate-filing-approvals/)
+
+### Using a filed vehicle-symbol sheet
+
+In the licensed agency owner's opportunity desk, open the Integon vehicle-symbol reference, select the appropriate local SS5 PDF, and enter the **published ten-character mask** and model year. A matching file must have the exact approved SHA-256 and page count. The lookup reads the PDF on the device. A unique match identifies the file, page, make, model and SymbolSet5. Missing and conflicting matches go to carrier review.
+
+The app's PDF reader and an independent PDFium check each counted 201,181 filed rows across 3,947 pages. The lookup also returned the last printed vehicle on the last page of each of the five files. Their model years span 1981-2025. The latest sheet contains 33,756 rows. Its first page gives SymbolSet5 `721011` for the public 2024 Ford F-150 mask `1FTFW2K5*R`. The observed 2026 and 2027 model-year row count was zero. Three historical rows contain a literal ampersand in the mask. The local lookup reproduced the published 2000 Ford F-250 Super symbol `C41618` for `3FT&X21L*Y`. The carrier still needs to supply its applicable newer vehicle data for a new-car pilot.
 
 ## Calculator status
 

@@ -2,6 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CALIFORNIA_PROGRAMS, CA_RATING_REGISTRY_AS_OF, evaluateCaliforniaRatingEligibility } from '../app/lib/ca-rating-eligibility.ts';
 
+test('the November 27 public filing dispositions are tracked separately from carrier quote eligibility', () => {
+  const dispositions = CALIFORNIA_PROGRAMS.map(({ filingId, serffTracking, filingStatus, evidenceAsOf }) => {
+    assert.equal(evidenceAsOf, '2026-11-27');
+    return [filingId, serffTracking, filingStatus];
+  });
+  assert.deepEqual(dispositions, [
+    ['24-1139', 'GMMX-134127116', 'Closed - Approved'],
+    ['26-1481', 'GMMX-135019770', 'Pending with Waiver'],
+    ['26-1598', 'MERY-135039801', 'Pending with Waiver'],
+    ['26-1599', 'MERY-135039802', 'Pending with Waiver'],
+    ['26-486', 'BRWS-134878085', 'Pending with Waiver'],
+    ['25-2014', 'MERY-134655346', 'Closed - Approved'],
+  ]);
+});
+
 test('all six unverified programs fail closed to a carrier quote', () => {
   assert.equal(CALIFORNIA_PROGRAMS.length, 6);
   for (const program of CALIFORNIA_PROGRAMS) {
