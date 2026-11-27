@@ -1,6 +1,7 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, session, shell, screen, nativeTheme, systemPreferences, dialog } from "electron";
+import { app, BrowserWindow, WebContentsView, ipcMain, session, shell, screen, nativeTheme, systemPreferences, dialog, safeStorage } from "electron";
 import electronUpdater from "electron-updater";
 import {createConnectedBrowser} from "./connected-browser.mjs";
+import {createFlintloadCompanion} from "./flintload-companion.mjs";
 import {createDesktopUpdater} from "./updater.mjs";
 import {desktopChrome} from "./chrome.mjs";
 import path from "node:path";
@@ -39,14 +40,41 @@ let rendererRecoveryTimer=null;
 let lastRendererRecovery=0;
 let unresponsiveTimer=null;
 const connectedPages=createConnectedBrowser({getWindow:()=>mainWindow,WebContentsView,session,shell,appOrigin,onState:state=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('pacifica:page-state',state)}});
+let activePageIdentity=null;
+const flintload=createFlintloadCompanion({userData:app.getPath('userData'),safeStorage});
+async function verifiedPageIdentity(){
+ const response=await session.defaultSession.fetch(new URL('/api/desktop/page-identity',appUrl).toString(),{credentials:'include',cache:'no-store',redirect:'error'});
+ if(!response.ok)throw Error('Sign in to your workspace before opening connected pages.');
+ const value=await response.json();
+ if(typeof value.workspaceId!=='string'||!value.workspaceId||typeof value.memberId!=='string'||!value.memberId)throw Error('A verified member account is required.');
+ return {workspaceId:value.workspaceId,memberId:value.memberId};
+}
+async function requireCurrentPageIdentity(){
+ if(!activePageIdentity)throw Error('Wait for the page to open before using it.');
+ try{const actual=await verifiedPageIdentity();if(activePageIdentity?.workspaceId===actual.workspaceId&&activePageIdentity?.memberId===actual.memberId)return actual}
+ catch{}await connectedPages.action('disconnect');activePageIdentity=null;throw Error('This page session belongs to another member. Sign in and reopen it.');
+}
 function trustedPageControl(event){return trustedMain(event)&&event.senderFrame===mainWindow.webContents.mainFrame&&/^\/dashboard(?:\/|$)/.test(new URL(event.senderFrame.url).pathname)}
 for(const [channel,handler] of Object.entries({
- 'pacifica:page-open':(_event,url,workspaceId)=>connectedPages.open(url,workspaceId),
- 'pacifica:page-bounds':(_event,value)=>connectedPages.bound(value),
- 'pacifica:page-action':(_event,name)=>connectedPages.action(name),
- 'pacifica:page-capture':()=>connectedPages.capture(),
+ 'pacifica:page-open':async(_event,url,workspaceId,memberId)=>{let actual;try{actual=await verifiedPageIdentity()}catch{await connectedPages.action('disconnect');activePageIdentity=null;throw Error('Sign in to your workspace before opening connected pages.')}if(activePageIdentity&&(activePageIdentity.memberId!==actual.memberId||activePageIdentity.workspaceId!==actual.workspaceId)){await connectedPages.action('disconnect');activePageIdentity=null}if(actual.workspaceId!==workspaceId||actual.memberId!==memberId)throw Error('This page session does not match the signed-in member.');activePageIdentity=actual;return connectedPages.open(url,actual)},
+ 'pacifica:page-bounds':(_event,value)=>value?.visible
+   ? requireCurrentPageIdentity().then(()=>connectedPages.bound(value))
+   : connectedPages.bound(value),
+ 'pacifica:page-action':async(_event,name)=>{if(name!=='disconnect')await requireCurrentPageIdentity();else activePageIdentity=null;return connectedPages.action(name)},
+ 'pacifica:page-capture':async()=>{await requireCurrentPageIdentity();return connectedPages.capture()},
  'pacifica:page-close':()=>connectedPages.close(),
 }))ipcMain.handle(channel,(event,...args)=>{if(!trustedPageControl(event))throw Error('Open your signed-in workspace first.');return handler(event,...args)});
+for(const [channel,handler] of Object.entries({
+ 'pacifica:flintload-status':(identity)=>flintload.status(identity),
+ 'pacifica:flintload-connect':(identity,token)=>flintload.connect(identity,token),
+ 'pacifica:flintload-disconnect':(identity)=>flintload.revoke(identity),
+ 'pacifica:flintload-lookup':(identity,query)=>flintload.lookup(identity,query),
+}))ipcMain.handle(channel,async(event,...args)=>{
+ if(process.platform!=='win32'||!trustedPageControl(event))throw Error('Open Pacifica on Windows in your signed-in workspace.');
+ const before=await verifiedPageIdentity();const value=await handler(before,...args);
+ const after=await verifiedPageIdentity();if(before.workspaceId!==after.workspaceId||before.memberId!==after.memberId)throw Error('Your member session changed. Sign in and try again.');
+ return value;
+});
 
 function host(url){
   try{return new URL(url).hostname.toLowerCase()}catch{return ""}
@@ -174,7 +202,9 @@ function createWindow(){
     if(isTrustedNavigation(url))return {action:"allow"};
     if(/^https?:\/\//i.test(url))void shell.openExternal(url);return {action:"deny"};
   });
-  mainWindow.webContents.on("did-navigate",(_event,url)=>{if(!isAppUrl(url)||!new URL(url).pathname.startsWith("/dashboard")){messageQueue=[];seenMessages.clear();messageWindow?.hide();connectedPages.close()}});
+  const leaveWorkspace=(_event,url)=>{if(!isAppUrl(url)||!new URL(url).pathname.startsWith("/dashboard")){messageQueue=[];seenMessages.clear();messageWindow?.hide();activePageIdentity=null;void connectedPages.action('disconnect').catch(()=>{})}};
+  mainWindow.webContents.on("did-navigate",leaveWorkspace);
+  mainWindow.webContents.on("did-navigate-in-page",leaveWorkspace);
   mainWindow.webContents.on("will-navigate",(event,url)=>{if(!isTrustedNavigation(url)){event.preventDefault();if(/^https?:\/\//i.test(url))void shell.openExternal(url)}});
   mainWindow.webContents.on("render-process-gone",(_event,details)=>{if(details.reason!=="clean-exit")recoverMainRenderer(`renderer process gone: ${details.reason}`)});
   mainWindow.webContents.on("unresponsive",()=>{

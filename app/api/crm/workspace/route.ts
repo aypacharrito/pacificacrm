@@ -59,6 +59,7 @@ function cleanPayload(value: unknown): WorkspacePayload {
   delete clean.documentInsights;
   delete clean.minerState;
   delete clean.quoteIntake;
+  delete clean.vehiclePartnerLinks;
   delete clean.noteReminders;
   delete clean.noteReview;
   delete clean.officeItems;

@@ -16,12 +16,13 @@ export default async function DashboardPage(){
     if(!isPacificaPlatformOwnerEmail(access.email)&&[access.accessMetadata,access.memberMetadata].some(meta=>accessScope(meta||{})!=="full"))redirect("/miner-workspace");
     return <>
       <CRMClient
-        key={access.userId}
+        key={access.userId+":"+access.accountUserId}
         clerkEnabled
         isOwner={access.role==="owner"||access.role==="manager"}
         isPlatformOwner={isPacificaPlatformOwnerEmail(access.email)}
         featureAccess={await getPlatformFeatures()}
         workspaceId={access.userId}
+        accountUserId={access.accountUserId}
         currentUserName={access.displayName}
         currentUserEmail={access.email}
         userRole={access.role}

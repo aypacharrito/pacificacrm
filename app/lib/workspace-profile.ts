@@ -49,6 +49,7 @@ export type WorkspaceProfile={
   outreachTone:OutreachTone;
   customAiInstructions:string;
   aiPersonalizationEnabled:boolean;
+  assistantName?:string;
   maxAutomatedTouchesPerLeadPerDay:number;
   appearance:WorkspaceAppearance;
   colorPalette:ColorPalette;
@@ -173,8 +174,17 @@ function cleanDialerBackdropUrl(value:unknown){
   try{const parsed=new URL(raw);return parsed.protocol==="https:"?raw:""}catch{return ""}
 }
 
+function cleanLegacyAssistantName(value:unknown){
+  if(typeof value!=="string")return "";
+  const name=value.replace(/[\s\p{Cc}\p{Cf}]+/gu," ").trim();
+  const cleaned=Array.from(name).slice(0,32).join("").trimEnd();
+  return cleaned==="Jarvis"?"":cleaned;
+}
+
 export function cleanWorkspaceProfile(value:unknown):WorkspaceProfile{
   const profile=value&&typeof value==="object"?value as Partial<WorkspaceProfile>:{};
+  const assistantName=cleanLegacyAssistantName(profile.assistantName);
+
   const rawLiveCall=profile.liveCallSession&&typeof profile.liveCallSession==="object"?profile.liveCallSession:null;
   const rawDialerRuns=profile.dialerRuns&&typeof profile.dialerRuns==="object"?profile.dialerRuns as Partial<Record<"life"|"home-auto",DialerRunState>>:{};
   const rawMiner=profile.minerAutoFeed&&typeof profile.minerAutoFeed==="object"?profile.minerAutoFeed as Partial<MinerAutoFeedSettings>:{};
@@ -194,6 +204,7 @@ export function cleanWorkspaceProfile(value:unknown):WorkspaceProfile{
     outreachTone:profile.outreachTone==="casual"||profile.outreachTone==="concise"||profile.outreachTone==="consultative"||profile.outreachTone==="luxury"?profile.outreachTone:"professional-friendly",
     customAiInstructions:String(profile.customAiInstructions||"").trim().slice(0,2000),
     aiPersonalizationEnabled:profile.aiPersonalizationEnabled!==false,
+    ...(assistantName?{assistantName}:{}),
     leadWarming:cleanWarming(profile.leadWarming),
     maxAutomatedTouchesPerLeadPerDay:Math.min(3,Math.max(1,Math.round(Number(profile.maxAutomatedTouchesPerLeadPerDay)||1))),
     appearance:profile.appearance==="light"?"light":profile.appearance==="dark"?"dark":"system",

@@ -1,4 +1,5 @@
 import {cleanWarming} from "./lead-warming-policy";
+import {recordHealthRun} from './workspace-health-runs';
 import {cleanAiControl,matchesOutreach,inOutreachWindow} from "./ai-control";
 import {workspaceAutomationAccess} from "./clerk-access";
 import {emailWithComplianceFooter} from "./message-footer";
@@ -106,7 +107,7 @@ function assignRoundRobin<T extends {assignedTo?:string;stage?:string;doNotCall?
   return changed?assigned:leads;
 }
 
-export async function runFollowUpAutomation(options:{workspaceId?:string;workspaceLimit?:number;sendLimit?:number;deadline?:number}={}):Promise<AutomationRun>{
+export async function runFollowUpAutomation(options:{workspaceId?:string;workspaceLimit?:number;sendLimit?:number;deadline?:number;trigger?:'manual'|'scheduled'}={}):Promise<AutomationRun>{
   const startedAt=new Date().toISOString();let workspaces=0,changed=0,duplicatesRemoved=0,due=0,attempted=0,sent=0,smsSent=0,emailSent=0,tasksCreated=0,fallbacks=0,retried=0,blocked=0,deadLettered=0,failed=0;
   const records=await automationWorkspaces(options);
   for(const record of records){
@@ -157,6 +158,7 @@ export async function runFollowUpAutomation(options:{workspaceId?:string;workspa
       workspaceChanged=true;
     }
     if(workspaceChanged){await saveWorkspaceChanges(record.workspaceId,record.workspace,{...record.workspace,leads});changed++}
+    if(options.trigger)await recordHealthRun(record.workspaceId,options.trigger);
   }
   const run:AutomationRun={ok:true,startedAt,completedAt:new Date().toISOString(),workspaces,changed,duplicatesRemoved,due,sent,smsSent,emailSent,tasksCreated,fallbacks,retried,blocked,deadLettered,failed};
   await workspaceRedis(["SET","pacifica:v2:automation:last-run",JSON.stringify(run)]).catch(()=>null);

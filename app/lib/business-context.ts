@@ -25,8 +25,8 @@ export const industryObjectiveHints: Record<WorkspaceIndustry,string> = {
   custom:"Follow the workspace owner's sales objective and business instructions using only facts supported by the workspace and lead record.",
 };
 
-const blockedKey = /(phone|mobile|email|address|street|ssn|social.?security|birth|dob|password|secret|token|routing|bank|card|license.?number|policy.?number|account.?number)/i;
-const systemKey = /^(id|deletedAt|deletionUpdatedAt|communications|smsConsent|smsOptOut|emailConsent|emailOptOut|lastSmsAt|lastEmailAt|automation|clientReminderKeys)$/i;
+const blockedKey = /(phone|mobile|email|address|street|ssn|social.?security|birth|dob|password|secret|token|routing|bank|card|license|passport|vin|policy.?number|account.?number)/i;
+const systemKey = /^(id|notes|deletedAt|deletionUpdatedAt|communications|smsConsent|smsOptOut|emailConsent|emailOptOut|lastSmsAt|lastEmailAt|automation|clientReminderKeys)$/i;
 
 function scalar(value:unknown){
   if(typeof value==="string")return value.trim().slice(0,400);

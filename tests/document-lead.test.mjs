@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {cleanDocumentLeadExtraction,documentLeadCompletenessScore,documentLeadHasUsefulData,documentLeadImportedFields,documentLeadName} from "../app/lib/document-lead.ts";
+import {cleanDocumentLeadExtraction,documentLeadCompletenessScore,documentLeadHasUsefulData,documentLeadImportedFields,documentLeadName,reviewedDocumentLeadFields} from "../app/lib/document-lead.ts";
 import {parseAamvaBarcode,parseInsuranceDeclarationText,parseLicenseOcrText} from "../app/lib/local-document-parser.ts";
 
 test("document scans are cleaned without inventing missing fields",()=>{
@@ -11,9 +11,17 @@ test("document scans are cleaned without inventing missing fields",()=>{
   assert.deepEqual(extraction.otherFields,[{label:"Height",value:"5-07"}]);
 });
 
-test("all useful scanned values remain visible in imported details",()=>{
-  const extraction=cleanDocumentLeadExtraction({documentType:"Driver license",fullName:"Maya Chen",address:"10 Main St",city:"Pasadena",state:"CA",zip:"91101",licenseNumber:"D123",otherFields:[{label:"Class",value:"C"}]});
-  assert.deepEqual(documentLeadImportedFields(extraction),{"Document type":"Driver license","Full name":"Maya Chen","Street address":"10 Main St",City:"Pasadena",State:"CA",ZIP:"91101","Driver license number":"D123",Class:"C"});
+test("license identifiers stay in dedicated editable fields and out of general document context",()=>{
+  const extraction=cleanDocumentLeadExtraction({documentType:"Driver license",fullName:"Maya Chen",address:"10 Main St",city:"Pasadena",state:"CA",zip:"91101",licenseNumber:"D1234567",otherFields:[{label:"DL",value:"D1234567"},{label:"Extra",value:"D1234567"},{label:"Document note",value:"DL ****4567"},{label:"Class",value:"C"}]});
+  assert.equal(extraction.licenseNumber,"D1234567");
+  assert.deepEqual(documentLeadImportedFields(extraction),{"Document type":"Driver license","Full name":"Maya Chen","Street address":"10 Main St",City:"Pasadena",State:"CA",ZIP:"91101"});
+});
+
+test("corrected license draft fields replace OCR values before saving general details",()=>{
+  const read=cleanDocumentLeadExtraction({documentType:"Driver license",fullName:"Maya Chin",address:"10 Main St",licenseNumber:"D1234567",otherFields:[{label:"DL",value:"D1234567"}]});
+  const fields=reviewedDocumentLeadFields(documentLeadImportedFields(read),{name:"Maya Chen",address:"10 Main Street",city:"Pasadena",state:"CA",zip:"91101",dateOfBirth:"1990-01-02",policyNumber:"",policyEffectiveDate:"",policyExpirationDate:"",vin:""});
+  assert.equal(fields["Full name"],"Maya Chen");assert.equal(fields["Street address"],"10 Main Street");assert.equal(fields["Date of birth"],"1990-01-02");
+  assert.doesNotMatch(JSON.stringify(fields),/Maya Chin|D1234567/);
 });
 
 test("empty vision responses are rejected while partial IDs remain usable",()=>{

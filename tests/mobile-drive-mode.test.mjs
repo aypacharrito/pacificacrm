@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as driveSessionModule from "../mobile/src/drive-session.ts";
 // Expo owns a CommonJS package; Node 22 exposes its TS exports under default.
-const {beginDriveCall,createDriveSession,currentDriveLead,finishDriveCall,pauseDriveSession,resumeDriveSession,saveDriveDisposition,startDriveSession}=driveSessionModule.default||driveSessionModule;
+const {beginDriveCall,createDriveSession,currentDriveLead,finishDriveCall,openDriveCall,pauseDriveSession,resumeDriveSession,saveDriveDisposition,startDriveSession}=driveSessionModule.default||driveSessionModule;
 import {createCallStartGate,dialDigits,findDialedContact} from "../app/lib/call-start-gate.ts";
 
 const queue=[
@@ -28,6 +28,18 @@ test("an unanswered call advances without asking for a disposition",()=>{
   assert.equal(session.phase,"briefing");
   assert.equal(session.completed,1);
   assert.equal(session.lastDisposition,"No answer");
+});
+
+test("the phone handoff must succeed before Drive Mode changes phase",async()=>{
+  const briefing=startDriveSession(createDriveSession(queue));
+  let resolveOpen;
+  const handoff=openDriveCall(briefing,()=>new Promise(resolve=>{resolveOpen=resolve}));
+  assert.equal(briefing.phase,"briefing");
+  resolveOpen();
+  assert.equal((await handoff).phase,"calling");
+  await assert.rejects(()=>openDriveCall(briefing,()=>Promise.reject(new Error("No phone app"))),/No phone app/);
+  assert.equal(briefing.phase,"briefing");
+  assert.equal(currentDriveLead(briefing)?.id,1);
 });
 
 test("pause and resume never lose the current lead",()=>{

@@ -6,6 +6,11 @@ export function createDriveSession(queue:DriveLead[]):DriveSession{return {queue
 export function currentDriveLead(session:DriveSession){return session.index<session.queue.length?session.queue[session.index]:null}
 export function startDriveSession(session:DriveSession):DriveSession{return {...session,phase:currentDriveLead(session)?"briefing":"finished"}}
 export function beginDriveCall(session:DriveSession):DriveSession{return session.phase==="briefing"&&currentDriveLead(session)?{...session,phase:"calling"}:session}
+export async function openDriveCall(session:DriveSession,openPhone:()=>Promise<unknown>):Promise<DriveSession>{
+  if(session.phase!=="briefing"||!currentDriveLead(session))return session;
+  await openPhone();
+  return beginDriveCall(session);
+}
 export function finishDriveCall(session:DriveSession,connected:boolean):DriveSession{
   if(session.phase!=="calling")return session;
   if(connected)return {...session,phase:"wrap-up"};

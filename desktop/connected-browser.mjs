@@ -6,6 +6,11 @@ export function pageUrl(value,appOrigin=''){
  }catch{return null}
 }
 export function pageCitation(value){const url=new URL(value);url.search='';url.hash='';return url.href}
+export function pagePartition(identity){
+ const {workspaceId,memberId}=identity||{};
+ if(typeof workspaceId!=='string'||!workspaceId.trim()||workspaceId.length>200||typeof memberId!=='string'||!memberId.trim()||memberId.length>200)throw Error('Verified member required.');
+ return 'persist:pacifica-pages-member-'+createHash('sha256').update(JSON.stringify([workspaceId,memberId])).digest('hex').slice(0,32);
+}
 export function pageBounds(value,size){
  const {x,y,width,height}=value||{};if(![x,y,width,height].every(Number.isFinite))return null;
  const left=Math.max(0,Math.min(size[0],Math.round(x))),top=Math.max(68,Math.min(size[1],Math.round(y)));
@@ -20,11 +25,11 @@ export function createConnectedBrowser({getWindow,WebContentsView,session,shell,
  const publish=()=>onState(state());
  function close(){if(view){const window=getWindow();if(window&&!window.isDestroyed())window.contentView.removeChildView(view);if(!view.webContents.isDestroyed())view.webContents.close();view=null}workspace='';error='';requestedUrl='';publish()}
  function bound(value){if(!view)return false;const box=pageBounds(value?.bounds,getWindow()?.getContentSize()||[0,0]);view.setVisible(Boolean(value?.visible&&box&&box.width>20&&box.height>20));if(box)view.setBounds(box);return true}
- async function open(value,id){
+ async function open(value,identity){
   const url=pageUrl(value,appOrigin);if(!url)throw Error('Use a public HTTPS website address.');
-  if(typeof id!=='string'||!id.trim()||id.length>200)throw Error('Workspace required.');
+  const id=pagePartition(identity);
   const window=getWindow();if(!window||window.isDestroyed())throw Error('Open Pacifica first.');
-  if(!view||workspace!==id){close();workspace=id;activeSession=session.fromPartition('persist:pacifica-pages-'+createHash('sha256').update(id).digest('hex').slice(0,24));
+  if(!view||workspace!==id){close();workspace=id;activeSession=session.fromPartition(id);
    activeSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
    activeSession.setPermissionCheckHandler(()=>false);
    view=new WebContentsView({webPreferences:{session:activeSession,contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true,allowRunningInsecureContent:false,webviewTag:false,spellcheck:true}});

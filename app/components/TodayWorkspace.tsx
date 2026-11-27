@@ -4,6 +4,7 @@ import AttachmentReview from "./AttachmentReview";
 import GmailTriagePanel from "./GmailTriagePanel";
 import NoteReminders from "./NoteReminders";
 import { useEffect, useMemo, useState } from "react";
+import type {PrivateCallback} from '../lib/member-callbacks';
 import { dateValue, leadPriority, rankLeads, type LeadPriorityInput } from "../lib/lead-priority";
 
 type TodayLead=LeadPriorityInput&{name:string;phone:string;city:string;source:string;leadCost:number;product:string};
@@ -19,6 +20,8 @@ function relativeDate(value:string,now:number){
 
 export default function TodayWorkspace({leads,onOpen,onCall,onImport,onAdd,isOwner}:{leads:TodayLead[];onOpen:(id:number)=>void;onCall:(id:number)=>void;onImport:()=>void;onAdd:()=>void;isOwner?:boolean}){
   const [currentNow,setCurrentNow]=useState(()=>Date.now());
+  const [privateCallbacks,setPrivateCallbacks]=useState<PrivateCallback[]>([]);
+  useEffect(()=>{let active=true;const load=()=>void fetch('/api/calendar/member-callbacks',{cache:'no-store'}).then(response=>response.ok?response.json():{items:[]}).then(data=>{if(active)setPrivateCallbacks(Array.isArray(data.items)?data.items:[])}).catch(()=>{});load();window.addEventListener('pacifica:private-callback-updated',load);return()=>{active=false;window.removeEventListener('pacifica:private-callback-updated',load)}},[]);
   useEffect(()=>{const timer=window.setInterval(()=>setCurrentNow(Date.now()),60000);return()=>window.clearInterval(timer)},[]);
   const {open,ranked,overdue,appointments,untouched,recent,sourceRows}=useMemo(()=>{
   const open=leads.filter(lead=>lead.stage!=="Closed"&&!lead.doNotCall);
@@ -32,6 +35,7 @@ export default function TodayWorkspace({leads,onOpen,onCall,onImport,onAdd,isOwn
   },[leads,currentNow]);
 
   return <div className="today-workspace"><NoteReminders leads={leads} onOpen={onOpen}/><AttachmentReview leads={leads}/>
+    {privateCallbacks.filter(item=>item.status==='open'&&Date.parse(item.dueAt)>=currentNow-7*86400000&&Date.parse(item.dueAt)<currentNow+180*86400000&&leads.some(lead=>lead.id===item.leadId)).length>0&&<section className="focus-list" aria-label="Private callbacks"><header><span>PRIVATE CALLBACKS</span></header>{privateCallbacks.filter(item=>item.status==='open'&&Date.parse(item.dueAt)>=currentNow-7*86400000&&Date.parse(item.dueAt)<currentNow+180*86400000&&leads.some(lead=>lead.id===item.leadId)).map(item=><article key={item.id}><button type="button" className="focus-person" onClick={()=>onOpen(item.leadId)}>{item.title}</button><small>{new Date(item.dueAt).toLocaleString()} · {item.timezone}</small></article>)}</section>}
     {isOwner&&<GmailTriagePanel today/>}
     <header className="module-bar"><span className="eyebrow">TODAY</span><div className="today-actions"><button onClick={onImport}>Import</button><button className="primary" onClick={onAdd}>+ New lead</button></div></header>
     <section className="today-metrics">

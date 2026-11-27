@@ -17,7 +17,7 @@ export async function GET(request:Request){
   let previousStartedAt='';try{previousStartedAt=JSON.parse(String(previous)).startedAt||''}catch{}
   await workspaceRedis(["SET","pacifica:v2:automation:cloud-heartbeat",JSON.stringify({startedAt,previousStartedAt})]);
   try{
-    const result=await runScheduledAutomation();
+    const result=await runScheduledAutomation({trigger:'scheduled'});
     await workspaceRedis(["SET","pacifica:v2:automation:cloud-heartbeat",JSON.stringify({startedAt,previousStartedAt,completedAt:new Date().toISOString(),...result})]);
     return Response.json(result,{status:result.ok?200:500});
   }catch(error){logError("follow_up_automation_failed",error);return Response.json({error:error instanceof Error?error.message:"Automation run failed"},{status:500})}

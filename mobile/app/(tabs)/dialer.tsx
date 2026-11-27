@@ -75,7 +75,7 @@ export default function DialerScreen() {
           <Button title="Text" kind="secondary" onPress={() => {if(match)router.push(`/conversation/${match.id}`);else if(voice.available)Alert.alert("Save this contact first", "Add this number in Contacts to text from your Pacifica business line.");else void open(textMessageUrl(normalized));}} disabled={!normalized} style={{ flex: 1 }} />
         </View>
       </Card>
-      <Muted>{voice.available?"Business calls use your Pacifica number. Incoming calls require notifications, a network connection and completed Firebase setup. Android force-stop, disabled notifications or a disconnected phone can prevent ringing.":"Calls and texts opened here use your phone’s native service after you confirm them. Automated Pacifica outreach uses the workspace number."}</Muted>
+      <Muted>{voice.available?"Business calls use your Pacifica number. Incoming calls require notifications, a network connection and completed Firebase setup. Android force-stop, disabled notifications or a disconnected phone can prevent ringing.":"Calls and texts opened here use this device's system service. Automated Pacifica outreach uses the workspace number."}</Muted>
     </Screen>
   );
 }

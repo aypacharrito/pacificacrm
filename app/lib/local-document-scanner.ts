@@ -1,7 +1,7 @@
 import {documentLeadCompletenessScore,documentLeadHasUsefulData,type DocumentLeadExtraction} from "./document-lead";
 import {bestDocumentExtraction,parseAamvaBarcode,parseInsuranceDeclarationText} from "./local-document-parser";
 
-export type LocalScanResult={extraction:DocumentLeadExtraction;method:"PDF417 barcode"|"PDF text"|"local OCR";rawText:string};
+export type LocalScanResult={extraction:DocumentLeadExtraction;method:"PDF417 barcode"|"PDF text"|"local OCR"};
 type Progress=(label:string)=>void;
 
 let barcodeReady=false;
@@ -33,7 +33,7 @@ async function ocr(file:File,progress:Progress){
 
 export async function scanDocumentLocally(file:File,progress:Progress=()=>{}):Promise<LocalScanResult>{
   const isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name);
-  if(isPdf){progress("Reading PDF");const rawText=await pdfText(file);const extraction=parseInsuranceDeclarationText(rawText);if(documentLeadHasUsefulData(extraction))return {extraction,method:"PDF text",rawText};throw new Error("No policy details were found in this PDF")}
-  progress("Checking barcode");try{const rawText=await scanBarcode(file);if(rawText){const extraction=parseAamvaBarcode(rawText);if(documentLeadHasUsefulData(extraction))return {extraction,method:"PDF417 barcode",rawText}}}catch{}
-  progress("Reading photo");const rawText=await ocr(file,progress);const extraction=bestDocumentExtraction(rawText);if(!documentLeadHasUsefulData(extraction))throw new Error("The document was not clear enough. Try the license back barcode or a flatter, sharper photo.");return {extraction,method:"local OCR",rawText};
+  if(isPdf){progress("Reading PDF");const rawText=await pdfText(file);const extraction=parseInsuranceDeclarationText(rawText);if(documentLeadHasUsefulData(extraction))return {extraction,method:"PDF text"};throw new Error("No policy details were found in this PDF")}
+  progress("Checking barcode");try{const rawText=await scanBarcode(file);if(rawText){const extraction=parseAamvaBarcode(rawText);if(documentLeadHasUsefulData(extraction))return {extraction,method:"PDF417 barcode"}}}catch{}
+  progress("Reading photo");const rawText=await ocr(file,progress);const extraction=bestDocumentExtraction(rawText);if(!documentLeadHasUsefulData(extraction))throw new Error("The document was not clear enough. Try the license back barcode or a flatter, sharper photo.");return {extraction,method:"local OCR"};
 }

@@ -17,5 +17,57 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run verify:vercel
+      - run: npm run test:dealer-pilot
       - name: Source must not be rewritten by verification
         run: git diff --exit-code
+  worker:
+    name: Build Cloudflare Worker (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --import tsx --test tests/worker-release.test.mjs
+      - run: npm run build
+      - name: Verify the Worker asset binding and inactive schedules
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile, stat} from 'node:fs/promises';
+          import {dirname, resolve} from 'node:path';
+          const config = JSON.parse(await readFile('dist/server/wrangler.json', 'utf8'));
+          const main=resolve(dirname('dist/server/wrangler.json'),config.main);
+          assert.equal(main,resolve('dist/server/index.js'));
+          assert.ok((await stat(main)).isFile());
+          assert.equal(config.assets?.binding, 'ASSETS');
+          assert.equal(config.assets.directory, '../client');
+          assert.ok((await stat('dist/client')).isDirectory());
+          assert.deepEqual(config.triggers?.crons ?? [], []);
+          NODE
+      - name: Verify preview release stays inactive
+        env:
+          WORKERS_CI_COMMIT_SHA: ${{ github.sha }}
+          WORKERS_CI_BRANCH: ${{ github.head_ref || github.ref_name }}
+          PACIFICA_GMAIL_CRON_ENABLED: "true"
+          PACIFICA_CONNECTED_SYNC_ENABLED: "true"
+        run: |
+          node scripts/configure-pacifica-cloudflare.mjs preview
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile} from 'node:fs/promises';
+          const config=JSON.parse(await readFile('dist/server/wrangler.pacifica-release.json','utf8'));
+          assert.equal(config.name,'onyx-pacificacrm');
+          assert.equal(config.workers_dev,true);
+          assert.equal(config.keep_vars,true);
+          assert.deepEqual(config.triggers?.crons,[]);
+          assert.equal(config.vars.PACIFICA_SMS_SENDING_ENABLED,'false');
+          assert.equal(config.vars.PACIFICA_GMAIL_CRON_ENABLED,'false');
+          assert.equal(config.vars.PACIFICA_CONNECTED_SYNC_ENABLED,'false');
+          NODE
+      - run: git diff --exit-code

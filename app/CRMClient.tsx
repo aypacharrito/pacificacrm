@@ -16,7 +16,7 @@ import MobileNavigation from "./components/MobileNavigation";
 import SettingsUpdateCheck from "./components/SettingsUpdateCheck";
 import GmailTriagePanel from "./components/GmailTriagePanel";
 import ConnectedAccounts,{ConnectedHealth} from "./components/connected/ConnectedAccounts";
-import AssistantLauncher,{type AssistantActivity} from "./components/connected/AssistantLauncher";
+import AssistantLauncher,{defaultAssistantName,type AssistantActivity} from "./components/connected/AssistantLauncher";
 import connectedStyles from "./components/connected/Connected.module.css";
 import CallTimer from "./components/CallTimer";
 import {callDurationSeconds,formatCallDuration} from "./lib/call-duration";
@@ -87,7 +87,7 @@ import {openCallMicrophone,configureCallAudio,callSetupMessage} from "./lib/call
 import { readAudioPreferences,saveAudioPreferences } from "./audio-preferences";
 import { PacificaClearVoiceProcessor, supportsClearVoice, warmClearVoice } from "./clearvoice";
 import { playDialTone } from "./lib/dtmf-tone";
-import {documentLeadCompletenessScore,documentLeadImportedFields,documentLeadName,type DocumentLeadExtraction} from "./lib/document-lead";
+import {documentLeadCompletenessScore,documentLeadImportedFields,documentLeadName,reviewedDocumentLeadFields,type DocumentLeadExtraction} from "./lib/document-lead";
 import {scanDocumentLocally} from "./lib/local-document-scanner";
 
 const PhoneSettings=dynamic(()=>import("./components/PhoneSettings"),{loading:()=> <p role="status">Loading phone settings…</p>});
@@ -135,12 +135,12 @@ function isDocumentFile(file:File){return ["image/jpeg","image/png","image/webp"
 
 function mergeDocumentExtractions(local:DocumentLeadExtraction,ai:DocumentLeadExtraction,localMethod:string){return localMethod==="PDF417 barcode"?combineDocumentReads(local,ai):combineDocumentReads(ai,local)}
 
-async function scanDocumentWithAi(files:File[]){
+async function scanDocumentWithAi(files:File[],kind:"policy"){
   const file=files[0];
   const isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name);
   if(isPdf&&file.size>2_800_000)throw new Error("AI PDF scanning supports files up to 2.8 MB; larger PDFs use local text extraction.");
   const payload=isPdf?{pdf:await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Unable to read PDF"));reader.readAsDataURL(file)})}:{images:await Promise.all(files.map(file=>documentImageForAi(file)))};
-  const response=await fetch("/api/ai/document-lead",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,fileName:file.name})});
+  const response=await fetch("/api/ai/document-lead",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,fileName:file.name,documentKind:kind,aiConsent:true})});
   const data=await response.json() as {extraction?:DocumentLeadExtraction;error?:string;detail?:string};
   if(!response.ok||!data.extraction)throw new Error(data.error||data.detail||"AI vision could not read this document");
   return data.extraction;
@@ -185,9 +185,33 @@ function Icon({name}:{name:string}) {
   return <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
-export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=false,featureAccess=defaultPlatformFeatures,workspaceId="local",currentUserName="Pacifica user",currentUserEmail="",userRole="owner"}:{clerkEnabled?:boolean;isOwner?:boolean;isPlatformOwner?:boolean;featureAccess?:PlatformFeatures;workspaceId?:string;currentUserName?:string;currentUserEmail?:string;userRole?:string}){
+export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=false,featureAccess=defaultPlatformFeatures,workspaceId="local",accountUserId="",currentUserName="Pacifica user",currentUserEmail="",userRole="owner"}:{clerkEnabled?:boolean;isOwner?:boolean;isPlatformOwner?:boolean;featureAccess?:PlatformFeatures;workspaceId?:string;accountUserId?:string;currentUserName?:string;currentUserEmail?:string;userRole?:string}){
   const [view,setView]=useState<View>("today");
   const [assistantOpen,setAssistantOpen]=useState(false);
+  const [assistantName,setAssistantName]=useState(defaultAssistantName);
+  const assistantNameRevision=useRef(0);
+  useEffect(()=>{
+    if(!clerkEnabled)return;
+    const controller=new AbortController();
+    const revision=assistantNameRevision.current;
+    void fetch('/api/ai/assistant-preference',{cache:'no-store',signal:controller.signal}).then(async response=>{
+      if(!response.ok)return;
+      const data=await response.json();
+      if(!controller.signal.aborted&&assistantNameRevision.current===revision&&typeof data.name==='string')
+        setAssistantName(data.name||defaultAssistantName);
+    }).catch(()=>{});
+    return ()=>controller.abort();
+  },[clerkEnabled,workspaceId,currentUserEmail]);
+
+  async function renameAssistant(name:string){
+    const response=await fetch('/api/ai/assistant-preference',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name}),
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||typeof data.name!=='string')throw Error(data.error||'The assistant name could not be saved.');
+    assistantNameRevision.current++;
+    setAssistantName(data.name||defaultAssistantName);
+  }
   const [linkedMail,setLinkedMail]=useState("");
   const [linkedEvent,setLinkedEvent]=useState<{source?:string;day?:string;item?:string}>({});
   const [connectedCallback,setConnectedCallback]=useState("");
@@ -221,7 +245,7 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
   const [selectedLead,setSelectedLead]=useState<number|null>(null);
   const [growthLeadId,setGrowthLeadId]=useState<number|null>(null); // PACIFICA_PRODUCT_SYSTEM_V3
   const [aiActivity,setAiActivity]=useState<AssistantActivity>("idle");
-  const [messageTarget,setMessageTarget]=useState<{leadId:number;channel:"sms"|"email"}|null>(null);
+  const [messageTarget,setMessageTarget]=useState<{leadId:number;channel:"sms"|"email";messageId?:string}|null>(null);
   const [search,setSearch]=useState("");
   const [stageFilter,setStageFilter]=useState("All stages");
   const [sourceFilter,setSourceFilter]=useState("All sources");
@@ -270,6 +294,7 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
   const incomingCallRef=useRef<Call|null>(null);
   const [resumeAfterWrap,setResumeAfterWrap]=useState(false);
   const [workspaceProfile,setWorkspaceProfile]=useState<WorkspaceProfile>(defaultWorkspaceProfile);
+  const visibleAssistantName=clerkEnabled?assistantName:workspaceProfile.assistantName||defaultAssistantName;
   const [priorityNow,setPriorityNow]=useState(()=>Date.now());
   const [workspaceSyncStatus,setWorkspaceSyncStatus]=useState("Loading workspace…");
   const [workspaceSavePulse,setWorkspaceSavePulse]=useState(0);
@@ -454,10 +479,25 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
   function openAssistantSource(href:string){
     const query=new URL(href,window.location.origin).searchParams;
     if(query.has("connectedMail")){setLinkedMail(query.get("connectedMail")||"");openView("connected-mail");return}
+    if(query.has("crmLead")){
+      const raw=query.get("crmLead")||"",id=/^[1-9]\d{0,15}$/.test(raw)?Number(raw):NaN;
+      const item=leads.find(lead=>lead.id===id&&!lead.deletedAt&&lead.stage!=="Closed");
+      const member=workspaceProfile.teamRoster.find(person=>person.active&&person.userId===accountUserId);
+      const matching=workspaceProfile.teamRoster.filter(person=>person.active&&person.name===item?.assignedTo);
+      if(!item||(userRole==="agent"&&(!member||matching.length!==1||matching[0].userId!==member.userId))){setToast("This CRM source is no longer available to you.");return}
+      const messageId=query.get("crmMessage");
+      if(messageId!==null){
+        if(!messageId||!(item.communications||[]).some(message=>message.channel==="sms"&&message.direction==="inbound"&&(message.id===messageId||message.providerId===messageId))){setToast("This saved message is no longer available.");return}
+        setMessageTarget({leadId:item.id,channel:"sms",messageId});setSelectedLead(null);setAssistantOpen(false);setView("messages");return;
+      }
+      setActiveLine(item.line);setSearch("");setSourceFilter("All sources");setOwnerFilter("All owners");setStageFilter("All stages");setView("leads");setAssistantOpen(false);setSelectedLead(item.id);return;
+    }
     const day=query.get("day")||"";
     setLinkedEvent({source:query.get("connectedEvent")||undefined,day:/^\d{4}-\d{2}-\d{2}$/.test(day)?day:undefined,item:query.get("appointment")||undefined});
     openView("office");
   }
+  const initialCrmSourceHandled=useRef(false);
+  useEffect(()=>{if(!workspaceHydrated||initialCrmSourceHandled.current||!new URLSearchParams(window.location.search).has("crmLead"))return;initialCrmSourceHandled.current=true;openAssistantSource(window.location.href)},[workspaceHydrated,leads,openAssistantSource]);
   useEffect(()=>{if(!workspaceHydrated||!clerkEnabled||view!=="activity")return;let canceled=false;let refreshCount=0;const refresh=()=>{if(document.hidden)return;void (async()=>{const response=await fetch("/api/crm/workspace",{cache:"no-store"});const data=await response.json();if(!canceled&&Array.isArray(data.callLogs))setCallLogs(current=>mergeRecordingUpdates(current,data.callLogs as CallLog[]));refreshCount+=1;if(refreshCount%6!==1)return;const recordingSids=callLogsRef.current.filter(log=>log.recordingSid&&!log.recordingUrl).map(log=>String(log.recordingSid)).slice(0,20);if(!recordingSids.length)return;const syncResponse=await fetch("/api/twilio/recordings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"sync",recordingSids})});const synced=await syncResponse.json();if(!canceled&&syncResponse.ok&&Array.isArray(synced.callLogs))setCallLogs(current=>mergeRecordingUpdates(current,synced.callLogs as CallLog[]))})().catch(()=>undefined)};const initial=window.setTimeout(refresh,0);const timer=window.setInterval(refresh,30000);return()=>{canceled=true;window.clearTimeout(initial);window.clearInterval(timer)}},[clerkEnabled,view,workspaceHydrated]);
   const fetchToken=useCallback(async()=>{const response=await fetch("/api/twilio/token",{cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data.error||"Twilio is not configured");voiceRouteTokenRef.current=String(data.routeToken||"");return String(data.token)},[]);
   const configureClearVoice=useCallback(async(device:Device)=>{
@@ -1241,13 +1281,14 @@ export default function Page({clerkEnabled=false,isOwner=false,isPlatformOwner=f
     const phone=newLead.phone.trim();const email=newLead.email.trim();const name=newLead.name.trim();if(!name){setToast("Add the contact name before saving");return}
     const createdAt=new Date().toISOString();const isPolicy=/declaration|policy/i.test(newLead.documentType)&&Boolean(newLead.policyNumber||newLead.policyExpirationDate);
     const match=leadsRef.current.find(item=>(normalizedCsvPhone(phone)&&normalizedCsvPhone(item.phone)===normalizedCsvPhone(phone))||(email&&normalizedCsvEmail(item.email)===normalizedCsvEmail(email))||(newLead.policyNumber&&item.policyNumber===newLead.policyNumber));
-    const policyPatch:Partial<Lead>={...(match?.deletedAt?{deletedAt:"",deletionUpdatedAt:createdAt}:{}),name,phone:phone||match?.phone||"",email:email||match?.email||"",city:newLead.city.trim()||match?.city||"No city",address:newLead.address.trim()||match?.address||"",state:newLead.state.trim()||match?.state||"",zip:newLead.zip.trim()||match?.zip||"",product:newLead.product.trim()||match?.product||"Service inquiry",dateOfBirth:newLead.dateOfBirth||match?.dateOfBirth||"",licenseNumber:newLead.licenseNumber||match?.licenseNumber||"",licenseState:newLead.licenseState||match?.licenseState||"",licenseExpiration:newLead.licenseExpiration||match?.licenseExpiration||"",policyNumber:newLead.policyNumber||match?.policyNumber||"",policyEffectiveDate:newLead.policyEffectiveDate||match?.policyEffectiveDate||"",policyExpirationDate:newLead.policyExpirationDate||match?.policyExpirationDate||"",renewalDate:newLead.policyExpirationDate||match?.renewalDate||"",policyPremium:policyMoney(newLead.policyPremium)??match?.policyPremium??0,policyTermMonths:Math.max(0,Number(newLead.policyTermMonths)||match?.policyTermMonths||0),vin:newLead.vin||match?.vin||"",vehicle:newLead.vehicle||match?.vehicle||"",importedFields:{...(match?.importedFields||{}),...newLead.documentFields},...(isPolicy?{clientStatus:"active",stage:"Closed",status:"Closed",outcome:"Sold / Won",closedAt:match?.closedAt||createdAt,automationEnabled:false,automationStatus:"complete",automationNextAt:""}:{})};
+    const reviewedFields=newLead.documentType?reviewedDocumentLeadFields(newLead.documentFields,newLead):{};
+    const policyPatch:Partial<Lead>={...(match?.deletedAt?{deletedAt:"",deletionUpdatedAt:createdAt}:{}),name,phone:phone||match?.phone||"",email:email||match?.email||"",city:newLead.city.trim()||match?.city||"No city",address:newLead.address.trim()||match?.address||"",state:newLead.state.trim()||match?.state||"",zip:newLead.zip.trim()||match?.zip||"",product:newLead.product.trim()||match?.product||"Service inquiry",dateOfBirth:newLead.dateOfBirth||match?.dateOfBirth||"",licenseNumber:newLead.licenseNumber||match?.licenseNumber||"",licenseState:newLead.licenseState||match?.licenseState||"",licenseExpiration:newLead.licenseExpiration||match?.licenseExpiration||"",policyNumber:newLead.policyNumber||match?.policyNumber||"",policyEffectiveDate:newLead.policyEffectiveDate||match?.policyEffectiveDate||"",policyExpirationDate:newLead.policyExpirationDate||match?.policyExpirationDate||"",renewalDate:newLead.policyExpirationDate||match?.renewalDate||"",policyPremium:policyMoney(newLead.policyPremium)??match?.policyPremium??0,policyTermMonths:Math.max(0,Number(newLead.policyTermMonths)||match?.policyTermMonths||0),vin:newLead.vin||match?.vin||"",vehicle:newLead.vehicle||match?.vehicle||"",importedFields:{...(match?.importedFields||{}),...reviewedFields},...(isPolicy?{clientStatus:"active",stage:"Closed",status:"Closed",outcome:"Sold / Won",closedAt:match?.closedAt||createdAt,automationEnabled:false,automationStatus:"complete",automationNextAt:""}:{})};
     const id=match?.id||Date.now();
     if(match)setLeads(old=>old.map(item=>item.id===match.id?{...item,...policyPatch}:item));
     else{const item:Lead={id,name,phone,email,city:newLead.city.trim()||"No city",address:newLead.address.trim(),state:newLead.state.trim(),zip:newLead.zip.trim(),status:isPolicy?"Closed":"Ready",stage:isPolicy?"Closed":"New lead",outcome:isPolicy?"Sold / Won":"Not contacted",notes:"",followUp:"",doNotCall:false,lastContact:"Never",line:activeLine,source:newLead.source.trim()||"Manual",leadCost:Number(newLead.leadCost)||0,product:newLead.product.trim()||"Service inquiry",sourceDisposition:isPolicy?"Sold":"New",importedAt:createdAt,received:createdAt,smsConsent:false,smsOptOut:false,emailConsent:false,emailOptOut:false,communications:[],automationEnabled:!isPolicy,...policyPatch};setLeads(old=>[item,...old])}
     setNewLead(emptyNewLead);setShowNewLead(false);setSelectedLead(isPolicy?null:id);setView(isPolicy?"clients":"leads");setToast(match?`${name} updated from document`:isPolicy?`${name} added to active clients`:`${name} added${phone?"":" · add a phone before dialing"}`);
   }
-  async function scanDocument(input?:File|File[]){
+  async function scanDocument(input?:File|File[],options?:{kind:"license"|"policy";aiConsent:boolean}){
     const files=(Array.isArray(input)?input:input?[input]:[]).slice(0,2),file=files[0];
     if(!file)return;
     if(files.some(file=>file.size>20*1024*1024||!isDocumentFile(file))){setToast("Choose up to two clear document photos under 20 MB each.");return}
@@ -1258,10 +1299,10 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
       let localResult:Awaited<ReturnType<typeof scanDocumentLocally>>|null=null;let aiExtraction:DocumentLeadExtraction|null=null;let localError="";let aiError="";
       const [localAttempt,aiAttempt]=await Promise.allSettled([
         (async()=>{const reads=await Promise.allSettled(files.map(file=>scanDocumentLocally(file,label=>setToast(label))));const usable=reads.flatMap(read=>read.status==="fulfilled"?[read.value]:[]).sort((a,b)=>Number(b.method==="PDF417 barcode")-Number(a.method==="PDF417 barcode"));if(!usable.length)throw Error("Local scan could not read the document");return {...usable[0],extraction:usable.slice(1).reduce((value,item)=>combineDocumentReads(value,item.extraction),usable[0].extraction)}})(),
-        (async()=>{setToast("AI Enhanced Scan · reading document…");return scanDocumentWithAi(files)})(),
+        (async()=>{if(!options?.aiConsent||options.kind!=="policy")throw Error("Local scan only");setToast("AI Enhanced Scan: reading document.");return scanDocumentWithAi(files,options.kind)})(),
       ]);
       if(localAttempt.status==="fulfilled")localResult=localAttempt.value;else localError=localAttempt.reason instanceof Error?localAttempt.reason.message:"Local scan failed";
-      if(aiAttempt.status==="fulfilled")aiExtraction=aiAttempt.value;else aiError=aiAttempt.reason instanceof Error?aiAttempt.reason.message:"AI scan failed";
+      if(aiAttempt.status==="fulfilled")aiExtraction=aiAttempt.value;else if(options?.kind==="policy"&&options.aiConsent)aiError=aiAttempt.reason instanceof Error?aiAttempt.reason.message:"AI scan failed";
       if(!localResult&&!aiExtraction)throw new Error(aiError||localError||"The document could not be read. Try a brighter, straighter photo.");
       let extraction:DocumentLeadExtraction;let method:string;
       if(localResult&&aiExtraction){
@@ -1461,10 +1502,10 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
 
       {(view==="messages"||view==="connected-mail")&&<nav className={connectedStyles.inboxNav} aria-label="Communication views"><button type="button" aria-current={view==="messages"?"page":undefined} onClick={()=>openView("messages")}>Client messages</button><button type="button" aria-current={view==="connected-mail"?"page":undefined} onClick={()=>{setLinkedMail("");openView("connected-mail")}}>Connected mail</button></nav>}
       {view==="connected-mail"&&<div className="page-view"><ConnectedMail source={linkedMail} onSettings={openConnectedSettings}/></div>}
-      <div hidden={view!=="messages"} className="page-view messages-view"><MessagesCenter visible={view==="messages"} key={`${workspaceId}:${messageTarget?.leadId||"inbox"}:${messageTarget?.channel||"sms"}`} workspaceId={workspaceId} profile={workspaceProfile} leads={leads} initialLeadId={messageTarget?.leadId} initialChannel={messageTarget?.channel} onOpenContact={id=>setSelectedLead(id)} onCloseLead={id=>updateLead(id,{stage:"Closed",status:"Closed",outcome:"Not interested",followUp:"",automationEnabled:false,automationNextAt:"",automationStatus:"complete",automationUpdatedAt:new Date().toISOString()})} onPatch={(id,patch)=>updateLead(id,patch as Partial<Lead>)} onProfileChange={setWorkspaceProfile}/></div>
+      <div hidden={view!=="messages"} className="page-view messages-view"><MessagesCenter visible={view==="messages"} key={`${workspaceId}:${messageTarget?.leadId||"inbox"}:${messageTarget?.channel||"sms"}:${messageTarget?.messageId||""}`} workspaceId={workspaceId} profile={workspaceProfile} leads={leads} initialLeadId={messageTarget?.leadId} initialChannel={messageTarget?.channel} initialMessageId={messageTarget?.messageId} onOpenContact={id=>setSelectedLead(id)} onCloseLead={id=>updateLead(id,{stage:"Closed",status:"Closed",outcome:"Not interested",followUp:"",automationEnabled:false,automationNextAt:"",automationStatus:"complete",automationUpdatedAt:new Date().toISOString()})} onPatch={(id,patch)=>updateLead(id,patch as Partial<Lead>)} onProfileChange={setWorkspaceProfile}/></div>
 
 
-      <AssistantLauncher open={assistantOpen} activity={aiActivity} blocked={showNewLead||Boolean(activeLead)||Boolean(growthLead)||Boolean(incomingCall)||Boolean(postCallLeadId)||folderOpen} away={view==="dialer"||view==="messages"||view==="connected-mail"} onOpen={()=>setAssistantOpen(true)} onClose={closeAssistant}><AiCommandCenter soundOwner={currentUserEmail} onSource={openAssistantSource} onScanFolder={openFolder} callBusy={dialing||autoDialing||Boolean(incomingCall)||Boolean(postCallLeadId)} onNavigate={next=>{if(next==="settings")setSettingsSection("integrations");openView(next)}} clerkEnabled={clerkEnabled} onQuoteRequests={()=>setQuoteReviewOpen(open=>!open)} visible={assistantOpen&&!showNewLead&&!activeLead&&!growthLead&&!incomingCall&&!postCallLeadId&&!folderOpen} onActivity={setAiActivity} key={workspaceId} workspaceId={workspaceId} activeLine={activeLine} profile={workspaceProfile} leads={allLeads} recentCalls={callLogs} onApply={applyAiAction} onCreateLead={createAiLead} onOpen={id=>setSelectedLead(id)} onCall={callLeadById}>{quoteReviewOpen&&assistantOpen&&<OpportunityDesk leads={leads} initialLeadId={quoteRequestLeadId} onOpen={setSelectedLead} onMessage={id=>{const item=leads.find(l=>l.id===id);if(item)openLeadMessage(item,"sms")}} onRefresh={async()=>{const response=await fetch("/api/crm/workspace",{cache:"no-store"});if(!response.ok)throw Error("Contact refresh failed. Your reviewed request remains saved.");const data=await response.json();setLeads(current=>mergeIncomingContacts(current,normalizeSavedLeads(data.leads)));}}/>}</AiCommandCenter></AssistantLauncher>
+      <AssistantLauncher name={visibleAssistantName} onRename={clerkEnabled?renameAssistant:undefined} open={assistantOpen} activity={aiActivity} blocked={showNewLead||Boolean(activeLead)||Boolean(growthLead)||Boolean(incomingCall)||Boolean(postCallLeadId)||folderOpen} away={view==="dialer"||view==="messages"||view==="connected-mail"} onOpen={()=>setAssistantOpen(true)} onClose={closeAssistant}><AiCommandCenter assistantName={visibleAssistantName} soundOwner={currentUserEmail} onSource={openAssistantSource} onScanFolder={openFolder} callBusy={dialing||autoDialing||Boolean(incomingCall)||Boolean(postCallLeadId)} onNavigate={next=>{if(next==="settings")setSettingsSection("integrations");openView(next)}} clerkEnabled={clerkEnabled} onQuoteRequests={()=>setQuoteReviewOpen(open=>!open)} visible={assistantOpen&&!showNewLead&&!activeLead&&!growthLead&&!incomingCall&&!postCallLeadId&&!folderOpen} onActivity={setAiActivity} key={`${workspaceId}:${accountUserId}`} workspaceId={workspaceId} accountUserId={accountUserId} activeLine={activeLine} profile={workspaceProfile} leads={allLeads} recentCalls={callLogs} onApply={applyAiAction} onCreateLead={createAiLead} onOpen={id=>setSelectedLead(id)} onCall={callLeadById}>{quoteReviewOpen&&assistantOpen&&<OpportunityDesk leads={leads} initialLeadId={quoteRequestLeadId} onOpen={setSelectedLead} onMessage={id=>{const item=leads.find(l=>l.id===id);if(item)openLeadMessage(item,"sms")}} onRefresh={async()=>{const response=await fetch("/api/crm/workspace",{cache:"no-store"});if(!response.ok)throw Error("Contact refresh failed. Your reviewed request remains saved.");const data=await response.json();setLeads(current=>mergeIncomingContacts(current,normalizeSavedLeads(data.leads)));}}/>}</AiCommandCenter></AssistantLauncher>
 
 
       {view==="clients"&&<div className="page-view clients-view"><ClientPortfolio leads={leads} profile={workspaceProfile} onOpen={id=>setSelectedLead(id)} onPatch={(id,patch)=>updateLead(id,patch as Partial<Lead>)} onProfileChange={setWorkspaceProfile} onImportDocument={openDocumentPicker}/></div>}
@@ -1474,7 +1515,7 @@ if(!isDocumentFile(file)){setToast("Use a photo or PDF document");return}if(file
       {view==="activity"&&<div className="page-view report-view"><header className="module-bar"><span className="eyebrow">REPORTS</span></header><CallLogReport logs={callLogs} leadSpend={leads.reduce((total,item)=>total+item.leadCost,0)} callerId={callerId} agentName={currentUserName} recordingEnabled={workspaceProfile.callRecordingEnabled} onOpenRecordingSettings={()=>{setSettingsSection("workspace");setView("settings")}}/></div>}
 
 
-      {view==="quotes"&&enabledTools.industryTools&&<div className="page-view"><IndustryTools mode={workspaceProfile.mode} onScan={openDocumentPicker} scanBusy={scanBusy} leads={leads} onCollect={id=>{setQuoteRequestLeadId(id);setQuoteReviewOpen(true);setAssistantOpen(true)}} onOpen={setSelectedLead} onQuote={setGrowthLeadId} onQuoted={id=>{const lead=leads.find(l=>l.id===id);if(lead)updateLead(id,{stage:"Quoted",automationEnabled:false,automationNextAt:"",sourceDisposition:/smart\s*financial/i.test(lead.source)?"Quoted without Contact":"Quoted"});}}/></div>}
+      {view==="quotes"&&enabledTools.industryTools&&<div className="page-view"><IndustryTools mode={workspaceProfile.mode} onScan={(files,options)=>void scanDocument(files,options)} onManual={openNewLead} scanBusy={scanBusy} leads={leads} onCollect={id=>{setQuoteRequestLeadId(id);setQuoteReviewOpen(true);setAssistantOpen(true)}} onOpen={setSelectedLead} onQuote={setGrowthLeadId} onQuoted={id=>{const lead=leads.find(l=>l.id===id);if(lead)updateLead(id,{stage:"Quoted",automationEnabled:false,automationNextAt:"",sourceDisposition:/smart\s*financial/i.test(lead.source)?"Quoted without Contact":"Quoted"});}}/></div>}
 
 
 
